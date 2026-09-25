@@ -22,6 +22,7 @@ within 2^-(PREC - 32) of a boundary, rounding could decide which crystal is
 laid, so the draw is REFUSED by name (TieRefusal) rather than decided.
 """
 from fractions import Fraction
+from functools import lru_cache
 from itertools import combinations
 
 import mpmath
@@ -41,8 +42,10 @@ def _to_mpf(fr):
     return mpf(fr.numerator) / mpf(fr.denominator)
 
 
+@lru_cache(maxsize=16)
 def orbitals(L, r2, prec=PREC):
-    """Phi as M rows of N mpf values; site index = x * L + y."""
+    """Phi as M rows of N mpf values; site index = x * L + y. Cached, and
+    returned as tuples, so no caller can mutate a shared entry."""
     ks = fermi_disc(L, r2)
     reps, seen = [], set()
     for k in ks:
@@ -66,7 +69,7 @@ def orbitals(L, r2, prec=PREC):
             cols.append([a * s[m] for m in ms])
     if len(cols) != len(ks):
         raise AssertionError(f"basis has {len(cols)} columns for {len(ks)} modes")
-    return [[col[i] for col in cols] for i in range(M)]
+    return tuple(tuple(col[i] for col in cols) for i in range(M))
 
 
 def kernel(L, r2, prec=PREC):

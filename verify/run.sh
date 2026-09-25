@@ -188,29 +188,31 @@ need_env ()  { [ -n "${!1:-}" ] || STAGE_SKIP_REASON="$2"; }
 
 # ======================================================================
 # THE STAGES. One `stage` line each, the description in double quotes on
-# the same line, so the list above is derived from them.
+# the same line, so the list above is derived from them. A pytest stage runs
+# a DIRECTORY, so a new test file joins its stage by where it is saved, and
+# tests/docs/test_registry.py fails any test file that no stage runs.
 # ======================================================================
 
 stage lint "ruff over the package, the tests and the tools" -- \
   python -m ruff check quantum_film tests tools
 
-stage docs "every relative link resolves, the index lists every document, and the gate can say no" -- \
-  bash verify/pytest-stage.sh tests/test_docs.py
+stage docs "every link resolves, every document is indexed, every test file is run by a stage" -- \
+  bash verify/pytest-stage.sh tests/docs
 
 stage vectors "tests/vectors regenerate byte for byte; measured ones match SHA256SUMS" -- \
   python tools/make_vectors.py --check
 
 stage golden "the authority: uniforms, the shelf's rules, normalisation, the tie refusal, independence" -- \
-  bash verify/pytest-stage.sh tests/test_uniform.py tests/test_stocks.py tests/test_golden_fermi.py tests/test_independence.py
+  bash verify/pytest-stage.sh tests/golden
 
 stage circuits "the Givens circuit against the golden kernel; three sabotages must fail" -- \
-  bash verify/pytest-stage.sh tests/test_givens.py
+  bash verify/pytest-stage.sh tests/circuits
 
 stage decode "Atlas's count order against a frozen known-answer run; plain order must fail" -- \
-  bash verify/pytest-stage.sh tests/test_decode.py
+  bash verify/pytest-stage.sh tests/decode
 
 stage fixer "negative records: fixed, checked from the record alone, reproduced, refused by name" -- \
-  bash verify/pytest-stage.sh tests/test_fixer.py
+  bash verify/pytest-stage.sh tests/fixer
 
 # §3: the control. It must FAIL. It runs the fixer's own command line, the
 # one a user runs, against a record with a crystal moved and the digest left

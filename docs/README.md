@@ -16,6 +16,7 @@ answer is not in here: it is `make verify-quick`.
 |---|---|
 | [ATLAS.md](ATLAS.md) | Moth's Atlas as measured: what the account can do, which engines repeat their bytes, and the count order tomography-api-v2 writes in. |
 | [ROADMAP.md](ROADMAP.md) | The parcels from the skeleton to the submission, each with its negative control. |
+| [ROUND1.md](ROUND1.md) | Round 1's plan: what P0 settled, each parcel's owned and forbidden files, its control, the ledger's path. |
 
 ## The record
 

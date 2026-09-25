@@ -20,13 +20,16 @@ named negative control, and a verifier.
 - Negative control: a sampler with the hand-off removed must disagree with
   the authority on a planted near-tie.
 
-**P2: film, development.**
-- Turn a layout into atlas-film's `(K, thr)` sheet at a pitch.
-- The honesty floor and the mean-K check, fixer-side, because `sheet=` skips
-  both.
-- The first black-and-white prints, and the film-science statistics (g(r),
-  NPS, a Selwyn plot) through atlas-film's own granularity instruments.
-- Negative control: a sheet with its mean K off by 5% must be refused.
+**P2: atlas-film on pinned arithmetic.** The owner's direction (2026-09-25):
+atlas-film was always meant to move onto cft-fp256, and the gaps its survey
+found are that step not yet taken.
+- A deterministic mode in atlas-film, built only from correctly rounded
+  primitives, coated with counter-based uniforms, with cft-fp256 as its
+  authority. It runs in atlas-film's own repository; docs/ROUND1.md has
+  the scope and the controls.
+- Quantum-Film's side of development waits for it, in round 2: turning a
+  layout into atlas-film's `(K, thr)` sheet, the honesty floor and mean-K
+  check, the first prints, and the film-science statistics.
 
 **P3: circuits for hardware.**
 - The (M - N) * N Givens layout with 2-CNOT rotations: about 96 CNOTs for a

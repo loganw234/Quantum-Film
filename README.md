@@ -76,7 +76,7 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
 One command, in two sizes:
 
 ```bash
-make verify-quick   # ~15 s: lint, docs, vectors, golden, circuits, decode, fixer, the negative control
+make verify-quick   # ~20 s: lint, docs, vectors, golden, circuits, decode, fixer, the negative control
 make verify         # adds the cft and live-Atlas stages, each skipped BY NAME when it cannot run
 bash verify/run.sh --list
 ```

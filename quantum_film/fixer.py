@@ -33,6 +33,24 @@ from .stocks import STOCKS, params
 
 FORMAT = "quantum-film/negative/v1"
 SOURCES = ("golden", "local-emu", "atlas-emu", "qpu")
+DEVICE = ("atlas-emu", "qpu")
+COMMITMENT_DOMAIN = "quantum-film/commitment/v1"
+_HEX64 = set("0123456789abcdef")
+
+# A DEVICE ROLL (Atlas or a QPU) carries the job it came from and a commitment:
+#     commitment = SHA-256(COMMITMENT_DOMAIN | circuit_sha256 | engine | job_id | salt)
+# `check` recomputes it, so a record cannot be re-attributed to another circuit
+# or job without the refusal naming it. What the record alone CANNOT prove is
+# that the commitment was formed before the result existed. That is evidenced
+# only if the commitment was published (committed to git, say) before the
+# result was fetched, and the device-roll runner is responsible for doing that.
+DEVICE_FIELDS = {"fixed_at": str, "engine": str, "job_id": str, "circuit_sha256": str,
+                 "shots": int, "decode": str, "salt": str, "commitment": str}
+
+
+def commitment(circuit_sha256, engine, job_id, salt):
+    msg = "|".join((COMMITMENT_DOMAIN, circuit_sha256, engine, job_id, salt))
+    return hashlib.sha256(msg.encode("utf-8")).hexdigest()
 
 
 def canonical(record):
@@ -97,9 +115,42 @@ def check(record):
             out.append("source: a golden roll must name its stream as a list of str and int parts")
     elif "fixed_at" not in src:
         out.append("source: a roll from a device must carry fixed_at")
+    elif src["kind"] in DEVICE:
+        out += _device_problems(src)
+    elif not isinstance(src.get("backend"), str):
+        out.append("source: a local-emu roll must name its backend")
     if record.get("digest") != digest(record):
         out.append("digest: the record's bytes are not the bytes it was fixed with")
     return out
+
+
+def _device_problems(src):
+    out = []
+    for field, kind in DEVICE_FIELDS.items():
+        v = src.get(field)
+        if not isinstance(v, kind) or isinstance(v, bool):
+            out.append(f"source: a {src['kind']} roll must carry {field} ({kind.__name__})")
+    if out:
+        return out
+    for field in ("circuit_sha256", "salt", "commitment"):
+        if len(src[field]) != 64 or not set(src[field]) <= _HEX64:
+            out.append(f"source: {field} must be 64 lowercase hex digits")
+    if src["shots"] < 1:
+        out.append("source: shots must be positive")
+    if not out and src["commitment"] != commitment(src["circuit_sha256"], src["engine"], src["job_id"], src["salt"]):
+        out.append("source: the commitment does not bind this circuit, engine, job and salt")
+    return out
+
+
+def fix_device(stock_id, crystals, source):
+    """Fix a roll laid by a device. `source` must carry DEVICE_FIELDS, the
+    commitment included; the record is refused rather than fixed incomplete."""
+    rec_source = dict(source)
+    problems = _device_problems(rec_source) if rec_source.get("kind") in DEVICE else \
+        [f"source: kind must be one of {DEVICE}"]
+    if problems:
+        raise ValueError("the fixer refuses this device roll: " + "; ".join(problems))
+    return fix(stock_id, crystals, rec_source)
 
 
 def lay(stock_id, seed):

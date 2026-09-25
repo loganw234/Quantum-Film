@@ -336,3 +336,72 @@ ruff 0.11.9.
 - The hardware-shaped circuit: P3.
 - Speckle's authority: P4.
 - A second machine: the missing evidence named in docs/DETERMINISM.md.
+
+---
+
+## 2026-09-25 - P0 finished for round 1: libcft built, the authority held to its own law, device rolls, and a test layout parcels cannot outgrow
+
+The owner asked for three things that evening:
+- create the repository and push it;
+- dispatch P1-P3 once P0 was finished, and only after a verifier had
+  checked P0;
+- move atlas-film onto cft-fp256 as P2.
+
+This entry is the P0 that verifier checks. docs/ROUND1.md is the round's
+plan.
+
+### Measured
+
+- **The repository.** github.com/loganw234/Quantum-Film is public, with main
+  at `eb5068b`. That was confirmed with `git ls-remote origin`, not by
+  echoing a local ref.
+- **libcft.** The owner's invocation, limited to the `cft.dll` target
+  (CLAUDE.md):
+  - 8 s, 0 warnings, 0 errors;
+  - PE32+ x86-64, 122 `cft_` exports, importing only KERNEL32 and msvcrt;
+  - the submodule stays clean, because its build outputs are ignored.
+
+  The `cft` stage now passes: ABI 0.14, and cos(1) = `0x1.14a280fb5068cp-1`.
+  It was watched to fail: copies expecting ABI 0.13, or cos(1) one ulp high,
+  both exit 1.
+- **The authority samples the law it claims.** This had not been tested
+  before: the kernel and the sampler's mechanics were, and the law was not.
+  - Over 2,000 rolls of the 4x4 tile, chi^2/dof across the 16 one-site and
+    120 pair frequencies was **0.943**, against a bound of < 1.6.
+  - The control is the uniform Poisson sampler put through the same check.
+    It scored **7.052** against a bound of > 2.5, and failed, as it must.
+  - 2.9 s.
+- **Device rolls.** `fixer.fix_device` requires a job's provenance and a
+  commitment, SHA-256(domain | circuit | engine | job | salt), which `check`
+  recomputes.
+  - Re-attributing a roll by any one of those four breaks the commitment,
+    and every field is required.
+  - 23 fixer tests.
+- **Tests run by directory.** A planted test file outside every stage
+  directory is caught by tests/docs/test_registry.py. Packages are
+  discovered by setuptools rather than listed.
+- **`make verify`:** 9 passed, and `atlas` skipped by name (no key), in
+  19.6 s. **`make verify-quick`:** 19.1 s. The docs had said ~15 s and now
+  say ~20 s.
+
+### Why each of these was P0 and not a parcel's
+
+- **libcft** is needed by P1 and by P2, and a seam that two parcels need is
+  the lead's (ParcelRound METHOD §2).
+- **The device-roll format** is the record format, which is lead-owned.
+- **The test layout and package discovery** remove the shared files a
+  parcel would otherwise edit: a new test file needs no runner edit, and a
+  new subpackage needs no pyproject edit.
+- **The law test** closes the gap between "the authority's kernel is right"
+  and "the authority samples it".
+
+### Found on the way
+
+- The first `cft` check hard-coded its failure messages, and printed "ABI
+  0.14, not 0.14" when a sabotaged copy expected 0.13. The check could fail,
+  but it could not say why. Each fact is now one constant, read by both the
+  comparison and the message.
+- A long heredoc carrying backslashes was mangled on its way through the
+  shell, and the runner edit it carried failed its own match check before
+  anything was written. The edit went through a script file instead, the
+  owner's standing workaround.

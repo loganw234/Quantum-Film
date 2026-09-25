@@ -9,7 +9,7 @@ import ast
 import pathlib
 import sys
 
-PKG = pathlib.Path(__file__).resolve().parent.parent / "quantum_film"
+PKG = pathlib.Path(__file__).resolve().parents[2] / "quantum_film"
 STDLIB = set(sys.stdlib_module_names)
 
 

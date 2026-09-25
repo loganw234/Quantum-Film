@@ -7,7 +7,7 @@ import pytest
 
 from quantum_film.atlas.decode import basis_of, layouts, order, z_setting
 
-VEC = pathlib.Path(__file__).parent / "vectors" / "tomography-bitorder-2026-09-25.json"
+VEC = pathlib.Path(__file__).resolve().parent.parent / "vectors" / "tomography-bitorder-2026-09-25.json"
 M = 16
 
 

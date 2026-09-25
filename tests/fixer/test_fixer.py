@@ -8,7 +8,7 @@ import pytest
 
 from quantum_film import fixer
 
-VEC = pathlib.Path(__file__).parent / "vectors"
+VEC = pathlib.Path(__file__).resolve().parent.parent / "vectors"
 
 
 @pytest.fixture(scope="module")

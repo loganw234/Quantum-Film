@@ -6,13 +6,15 @@ README says what this project is; this file says what will bite you.
 ## Start here: one command answers "does it still hold?"
 
 ```
-make verify-quick          # ~15 s: lint, docs, vectors, golden, circuits, decode, fixer, the negative control
+make verify-quick          # ~20 s: lint, docs, vectors, golden, circuits, decode, fixer, the negative control
 make verify                # adds cft and the live Atlas smoke; each skips BY NAME when it cannot run
 bash verify/run.sh --list  # every stage, with * on what a budget selects
 ```
 
 `verify/run.sh` is the runner. **Reach for it before hand-running tests.**
-`make test` runs pytest alone and is not a verdict.
+`make test` runs pytest alone and is not a verdict. A pytest stage runs a
+directory: a new test joins its stage by where it is saved (tests/<stage>/),
+and tests/docs/test_registry.py fails a test file no stage runs.
 
 **There is no cache across runs.** A run id is timestamp + commit (+dirty),
 and `--resume` refuses to cross trees. `make vectors` regenerates
@@ -69,7 +71,9 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 ## cft-fp256 (the pinned-arithmetic path)
 
 - **Build only in `vendor/cft-fp256`** (the submodule at 7d7285d), never in
-  `../cft-fp256`: that checkout is shared with other sessions.
+  `../cft-fp256`: that checkout is shared with other sessions. Building only
+  `cft.dll` (not `all`) took 8 s with 0 warnings on 2026-09-25. A git
+  worktree has the submodule uninitialised: point `QF_CFT_ROOT` at a built one.
 - **The build** is the owner's tested invocation, from Git Bash:
   `PATH="/c/msys64/mingw64/bin:$PATH" make -C vendor/cft-fp256/host CC=gcc OS=Windows_NT TMP='C:/Users/logan/AppData/Local/Temp' TEMP='C:/Users/logan/AppData/Local/Temp' all > build.log 2>&1`.
   - The i686 `cc` first on PATH, a missing `OS=Windows_NT` (the DLL then

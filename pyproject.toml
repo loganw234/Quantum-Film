@@ -19,8 +19,10 @@ test = ["pytest", "ruff"]
 # and a moving dependency would move the prints.
 film = ["atlas-film @ git+https://github.com/loganw234/atlas-film@be1d674ac875c797d33f35c57a59be4fc92ce195"]
 
-[tool.setuptools]
-packages = ["quantum_film", "quantum_film.golden", "quantum_film.circuits", "quantum_film.atlas"]
+# Discovered, not listed: a parcel that adds a subpackage edits nothing here
+# (ParcelRound METHOD 2: aim for a glob, not a list).
+[tool.setuptools.packages.find]
+include = ["quantum_film*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
