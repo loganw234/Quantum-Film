@@ -51,35 +51,11 @@ def test_a_roll_is_n_distinct_sites_and_the_same_stream_lays_the_same_roll():
     assert len({tuple(fermi.sample(4, 1, stream("roll", "pauli-4x4", k))) for k in range(1, 9)}) > 1
 
 
-def traced(seed, prec):
-    draws = []
-    roll = fermi.sample(16, 8, stream("roll", "pauli", seed), prec=prec,
-                        trace=lambda j, target, bounds: draws.append((target, bounds)))
-    return roll, draws
-
-
-def test_the_margin_dwarfs_the_arithmetic_error_along_real_rolls():
-    """The premise of the contract's central argument (docs/DETERMINISM.md): the
-    256-bit arithmetic's error in every boundary and every target is far below
-    the refusal margin. Measured against the same rolls at 512 bits, draw by
-    draw. The P0 verifier measured the error at up to 2^-248.8 against a margin
-    of 2^-224, a headroom of about 2^23; this gate demands 2^16.
-
-    It replaces a test that compared rolls at 256 and 320 bits and could not
-    fail: random seeds come no closer than about 2^-15 to a boundary, so the
-    rolls agreed with the refusal removed, and with a margin below the
-    arithmetic's own error (verifier-P0 item 2)."""
-    worst = mpmath.mpf(0)
-    for seed in range(1, 5):
-        roll, draws = traced(seed, 256)
-        again, exact = traced(seed, 512)
-        assert roll == again, seed
-        with mp.workprec(512):
-            for (t, bs), (t2, bs2) in zip(draws, exact, strict=True):
-                worst = max([worst, abs(t - t2)] + [abs(a - b) for a, b in zip(bs, bs2, strict=True)])
-    headroom = fermi.margin(256) / worst
-    log2 = lambda x: float(mpmath.log(x, 2))  # noqa: E731
-    assert headroom > 2 ** 16, f"error 2^{log2(worst):.1f}, headroom 2^{log2(headroom):.1f}"
+# The margin's premise (the arithmetic's error is far below the margin) is
+# measured in tests/golden/test_golden_premise.py, against references that
+# share no code with the authority. It was first measured here, against the
+# authority itself at 512 bits, which could not see an error that does not
+# scale with the precision (the P0 verifier, 2026-09-25).
 
 
 def planted(delta):
@@ -133,3 +109,24 @@ def test_a_draw_on_a_boundary_is_refused_not_rounded():
 def test_a_uniform_that_is_not_an_exact_fraction_is_refused():
     with pytest.raises(ValueError, match="exact Fraction"):
         fermi.sample(4, 1, b"x", uniform_fn=lambda _s, _j: 0.5)
+
+
+def test_a_basis_built_while_the_precision_moved_is_refused_and_never_cached(monkeypatch):
+    """verifier-P0's re-check: orbitals() is cached, and a basis built while
+    another thread held 53 bits served every later roll with no refusal. This
+    stands in for that thread: the first cosine drops the precision."""
+    real_cos = mpmath.cos
+
+    def meddling(x):
+        mp.prec = 53
+        return real_cos(x)
+
+    fermi.orbitals.cache_clear()
+    monkeypatch.setattr(mpmath, "cos", meddling)
+    with pytest.raises(fermi.PrecisionChanged, match="the basis: mpmath's working precision is 53 bits"):
+        fermi.orbitals(4, 1, 200)
+    monkeypatch.undo()
+    assert fermi.orbitals.cache_info().currsize == 0
+    rows = fermi.orbitals(4, 1, 200)                      # built again, cleanly
+    with mp.workprec(200):
+        assert abs(mpmath.fsum(v * v for v in rows[0]) - mpmath.mpf(5) / 16) < mpmath.mpf(2) ** -190

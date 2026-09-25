@@ -19,6 +19,10 @@ api-1.json
 # The runner's per-run state: markers, logs and the JSONL record.
 .gate-state/
 
+# The agent harness keeps each parcel's git worktree here, inside this tree.
+# Untracked, it made every lead run "+dirty" while parcels worked.
+/.claude/worktrees/
+
 # CLAUDE.md's libcft build line writes its log here. Untracked, it made every
 # later run id "+dirty" (verifier-P0 11d).
 /build.log

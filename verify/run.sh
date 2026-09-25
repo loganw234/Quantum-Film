@@ -13,8 +13,9 @@
 #       (pytest-stage.sh). --require-all turns skips into failures; an unknown
 #       stage name is REFUSED, and so is a selection of no stage at all;
 #   §6  a run id of timestamp + pid + commit; per-stage .ok markers; --resume
-#       reruns only what has not passed, and REFUSES to cross commits or to
-#       run on a dirty tree (two dirty trees of one commit share an id);
+#       reruns only what has not passed, and REFUSES to cross commits, to run
+#       on a dirty tree (two dirty trees of one commit share an id), or to run
+#       in another environment (the DLL, the interpreter, the Atlas key);
 #   §7  an append-only JSONL record of every stage verdict.
 #
 # USAGE
@@ -108,7 +109,11 @@ fi
 # That once made every run "nogit" and never dirty, so a dirty tree passed
 # the --resume guard below (found by the lead, 2026-09-25). A tree with a .git
 # that git cannot read is refused rather than called "nogit".
-if COMMIT=$(git rev-parse --short HEAD 2>/dev/null); then
+# A tree that is not its own git toplevel (an export copied inside another
+# repository) would otherwise be stamped with that repository's commit
+# (verifier-P0's re-check, FAILURE-MODES C2): it is "nogit".
+TOP=$(git rev-parse --show-toplevel 2>/dev/null) && TOP=$(cd "$TOP" 2>/dev/null && pwd)
+if [ "$TOP" = "$ROOT" ] && COMMIT=$(git rev-parse --short HEAD 2>/dev/null); then
   STATUS=$(git status --porcelain) || die "git status failed in $ROOT"
   DIRTY=$([ -n "$STATUS" ] && echo "+dirty" || echo "")
 elif [ -e "$ROOT/.git" ]; then
@@ -141,13 +146,29 @@ else
 fi
 RUNDIR="$STATEROOT/$RUNID"
 mkdir -p "$STATEROOT"
+
+# What a stage runs against that is not in the tree: the DLL QF_CFT_ROOT names,
+# the interpreter and its packages, whether a key is set (never the key). A
+# resumed run once reported cft passed for a DLL that failed a fresh run,
+# because QF_CFT_ROOT had changed between the two (verifier-P0's re-check).
+fingerprint () {
+  local dll="${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" h=absent
+  [ -f "$dll" ] && h=$(sha256sum "$dll" | cut -c1-64)
+  echo "QF_CFT_ROOT=${QF_CFT_ROOT:-}"
+  echo "cft.dll=$h"
+  echo "python=$(python -c 'import sys, mpmath, numpy; print(sys.version.split()[0], mpmath.__version__, numpy.__version__)' 2>&1)"
+  echo "QF_ATLAS_AUTH=$([ -n "${QF_ATLAS_AUTH:-}" ] && echo set || echo unset)"
+}
 if [ -z "$RESUME" ]; then
   # Two fresh runs in one second once shared a directory, and the second read
   # the first's .ok markers (verifier-P0 7c). The pid separates them, and a
   # fresh run that finds its directory already there refuses.
   mkdir "$RUNDIR" 2>/dev/null || die "run directory $RUNDIR already exists; a fresh run never reuses markers"
+  fingerprint > "$RUNDIR/environment"
 else
   [ -d "$RUNDIR" ] || die "--resume: there is no run $RUNID under $STATEROOT"
+  [ "$(fingerprint)" = "$(cat "$RUNDIR/environment" 2>/dev/null)" ] || die "--resume: this environment is not
+  the run's (QF_CFT_ROOT, the DLL, python and its packages, or the Atlas key); see $RUNDIR/environment. Use --fresh."
 fi
 JSONL="$RUNDIR/stages.jsonl"
 
@@ -247,7 +268,7 @@ stage docs "every link resolves, every document is indexed, every test file is r
 stage vectors "tests/vectors regenerate byte for byte; measured ones match SHA256SUMS" -- \
   python tools/make_vectors.py --check
 
-stage golden "the authority: its law (planted sampler bugs fail), the margin (premise at 512 bits, planted near-tie), uniforms" -- \
+stage golden "the authority: its law (planted bugs fail); its margin against exact references; a planted near-tie; no binary64" -- \
   bash verify/pytest-stage.sh tests/golden
 
 stage circuits "the Givens circuit against the golden kernel; three sabotages must fail" -- \
@@ -291,8 +312,8 @@ stage atlas "live: the account answers and tomography-api-v2 is on the engine li
 echo "== summary"
 echo "   passed $PASSED, failed $FAILED, skipped $SKIPPED, cached $CACHED"
 echo "   record $JSONL"
-if [ $((PASSED + FAILED + SKIPPED + CACHED)) -eq 0 ]; then
-  echo "== FAILED: no stage ran"
+if [ $((PASSED + FAILED + CACHED)) -eq 0 ]; then
+  echo "== FAILED: no stage ran (a skip is not a run)"
   exit 1
 fi
 if [ -n "$ONLY" ] && ! in_list controls "$ONLY"; then

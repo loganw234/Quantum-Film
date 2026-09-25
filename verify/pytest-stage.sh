@@ -16,6 +16,9 @@
 # desktop, 2026-09-25).
 set -uo pipefail
 export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+# Options from the environment are not the stage's: PYTEST_ADDOPTS=--ignore=...
+# once passed golden on 35 of its 40 tests (verifier-P0's re-check).
+unset PYTEST_ADDOPTS PYTEST_PLUGINS
 out=$(python -m pytest -q -rs "$@" 2>&1)
 rc=$?
 echo "$out"

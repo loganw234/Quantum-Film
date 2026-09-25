@@ -20,8 +20,10 @@ and tests/docs/test_registry.py fails a test file no stage runs.
   A skip happens only at stage level, by name: `need_file` / `need_env` in
   verify/run.sh, where `--require-all` can see it.
 - **There is no cache across runs.** A run id is timestamp + pid + commit
-  (+dirty). `--resume` refuses to cross commits and refuses a dirty tree, and
-  `--only ""` is refused: zero stages is not a pass.
+  (+dirty). `--resume` refuses to cross commits, a dirty tree, or a changed
+  environment (QF_CFT_ROOT, the DLL's hash, python and its packages, whether
+  an Atlas key is set). `--only ""` is refused, and a run whose every stage
+  skipped FAILS: a skip is not a run.
 - `make vectors` regenerates tests/vectors after a deliberate change; never
   hand-edit a vector. A record on disk is exactly `fixer.text(record)`, and
   the fixer's command line refuses any other bytes.
@@ -38,8 +40,16 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 
 - **mpmath's working precision is process-global.** Never call the authority
   from threads: another thread's `mp.prec = 53` would make it binary64
-  arithmetic behind a 2^-224 margin. It refuses a draw whose precision moved
-  (`PrecisionChanged`).
+  arithmetic behind a 2^-224 margin. It refuses a draw, or a basis before it
+  is cached, whose precision moved (`PrecisionChanged`).
+- **The authority does no binary64 arithmetic at all**, read from its source
+  (tests/golden/test_independence.py): no float literal, no `float()`, and
+  from `math` only what is exact on Fractions. Some binary64 slips change no
+  output on today's shelf (K_ii = N/M is dyadic), so no output gate sees them.
+- **Measure the authority against code it does not share.** The first premise
+  gate compared it with itself at 512 bits and passed a binary64 `math.fsum`
+  that moved every boundary by 2^-51.5. The references now are exact
+  Fractions (pauli-4x4's kernel is rational) and an independent chain rule.
 
 ## Atlas (Moth's platform): what bites
 
@@ -102,8 +112,10 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
     `objdump -p .../cft.dll | grep -c ' cft_'` (about 120) before blaming
     Python.
   - Never pipe a long make through `| grep | head`: it hangs at 0% CPU.
-  - Two builds of the same source give DLLs with different SHA-256s, so a
-    DLL is identified by its path and hash in the log, not pinned by hash.
+  - Two builds of the same source differ in exactly three fields: the COFF
+    and export-directory TimeDateStamps and the PE CheckSum (the P0
+    verifier). A hash with those zeroed would pin a build; today a DLL is
+    identified by its path and full hash in the log.
 - **libcft's transcendentals cost about 1,000x an fma**: natively, at
   binary64 through cftmpfr, cos 0.24 ms and exp 0.12 ms per element (measured
   2026-09-25; the first figure, 0.4 ms, was WASM). Build tables of cos, sin
@@ -111,11 +123,18 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 
 ## Housekeeping that has bitten
 
-- **Every script that calls Atlas refuses to be imported**:
-  `if __name__ != "__main__": raise ImportError(...)`, or all its calls under
-  a main guard. tests/docs/test_atlas_guards.py fails one that does not. An
-  import without one re-ran nine probe jobs on 2026-09-25. The verifier then
-  found seven more such scripts, and the gate found an eighth.
+- **Nothing calls Atlas because it was imported** (tests/docs/test_atlas_guards.py).
+  An import re-ran nine probe jobs on 2026-09-25. Two rules:
+  - a script under research/ or tools/ that imports an Atlas client, in any
+    spelling, starts with `if __name__ != "__main__": raise ImportError(...)`;
+  - no module calls a client in code that runs at import, class bodies,
+    decorators and defaults included.
+
+  The first version tracked a few import spellings, and the verifier passed
+  seven others through it.
+- **The session scratchpad is shared by every agent**, and it holds the Atlas
+  key. Brief every agent to write only under a subdirectory named for it:
+  P1 overwrote a lead file at its root on 2026-09-25.
 - **Third-party pytest plugins are switched off** in the gates
   (`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`). zarr's plugin imports CuPy and
   prints a CUDA warning into every log on this desktop.

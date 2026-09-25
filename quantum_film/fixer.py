@@ -164,11 +164,22 @@ def check(record):
         out += _device_problems(src, sid)
     elif not isinstance(src.get("backend"), str):
         out.append("source: a local-emu roll must name its backend")
-    if not isinstance(record.get("code"), dict) or not isinstance(record["code"].get("quantum_film"), str):
-        out.append("code: the record must name the quantum_film version that fixed it")
+    code = record.get("code")
+    if not (isinstance(code, dict) and list(code) == ["quantum_film"] and isinstance(code["quantum_film"], str)):
+        out.append('code: exactly {"quantum_film": <the version that fixed it>}')
     if record.get("digest") != digest(record):
         out.append("digest: the record's bytes are not the bytes it was fixed with")
     return out
+
+
+def authority(law):
+    """The authority a golden roll of this law names: one fact, read by lay() and by check()."""
+    if law["family"] == "determinantal":
+        from .golden import fermi
+        return {"module": "quantum_film.golden.fermi", "prec": fermi.PREC}
+    if law["family"] == "binomial":
+        return {"module": "quantum_film.golden.binomial"}
+    raise LookupError(f"no golden sampler for the {law['family']} family")
 
 
 def _golden_problems(src, sid):
@@ -179,6 +190,12 @@ def _golden_problems(src, sid):
     parts = src.get("stream")
     if not (isinstance(parts, list) and len(parts) == 3 and parts[:2] == ["roll", sid] and _is_int(parts[2])):
         out.append(f'source: a golden roll\'s stream is ["roll", {sid!r}, <integer seed>]')
+    try:
+        want = authority(params(sid))
+    except LookupError as e:
+        return out + [f"source: {e}"]
+    if not _same_json(src.get("authority"), want):
+        out.append(f"source: a golden roll of {sid!r} names its authority as exactly {want}")
     return out
 
 
@@ -219,15 +236,12 @@ def lay(stock_id, seed):
     law = params(stock_id)
     parts = ["roll", stock_id, seed]
     s = stream(*parts)
+    named = authority(law)
     if law["family"] == "determinantal":
         crystals = fermi.sample(law["L"], law["fermi_r2"], s)
-        authority = {"module": "quantum_film.golden.fermi", "prec": fermi.PREC}
-    elif law["family"] == "binomial":
-        crystals = binomial.sample(law["M"], law["N"], s)
-        authority = {"module": "quantum_film.golden.binomial"}
     else:
-        raise LookupError(f"no golden sampler for the {law['family']} family")
-    return fix(stock_id, crystals, {"kind": "golden", "stream": parts, "authority": authority})
+        crystals = binomial.sample(law["M"], law["N"], s)
+    return fix(stock_id, crystals, {"kind": "golden", "stream": parts, "authority": named})
 
 
 def reproduce(record):
@@ -280,7 +294,12 @@ def main(argv):
                 print(f"fixed   {f}  {rec['digest'][:16]}  {rec['stock']}, {len(rec['crystals'])} crystals")
         return 1 if bad else 0
     if len(argv) == 3 and argv[0] == "lay":
-        sys.stdout.write(text(lay(argv[1], int(argv[2]))))
+        try:
+            seed = int(argv[2])
+        except ValueError:
+            print(f"REFUSED: a seed is an integer, not {argv[2]!r}")
+            return 2
+        sys.stdout.write(text(lay(argv[1], seed)))
         return 0
     print(__doc__.split("\n\n")[-1])
     return 2

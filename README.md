@@ -59,8 +59,10 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   55–86% of their crystals.
 - **The authority's rolls do not depend on its arithmetic.** A draw closer
   than 2^-224 to a boundary is refused, not decided. The 256-bit error in
-  every target and boundary is at most 2^-248.8, measured draw by draw
-  against the same rolls at 512 bits: 2^24.8 of headroom.
+  every target and boundary is at most 2^-249.2. It was measured draw by draw
+  against references that share none of the authority's code: exact
+  Fractions on pauli-4x4, whose kernel is rational, and an independent chain
+  rule at 512 bits on the 16x16 stock.
 - **Identical requests to Atlas returned different bytes wherever sampling
   was involved**, seeded engines included; a seed fixes the circuit, not
   the shots.

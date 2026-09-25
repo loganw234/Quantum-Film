@@ -25,8 +25,12 @@ than decided.
 mpmath's working precision is PROCESS-GLOBAL, so this module is not
 thread-safe: another thread's `mp.prec = 53` would silently turn the
 authority into binary64 arithmetic behind a 2^-224 margin (measured by the P0
-verifier, 2026-09-25). Every draw checks the precision it runs at, and
-refuses by name (PrecisionChanged) if it moved.
+verifier, 2026-09-25). Every draw checks the precision it runs at, and so
+does the basis before it is cached: a basis built while the precision had
+moved would otherwise serve every later roll in the process (the verifier
+again, the same evening). Each refuses by name (PrecisionChanged). A change
+made and undone between two checks is not seen: the rule is still no
+threads.
 """
 from fractions import Fraction
 from functools import lru_cache
@@ -84,6 +88,7 @@ def orbitals(L, r2, prec=PREC):
             ms = [(kx * x + ky * y) % L for x in range(L) for y in range(L)]
             cols.append([a * c[m] for m in ms])
             cols.append([a * s[m] for m in ms])
+        _same_precision(prec, "the basis")          # raising here also keeps it out of the cache
     if len(cols) != len(ks):
         raise AssertionError(f"basis has {len(cols)} columns for {len(ks)} modes")
     return tuple(tuple(col[i] for col in cols) for i in range(M))
@@ -92,14 +97,18 @@ def orbitals(L, r2, prec=PREC):
 def kernel(L, r2, prec=PREC):
     rows = orbitals(L, r2, prec)
     with mp.workprec(prec):
-        return [[mpmath.fsum(a * b for a, b in zip(ri, rj, strict=True)) for rj in rows] for ri in rows]
+        K = [[mpmath.fsum(a * b for a, b in zip(ri, rj, strict=True)) for rj in rows] for ri in rows]
+        _same_precision(prec, "the kernel")
+    return K
 
 
 def probability(rows, Y, prec=PREC):
     """det(K_Y) for a layout Y of exactly N sites."""
     with mp.workprec(prec):
         G = mpmath.matrix([[mpmath.fsum(a * b for a, b in zip(rows[i], rows[j], strict=True)) for j in Y] for i in Y])
-        return mpmath.det(G)
+        d = mpmath.det(G)
+        _same_precision(prec, "a layout's probability")
+    return d
 
 
 def total_probability(L, r2, prec=96):
@@ -110,9 +119,10 @@ def total_probability(L, r2, prec=96):
         return mpmath.fsum(probability(rows, Y, prec) for Y in combinations(range(len(rows)), N))
 
 
-def _same_precision(prec, j):
+def _same_precision(prec, where):
     if mp.prec != prec:
-        raise PrecisionChanged(f"draw {j}: mpmath's working precision is {mp.prec} bits, not {prec}; "
+        where = f"draw {where}" if isinstance(where, int) else where
+        raise PrecisionChanged(f"{where}: mpmath's working precision is {mp.prec} bits, not {prec}; "
                                "something else changed it (another thread?), so the authority refuses")
 
 

@@ -536,3 +536,118 @@ nobody planted. One CPU so far.
 `make verify`: 12 passed, none skipped (the live Atlas smoke included),
 33.4 s. `make verify-quick`: 10 passed, 28.6 s, with P2 running on the same
 desktop.
+
+## 2026-09-25 - the P0 verifier's re-check: three of the new gates missed a fault they claimed, and a resume crossed a changed DLL
+
+Asked of the same verifier after `b0e9ed1`: do the fixes hold? **All 21 of its
+findings were fixed as found.** It then found four new defects, three of them
+in the gates written to answer it, and five minor ones. Its entry is in the
+round's ledger (`verifier-P0.md`, 22:59Z).
+
+### The loss: a premise gate that compared the authority with itself
+
+- **The gate compared the 256-bit authority with itself at 512 bits.** An
+  error that does not depend on the working precision cannot show between
+  the two.
+- One binary64 `math.fsum` in the new basis vector's norm put every boundary
+  2^-51.5 to 2^-52.9 from the clean authority's. The gate reported 2^-249,
+  and every executed stage passed.
+- So the previous entry's "the premise measured draw by draw at 512 bits
+  (worst error 2^-248.8; headroom 2^24.8)" was a measurement of the code's
+  agreement with itself, not of its error. **It is withdrawn.**
+- **Now** (tests/golden/test_golden_premise.py), two references that share no
+  code with the authority:
+  - **pauli-4x4, exactly.** cos(2 pi m / 4) is 1, 0 or -1, so the kernel is
+    rational (entries k/16). Every weight c_i = K_ii - K_iS K_SS^-1 K_Si,
+    every boundary and every target is an exact Fraction. Over 20 rolls the
+    authority's worst error is **2^-252.4**, and its rolls equal the exact
+    ones.
+  - **pauli (16x16), an independent chain rule at 512 bits.** It uses the
+    closed-form kernel and Schur complements grown one Cholesky column per
+    draw. It shares neither `orbitals()` nor `sample()`. Worst error
+    **2^-249.2** over 2 rolls.
+  - The two references agree with each other on 4x4 to below 2^-500. Rows of
+    the basis's kernel match the closed form at 512 bits, on both tiles.
+  - The gate demands 2^16 of headroom below the 2^-224 margin.
+- **Planted, each in a scratch copy:**
+
+  | binary64 slip | the premise gate | the source rule |
+  |---|---|---|
+  | the basis vector's norm (`math.fsum`) | caught | caught |
+  | the update coefficient | caught | caught |
+  | the Gram-Schmidt coefficient | caught | caught |
+  | the basis's cosines (`math.cos`) | caught | caught |
+  | the initial weights | inert | caught |
+  | each draw's total | inert | caught |
+
+  The inert pair change no output on today's shelf. K_ii = N/M is dyadic when
+  L is a power of two, and each total is the integer N - j, so their binary64
+  roundings are exact. No output gate can see them, and on a stock with
+  another L they would decide rolls. So tests/golden/test_independence.py now
+  reads the rule from golden's source: no float literal, no `float()`, from
+  `math` only `floor`, `ceil`, `comb`, `gcd` and `isqrt`, and no `cmath`,
+  `statistics`, `random` or `decimal`.
+
+### The other three new defects
+
+- **The cached basis.** `orbitals()` never checked its precision, so a basis
+  built while another thread held 53 bits was cached and served every later
+  roll. It now checks before returning, so a refusal also keeps the basis out
+  of the cache; `kernel()` and `probability()` check too. Planted (a cosine
+  that drops the precision): refused by name, and the cache stays empty.
+  Removing the check fails that test.
+- **The guards gate read a few import spellings.** Seven others passed it:
+  - a dotted `import quantum_film.atlas.client`;
+  - a star import;
+  - `from . import client`;
+  - an import inside `try`;
+  - a call in a class body, in a decorator, or in a default argument.
+
+  Now two rules.
+  - Rule 1: a script under research/ or tools/ that imports a client in any
+    form must refuse import. Modules other scripts import (research's probe.py
+    and fermion_tile.py) are exempt, and rule 2 holds them.
+  - Rule 2: no module calls a client in code that runs at import. It reads
+    dotted, relative and star imports, nested blocks, class bodies,
+    decorators and default arguments.
+
+  All seven shapes are the gate's own negative controls. Removing class
+  bodies from rule 2 fails the gate.
+- **`--resume` crossed a changed `QF_CFT_ROOT`.** A resumed run reported cft
+  passed for a DLL that failed a fresh run. A fresh run now writes
+  `environment` beside its markers: QF_CFT_ROOT, the DLL's SHA-256, python,
+  mpmath and numpy, and whether an Atlas key is set (never the key). A resume
+  in another environment is refused. Planted: a text file as the DLL, then
+  `--resume`: refused by name, rc 2. The same DLL resumes, with cft cached.
+
+### The minor ones
+
+- **Every stage skipped** reported PASSED. A skip is not a run: it now FAILS.
+  Planted: `--skip` of all 12 stages exits 1.
+- **The runner walked up** to an enclosing repository and stamped its
+  commit. A tree that is not its own git toplevel is now "nogit". Planted: an
+  export inside another repository runs as `...-nogit`.
+- **`PYTEST_ADDOPTS=--ignore=...`** passed golden on 35 of its 40 tests.
+  pytest-stage.sh clears PYTEST_ADDOPTS and PYTEST_PLUGINS. Planted: golden
+  ran 46 of 46.
+- **`check` did not read inside a golden roll's `authority` or `code`.** A
+  wall-clock time rode in either, and an authority naming the wrong sampler
+  passed. Both are held now to exactly what `lay()` writes, from one function,
+  `fixer.authority(law)`.
+- **`fixer lay STOCK 1.9`** ended in a traceback. It now refuses by name.
+
+### Corrections to the previous entry
+
+- "Two builds of the same source differ in hash": they differ in exactly
+  three fields, the COFF and export-directory TimeDateStamps and the PE
+  CheckSum. A hash with those zeroed would pin a build. "Not pinned by hash"
+  was a choice, not a necessity.
+- 8f's docs rule listed eight stale paths on 775b5ed's tree, not "exactly
+  those seven". The eighth was the P3 records directory ROUND1.md planned
+  for 2026-09-26, not yet made.
+- The stray clone in the lead's tree was the verifier's first WSL command.
+  `wsl.exe` hands its command line to WSL's shell, which expanded `$D` to
+  nothing, so git cloned into the directory WSL started in. Found and
+  explained by the verifier itself.
+
+`make verify` with `--require-all`: 12 passed, none skipped, 30.6 s.

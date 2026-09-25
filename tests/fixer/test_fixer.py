@@ -152,3 +152,27 @@ def test_a_file_whose_bytes_differ_from_its_text_is_refused(tmp_path, capsys, ro
 def test_a_malformed_record_is_refused_by_name_and_the_next_file_is_still_checked(tmp_path, capsys, roll):
     rc, out = cli(tmp_path, capsys, '{"stock": []}\n', fixer.text(roll))
     assert rc == 1 and "stock: [] is not on the shelf" in out and "\nfixed" in out, out
+
+
+def test_a_golden_roll_names_exactly_the_authority_that_lays_it(roll):
+    """verifier-P0's re-check, N1 and N3: check once looked neither inside the
+    authority nor at which sampler it named."""
+    for named in ({"module": "quantum_film.golden.fermi", "prec": 256, "at": "2026-09-25T18:00:00Z"},
+                  {"module": "quantum_film.golden.binomial"}, "quantum_film.golden.fermi",
+                  {"module": "quantum_film.golden.fermi", "prec": 320}):
+        r = copy.deepcopy(roll)
+        r["source"]["authority"] = named
+        refused(r, "source: a golden roll of 'pauli-4x4' names its authority")
+
+
+def test_the_code_field_is_exactly_the_version(roll):
+    """verifier-P0's re-check, N2: a wall-clock time rode in `code`, and
+    reproduce() ignored it."""
+    r = copy.deepcopy(roll)
+    r["code"]["fixed_at"] = "2026-09-25T18:00:00Z"
+    refused(r, "code: exactly")
+
+
+def test_the_lay_command_refuses_a_seed_that_is_not_an_integer(capsys):
+    assert fixer.main(["lay", "pauli-4x4", "1.9"]) == 2
+    assert "REFUSED: a seed is an integer" in capsys.readouterr().out

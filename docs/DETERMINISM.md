@@ -46,11 +46,28 @@ not refused. So the roll does not depend on the implementation:
 - not on the libm (none is used);
 - not on the working precision, provided that precision is high enough.
 
-**The checks on the argument** (tests/golden/test_golden_fermi.py):
-- **Its premise, measured.** Along real rolls, draw by draw, every 256-bit
-  target and boundary is compared with the same roll at 512 bits. The worst
-  error was 2^-248.8 on 2026-09-25, against the 2^-224 margin. The gate
-  demands 2^16 of headroom, and 2^24.8 was measured.
+**The checks on the argument** (tests/golden/test_golden_premise.py,
+test_golden_fermi.py and test_independence.py):
+- **Its premise, measured against code the authority does not share.**
+  Along real rolls, draw by draw, every 256-bit target and boundary is
+  compared with two references:
+  - **pauli-4x4, exactly.** Its kernel is rational (entries k/16), so every
+    weight, boundary and target is an exact Fraction. Worst error 2^-252.4
+    over 20 rolls.
+  - **pauli (16x16), an independent chain rule at 512 bits**: Schur
+    complements on the closed-form kernel, one Cholesky column per draw.
+    Worst error 2^-249.2.
+
+  The gate demands 2^16 of headroom below the 2^-224 margin, and at least
+  2^25 was measured. The first premise gate compared the authority with
+  itself at 512 bits. That cannot see an error that does not scale with the
+  precision: a binary64 `math.fsum` in one norm put every boundary 2^-51.5
+  off, and that gate reported 2^-249 (the P0 verifier, 2026-09-25).
+- **No binary64 in the authority**, read from its source: no float literal,
+  no `float()`, and from `math` only what is exact on Fractions. Two binary64
+  slips change no output on today's shelf, because K_ii = N/M is dyadic and
+  each total is the integer N - j. No output gate can see those two; the
+  source rule does.
 - **The refusal, planted.** A target 2^-240 past a boundary must be refused:
   that is inside the margin, and too far from the boundary for rounding to
   move. So the gate fails if the margin shrinks below the arithmetic's own
@@ -58,8 +75,9 @@ not refused. So the roll does not depend on the implementation:
   go past the boundary.
 - **Its precision, held.** mpmath's working precision is process-global, so
   another thread could turn the authority into binary64 arithmetic behind
-  the same margin. Every draw checks its precision and refuses by name
-  (`PrecisionChanged`). The authority is not to be called from threads.
+  the same margin. Every draw checks its precision, and so does the basis
+  before it is cached. Each refuses by name (`PrecisionChanged`). The
+  authority is not to be called from threads.
 
 The first check on the argument laid the same rolls at 256 and 320 bits. It
 could not fail: random seeds come no closer than about 2^-15 to a boundary,
@@ -85,10 +103,10 @@ arithmetic's own error (the P0 verifier, 2026-09-25).
 
 | claim | evidence | gap |
 |---|---|---|
-| an emulated roll is f(stock, seed) | `fixer.reproduce`; tests/vectors regenerate byte for byte on every run; the margin's premise measured at 512 bits | **one CPU so far.** Windows 11 (Python 3.12.9, mpmath 1.3.0), and WSL2 Ubuntu 22.04 on the same desktop (Python 3.10.12, mpmath 1.4.1), where the P0 verifier regenerated the vectors byte for byte. Running `make verify-quick` on another machine is the next evidence, and costs one command. |
+| an emulated roll is f(stock, seed) | `fixer.reproduce`; tests/vectors regenerate byte for byte on every run; the margin's premise measured against exact Fractions and an independent 512-bit chain rule | **one CPU so far.** Windows 11 (Python 3.12.9, mpmath 1.3.0), and WSL2 Ubuntu 22.04 on the same desktop (Python 3.10.12, mpmath 1.4.1), where the P0 verifier regenerated the vectors byte for byte. Running `make verify-quick` on another machine is the next evidence, and costs one command. |
 | records are permanent | `fixer.check` on every rule; a file is exactly its canonical text; the runner's control, a moved crystal the fixer's command line must refuse by its digest, and its twin, which the command line must accept | a device roll's commitment proves what it binds, not when it was made, and not which law its circuit lays (quantum_film/fixer.py) |
 | the circuit lays the Pauli law | local statevector against the golden kernel to 1e-12; three sabotages fail it | **not yet run on Atlas or a device.** The tile Atlas ran on 2026-09-25 was a research prototype with another law (docs/VALIDATION.md). The circuit is not yet hardware-shaped (docs/ROADMAP.md). |
-| mpmath is accurate enough | the premise gate above, at 512 bits | a different mpmath version is a claim to test, not assume (1.4.1 in WSL matched) |
+| mpmath is accurate enough | the premise gate above: exact on pauli-4x4, independent at 512 bits on the 16x16 stock | a different mpmath version is a claim to test, not assume (1.4.1 in WSL matched) |
 
 ## Versioning
 
