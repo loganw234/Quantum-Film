@@ -146,7 +146,7 @@ def test_records_carry_no_credential_or_address():
     """The planted strings are assembled at run time, so no scan of this tree
     for keys or addresses finds one in this file."""
     assert pauli_tile.safe_json({"measurements": {"ZZ": {"counts": {"01": 3}}}})
-    for planted in ("someone" + "@" + "example.com", "https://b.s3." + "amazonaws.com/x", "X-Amz" + "-Signature=a",
+    for planted in ("someone" + "@" + "example.com", "https://b.s3." + "amazon" + "aws.com/x", "X-A" + "mz-Signature=a",
                     "moth" + "_" + "abcdefgh12345678", "Bear" + "er abc.def"):
         with pytest.raises(PermissionError, match="nothing was written"):
             pauli_tile.safe_json({"note": planted})
