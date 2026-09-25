@@ -104,11 +104,18 @@ def circuit(stock=STOCK):
 
 
 def request(qasm, M, shots=SHOTS):
-    """The job body. Every qubit is in qubit_list, so the all-Z setting is
-    active on all of them and decode's rule reads it in plain order. The shape
-    (full list, one pair, single and double tomography) is the one the
-    2026-09-25 known-answer runs used (jobs 93924d11, 5ad38bfe, e4d62182,
-    4cc3c663)."""
+    """The job body: every qubit in qubit_list and one pair, (0, 1), with single
+    and double tomography. That is exactly the shape of the 2026-09-25
+    known-answer runs that read in plain order (jobs 93924d11, 5ad38bfe,
+    e4d62182, 4cc3c663).
+
+    Measured on job 8586f1cc: the engine merges the qubit-wise settings with
+    the pair's, so its nine labels are XXXXXXXXXXXXXXXX, YYYYYYYYYYYYYYYX,
+    ZZZZZZZZZZZZZZZX and six pair-only ones, IIIIIIIIIIIIIIXY .. IIIIIIIIIIIIIIZZ.
+    The one with no X or Y is IIIIIIIIIIIIIIZZ: every qubit is measured in Z
+    there ("I" is measured, unrotated), which is what makes its strings whole
+    crystal layouts, whatever qubit_list says. decode's rule reads it as
+    [0, 1] + [2..15], which is plain order."""
     return {"params": {"circuit_qasm": qasm, "qubit_list": list(range(M)), "qubit_pair_list": [[0, 1]],
                        "shots": shots, "single_tomography": True, "double_tomography": True,
                        "mutual_information": False, "classical_mutual_information": False}}
@@ -173,6 +180,37 @@ def score(counts, K, forbidden, circuit_sha256):
             "chi2_per_dof": (sum(z * z for z in z1) + sum(z * z for z in z2.values())) / (M + len(z2)),
             "forbidden": {"layouts_in_law": len(forbidden), "distinct_laid": len(off),
                           "shots": sum(off.values()), "fraction": sum(off.values()) / shots}}
+
+
+def engine_observables(result, K, pair=(0, 1)):
+    """The engine's OWN derived observables, which it reads without decode, against
+    the authority. For a real Slater determinant: <Z_q> = 1 - 2K_qq and <X_q> =
+    <Y_q> = 0; on the JW-adjacent pair (p, p + 1), <XX> = <YY> = 2K_pq, which only
+    a coherent state gives (a mixture with the same layouts gives 0), compared in
+    magnitude because the gauge may flip its sign; <ZZ> = 1 - 2K_pp - 2K_qq +
+    4(K_pp K_qq - K_pq^2); the mixed ones are 0. -> [(name, measured, exact, z)],
+    z against one setting's binomial error."""
+    p, q = pair
+    if q != p + 1:
+        raise ValueError("the pair formulas hold for JW-adjacent qubits only")
+    shots = min(v["shots"] for v in result["measurements"].values())
+    ob = result["observables"]
+    rows = []
+
+    def add(name, measured, exact):
+        rows.append((name, measured, exact, (measured - exact) / math.sqrt(max(1 - exact * exact, 1e-12) / shots)))
+
+    for s in range(len(K)):
+        add(f"<Z_{s}>", ob[str(s)]["Z"], 1 - 2 * K[s, s])
+        add(f"<X_{s}>", ob[str(s)]["X"], 0.0)
+        add(f"<Y_{s}>", ob[str(s)]["Y"], 0.0)
+    pq = ob[f"{p},{q}"]
+    for k in ("XX", "YY"):
+        add(f"|<{k}>_{p}{q}|", abs(pq[k]), abs(2 * K[p, q]))
+    add(f"<ZZ>_{p}{q}", pq["ZZ"], 1 - 2 * K[p, p] - 2 * K[q, q] + 4 * (K[p, p] * K[q, q] - K[p, q] ** 2))
+    for k in ("XY", "YX", "XZ", "ZX", "YZ", "ZY"):
+        add(f"<{k}>_{p}{q}", pq[k], 0.0)
+    return rows
 
 
 def device_rolls(counts, line, fixed_at, stock=STOCK):

@@ -101,6 +101,20 @@ def test_the_open_box_run_scored_against_the_shelfs_law_fails(K, forbidden):
     assert sc["forbidden"]["shots"] > 0
 
 
+def test_the_engines_observables_see_coherence_that_layouts_cannot(K):
+    """A mixture of the same layouts has the same Z statistics and no <XX>: the
+    engine-side check passes the exact values and fails the mixture by ~26 sigma."""
+    exact = {str(q): {"X": 0.0, "Y": 0.0, "Z": 1 - 2 * K[q, q]} for q in range(16)}
+    zz = 1 - 2 * K[0, 0] - 2 * K[1, 1] + 4 * (K[0, 0] * K[1, 1] - K[0, 1] ** 2)
+    exact["0,1"] = dict.fromkeys(("XY", "YX", "XZ", "ZX", "YZ", "ZY"), 0.0) | {"XX": 2 * K[0, 1], "YY": 2 * K[0, 1],
+                                                                               "ZZ": zz}
+    result = {"measurements": {"IIIIIIIIIIIIIIZZ": {"shots": 4096}}, "observables": exact}
+    assert max(abs(z) for *_r, z in pauli_tile.engine_observables(result, K)) < 1e-9
+    mixed = copy.deepcopy(result)
+    mixed["observables"]["0,1"].update(XX=0.0, YY=0.0)
+    assert min(z for *_r, z in pauli_tile.engine_observables(mixed, K)) < -25
+
+
 def test_every_distinct_layout_becomes_a_device_roll_that_checks(law_draws):
     ln = line()
     records, refused = pauli_tile.device_rolls(law_draws, ln, "2026-09-25T23:05:00Z")

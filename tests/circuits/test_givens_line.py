@@ -82,6 +82,17 @@ def test_every_empty_place_is_a_structural_zero():
     assert z.largest_zero < 1e-15 and z.smallest_nonzero > 0.1          # 6.5e-17 and 0.25 on the day
 
 
+def test_the_shape_survives_noise_a_thousand_times_rounding():
+    """Another machine's libm moves the basis by ~1e-16. Re-orthonormalised
+    noise of 1e-13 leaves the empty places structural zeros (at most ~2e-13,
+    under ZERO) and the rotation count at 51."""
+    rng = np.random.default_rng(2026)
+    A = givens.orbitals(L, R2)
+    for _ in range(10):
+        B, _r = np.linalg.qr(A + 1e-13 * rng.standard_normal(A.shape))
+        assert sum(len(layer) for layer in givens_line.plan(B)) == 51
+
+
 def test_an_entry_the_plan_cannot_class_is_refused_not_guessed():
     """Tilt the basis by 1e-9 rad: entries that were exactly zero become ~1e-10,
     between ZERO and GAP, and the plan must refuse rather than pick a side."""

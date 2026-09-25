@@ -105,6 +105,21 @@ def print_score(sc, label):
           f"({f['distinct_laid']} distinct of the law's {f['layouts_in_law']})")
 
 
+def engine_summary(rows):
+    worst = max(rows, key=lambda r: abs(r[3]))
+    return {"n": len(rows), "max_abs_z": abs(worst[3]), "worst": worst[0],
+            "coherence": [{"observable": n, "measured": m, "exact": e, "z": z} for n, m, e, z in rows
+                          if n.startswith("|<")]}
+
+
+def print_engine(rows, sha):
+    s = engine_summary(rows)
+    coh = "; ".join(f"{c['observable']} {c['measured']:.4f} against {c['exact']:.4f} (z {c['z']:+.2f})"
+                    for c in s["coherence"])
+    print(f"  circuit {sha[:16]}  the engine's own {s['n']} observables (no decode): max |z| {s['max_abs_z']:.2f} "
+          f"({s['worst']}); {coh}")
+
+
 def preflight(on_main, strict=True):
     status = git("status", "--porcelain")
     branch = git("rev-parse", "--abbrev-ref", "HEAD")
@@ -210,6 +225,7 @@ def finish(args, out, line):
             raise SystemExit(f"job {job} still {state!r} after {args.wait} s; finish it later with --fetch {job}")
         time.sleep(2.0)
     print(f"job {job}: {state} after {time.time() - t0:.0f} s of polling")
+    fetched_at = now()
     code, res = call("GET", f"/api/v1/jobs/{job}/result")
     result = res.get("result") if isinstance(res, dict) else None
     source_of_result = "/result"
@@ -224,6 +240,8 @@ def finish(args, out, line):
     K = pauli_tile.golden_kernel()
     forbidden, _ = pauli_tile.forbidden_layouts(K, pauli_tile.shape()[3])
     sc = pauli_tile.score(counts, K, forbidden, line["circuit_sha256"])
+    engine = pauli_tile.engine_observables(result, K)
+    sc["engine_observables"] = engine_summary(engine)
     records, refused = pauli_tile.device_rolls(counts, line, now())
     rolls = out / f"rolls-{job[:8]}"
     rolls.mkdir(exist_ok=True)
@@ -242,7 +260,8 @@ def finish(args, out, line):
     written = [out / f"atlas-{job[:8]}-result.json", out / f"atlas-{job[:8]}-status.json",
                out / f"score-{job[:8]}.json"]
     texts = [pauli_tile.safe_json({"job_id": job, "path": f"/api/v1/jobs/{job}/result", "status": code,
-                                   "taken_from": source_of_result, "response": {"result": result}}),
+                                   "fetched_at": fetched_at, "taken_from": source_of_result,
+                                   "response": {"result": result}}),
              pauli_tile.safe_json(status_record),
              pauli_tile.safe_json(dict(sc, job_id=job, engine=line["engine"], commitment=line["commitment"],
                                        decode=line["decode"], records=len(records),
@@ -252,6 +271,7 @@ def finish(args, out, line):
     for f, text in zip(written, texts, strict=True):
         f.write_text(text, encoding="ascii", newline="\n")
     print_score(sc, f"Atlas job {job}")
+    print_engine(engine, line["circuit_sha256"])
     c = commit([rolls, *written], f"P3: Atlas job {job[:8]}: the result, its score against the authority "
                f"(circuit {line['circuit_sha256'][:16]}) and {len(records)} device rolls", args.co_author)
     print(f"results committed as {c[:12]}")
@@ -283,7 +303,8 @@ def rescore(_args):
             if not resf.exists():
                 print(f"job {job}: no committed result")
                 continue
-            counts = pauli_tile.layouts(json.loads(resf.read_text(encoding="ascii"))["response"]["result"])
+            result = json.loads(resf.read_text(encoding="ascii"))["response"]["result"]
+            counts = pauli_tile.layouts(result)
             recs = {}
             for f in sorted((out / f"rolls-{job[:8]}").glob("*.json")):
                 rec, problems = fixer.check_file(f)
@@ -294,6 +315,7 @@ def rescore(_args):
             print(f"job {job}: {len(recs)} committed records; they are the result's {N}-crystal layouts, "
                   f"occurrences and all: {recs == fits}")
             print_score(pauli_tile.score(counts, K, forbidden, line["circuit_sha256"]), f"re-scored job {job}")
+            print_engine(pauli_tile.engine_observables(result, K), line["circuit_sha256"])
             runs += 1
     if not runs:
         raise SystemExit("no committed P3 run under docs/records/*/p3/")
