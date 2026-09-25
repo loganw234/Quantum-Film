@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-film"
+version = "0.1.0"
+description = "Film stocks whose crystal fields are laid by quantum processes, and a fixer that makes every print of a roll identical everywhere."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Logan W." }]
+dependencies = ["numpy>=2.0", "mpmath>=1.3"]
+
+[project.optional-dependencies]
+test = ["pytest", "ruff"]
+# Development borrows atlas-film's sourced organs. It is pinned by commit, not
+# tracked: atlas-film's own tests call its coating "Deterministic per machine",
+# and a moving dependency would move the prints.
+film = ["atlas-film @ git+https://github.com/loganw234/atlas-film@be1d674ac875c797d33f35c57a59be4fc92ce195"]
+
+[tool.setuptools]
+packages = ["quantum_film", "quantum_film.golden", "quantum_film.circuits", "quantum_film.atlas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The gates must not depend on whatever plugins happen to be installed: on the
+# owner's desktop, zarr's pytest plugin imports CuPy and prints a CUDA warning
+# into every log (2026-09-25). verify/pytest-stage.sh also sets
+# PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, which covers every other third-party plugin.
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]

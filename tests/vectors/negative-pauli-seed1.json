@@ -1,0 +1,56 @@
+{
+ "code": {
+  "quantum_film": "0.1.0"
+ },
+ "crystals": [
+  6,
+  7,
+  38,
+  43,
+  45,
+  66,
+  89,
+  100,
+  102,
+  108,
+  128,
+  132,
+  138,
+  141,
+  158,
+  162,
+  168,
+  187,
+  197,
+  209,
+  220,
+  222,
+  234,
+  240,
+  241
+ ],
+ "digest": "5f56d896f8cde98a1e6a66deb3ab1d1b95cf6ca3d6d69ca003be1f817491b6e4",
+ "format": "quantum-film/negative/v1",
+ "law": {
+  "L": 16,
+  "M": 256,
+  "N": 25,
+  "borrows": "trix",
+  "family": "determinantal",
+  "fermi_r2": 8,
+  "id": "pauli"
+ },
+ "source": {
+  "authority": {
+   "module": "quantum_film.golden.fermi",
+   "prec": 256
+  },
+  "kind": "golden",
+  "stream": [
+   "roll",
+   "pauli",
+   1
+  ]
+ },
+ "stock": "pauli"
+}

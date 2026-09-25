@@ -1,0 +1,54 @@
+{
+ "code": {
+  "quantum_film": "0.1.0"
+ },
+ "crystals": [
+  4,
+  20,
+  36,
+  40,
+  50,
+  58,
+  93,
+  107,
+  111,
+  120,
+  134,
+  144,
+  152,
+  167,
+  172,
+  181,
+  201,
+  208,
+  214,
+  215,
+  229,
+  235,
+  237,
+  250,
+  252
+ ],
+ "digest": "83a559f3779e48c6e57dfb6c4124481df38a34af993f71a10b14d56bfb72e2a7",
+ "format": "quantum-film/negative/v1",
+ "law": {
+  "L": 16,
+  "M": 256,
+  "N": 25,
+  "borrows": "trix",
+  "family": "binomial",
+  "id": "poisson"
+ },
+ "source": {
+  "authority": {
+   "module": "quantum_film.golden.binomial"
+  },
+  "kind": "golden",
+  "stream": [
+   "roll",
+   "poisson",
+   1
+  ]
+ },
+ "stock": "poisson"
+}

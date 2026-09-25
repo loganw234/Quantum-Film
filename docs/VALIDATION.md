@@ -249,3 +249,90 @@ engine's code is not visible, so why it orders strings this way is not
 known. The 120 pair statistics are correlated, so chi^2 against 120 is
 indicative, not a test with 120 degrees of freedom. All of it is `emu`: the
 emulator is noiseless, and hardware is untested.
+
+---
+
+## 2026-09-25 - the skeleton: the shelf, the authority, the fixer, and a runner that has watched each gate fail
+
+The owner named the project Quantum-Film (MIT) and asked for the skeleton. It
+is a ParcelRound P0: the seams every later parcel shares. It is built in the
+house style of cft-fp256, HonestFramework and atlas-engine.
+
+### What was built
+
+- **The shelf** (`quantum_film/stocks.py`): one table of stock laws. Every
+  parameter is derived or an operator's number with a stated range.
+- **The authority** (`quantum_film/golden`): SHA-256 counter-based uniforms,
+  plus the exact Pauli and Poisson laws in mpmath at 256 bits. A draw that
+  rounding could decide is refused.
+- **The Givens circuit**: float64 and independent of the authority.
+- **The Atlas client and count-order rule**, promoted from the research
+  scripts.
+- **The fixer** (`quantum_film/fixer.py`): negative records named by the
+  SHA-256 of canonical bytes, checked from the record alone.
+- **The front door**: `verify/run.sh`, adapted from HonestFramework's
+  gate-runner, behind `make verify-quick` and `make verify`.
+- **The rest**: generate-and-check vectors, the docs gate, and the documents.
+
+### Measured
+
+Host: Windows 11, Python 3.12.9, numpy 2.2.6, mpmath 1.3.0, pytest 9.1.1,
+ruff 0.11.9.
+
+- `make verify-quick`: 8 of 8 stages pass in 14.1 s.
+- `make verify`: 8 pass, and 2 skip by name:
+  - `cft`: "libcft is not built";
+  - `atlas`: "no Atlas key configured".
+
+  With `QF_ATLAS_AUTH` set, the atlas stage passes against the live
+  platform: `features: []`, 31 engines, tomography-api-v2 among them.
+- **The authority.**
+  - The probabilities of all 4,368 layouts of the 4x4 tile sum to 1 within
+    2^-80 (96 bits, 2.7 s).
+  - A 16x16 Pauli roll of 25 crystals takes 0.4 s.
+  - Seeds 1-4 lay identical rolls at 256 and 320 bits.
+- **The frozen golden records' digests.** `pauli-4x4` seed 1:
+  `18ebea56f8d7f2b4`; `pauli` seed 1: `5f56d896f8cde98a`; `poisson` seed 1:
+  `83a559f3779e48c6`. These are the cross-machine check: `make verify-quick`
+  on any other machine regenerates them and compares bytes.
+
+### Controls, each watched to fail
+
+- **Inside the tests** (tests/):
+  - a basis scaled by 1.01 breaks normalisation;
+  - a uniform forced exactly onto a boundary raises `TieRefusal`;
+  - a planted numpy import is caught by the independence check;
+  - the three circuit sabotages fail the kernel check (errors above 1e-6);
+  - plain count order fails the decode check;
+  - a planted broken link and an orphaned document both fail the docs gate.
+- **On the runner itself:**
+  - one byte appended to a vector made the `vectors` stage fail;
+  - a tampered record re-sealed with a fresh digest made the runner print
+    `NEGATIVE CONTROL DID NOT FAIL - this runner cannot detect a defect` and
+    exit 1;
+  - zero tests collected made `pytest-stage` exit 1 (pytest's rc 5).
+
+  Each sabotage was undone by `make vectors`, and the next run passed.
+
+### Found on the way
+
+- **ruff's B905 flagged six `zip()` calls without `strict=`** on the first
+  run. In the authority a silent truncation would be a wrong answer, so
+  every `zip` there is strict, and a length mismatch now raises. The one
+  deliberate offset pair uses `itertools.pairwise`.
+- **A CuPy warning in every pytest log came from zarr's pytest plugin.** The
+  gates now set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`, so no installed plugin can
+  touch a verdict.
+- **The measured Atlas vector had CRLF endings.** Python's json.dump on
+  Windows had written it, and git's normalisation would have made a fresh
+  clone fail its own hash. It was re-frozen as LF before the first commit:
+  SHA-256 `f28b62d9...`, against `1a69afa8...` for the CRLF copy, with the
+  same JSON. `tests/vectors/** -text` now keeps git from touching it.
+
+### Not done, and why
+
+- The cft build and the pinned path: P1 in docs/ROADMAP.md.
+- Development through atlas-film: P2.
+- The hardware-shaped circuit: P3.
+- Speckle's authority: P4.
+- A second machine: the missing evidence named in docs/DETERMINISM.md.

@@ -1,0 +1,36 @@
+{
+ "code": {
+  "quantum_film": "0.1.0"
+ },
+ "crystals": [
+  0,
+  1,
+  4,
+  11,
+  13
+ ],
+ "digest": "18ebea56f8d7f2b499d6c90a6bc68504cf80c0bcbd85b9d693168d3db94e0d1b",
+ "format": "quantum-film/negative/v1",
+ "law": {
+  "L": 4,
+  "M": 16,
+  "N": 5,
+  "borrows": "trix",
+  "family": "determinantal",
+  "fermi_r2": 1,
+  "id": "pauli-4x4"
+ },
+ "source": {
+  "authority": {
+   "module": "quantum_film.golden.fermi",
+   "prec": 256
+  },
+  "kind": "golden",
+  "stream": [
+   "roll",
+   "pauli-4x4",
+   1
+  ]
+ },
+ "stock": "pauli-4x4"
+}

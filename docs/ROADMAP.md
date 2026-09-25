@@ -1,0 +1,70 @@
+# Roadmap
+
+The order of work from the skeleton (2026-09-25) to the submission. Moth
+Hack's virtual window runs 26 Sept to 2 Oct. The work is split as a
+ParcelRound round: the lead keeps the seams (the shelf, the authority, the
+record format, the docs), and each parcel below is one agent with a brief, a
+named negative control, and a verifier.
+
+## The parcels
+
+**P1: cft, the pinned path.**
+- Build `vendor/cft-fp256/host/cft.dll` with the owner's command (CLAUDE.md),
+  so that the `cft` stage turns green.
+- Add a ctypes shim for `cft_reduce_seg` and `cft_sha256`.
+- A binary64 Pauli sampler on libcft whose near-boundary draws are handed to
+  the authority. It then equals the authority by construction, and the
+  hand-off rate is measured.
+- A precision demonstration at binary32, 64 and 128: which rolls part, and
+  where.
+- Negative control: a sampler with the hand-off removed must disagree with
+  the authority on a planted near-tie.
+
+**P2: film, development.**
+- Turn a layout into atlas-film's `(K, thr)` sheet at a pitch.
+- The honesty floor and the mean-K check, fixer-side, because `sheet=` skips
+  both.
+- The first black-and-white prints, and the film-science statistics (g(r),
+  NPS, a Selwyn plot) through atlas-film's own granularity instruments.
+- Negative control: a sheet with its mean K off by 5% must be refused.
+
+**P3: circuits for hardware.**
+- The (M - N) * N Givens layout with 2-CNOT rotations: about 96 CNOTs for a
+  16-site tile, against 256 today.
+- Tile batches through Atlas, read through `decode`, fixed as device rolls
+  with `fixed_at` and a commitment made before the results are read.
+- Negative control: the optimised circuit with one rotation dropped fails
+  against the kernel.
+
+**P4: speckle.** The authority (exact probabilities from the statevector at
+256 bits), the circuit, the Atlas run, and admission to the shelf.
+
+**P5: the web page.**
+- Re-develop a print from a record in the browser, through libcft's WASM
+  build, and show the digest match.
+- It would also serve challenge #8 if it calls the Atlas API.
+
+**P6: the notebook and the gallery.**
+- Challenge #10's notebook walks one roll from Atlas to a fixed record to a
+  print.
+- A gallery of prints, each captioned with its record's digest.
+
+**P7: hardware.**
+- The Pauli tile and the speckle stock on IBM's free Open Plan: 10 QPU
+  minutes per 28 days, where 20 circuits x 4,000 shots is about 30 s.
+- It needs an account the owner creates.
+- What noise does to the grain (particle-number leak, the low-k floor,
+  speckle contrast = fidelity) is the measurement.
+
+## After the week
+
+- **Colour:** the Pauli tripack (docs/STOCKS.md), through atlas-film's colour
+  chain. That needs its `sheets=` parameter, a small upstream change.
+- **The rest of the unique-stock programme:** Pauli-streak, quantum light,
+  Rydberg voids.
+
+## Standing items
+
+- The ask to Moth for `publish_engines`, and the count-order finding (docs/ATLAS.md).
+- A second machine running `make verify-quick`: the cross-machine evidence
+  docs/DETERMINISM.md is still missing.
