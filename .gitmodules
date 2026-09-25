@@ -1,0 +1,3 @@
+[submodule "vendor/cft-fp256"]
+	path = vendor/cft-fp256
+	url = https://github.com/loganw234/cft-fp256
