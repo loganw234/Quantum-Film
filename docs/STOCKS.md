@@ -55,7 +55,11 @@ mixes density, grain size and correlation into one number
   normalisation (all layouts of the 4x4 tile sum to 1), orthonormality, and
   precision independence.
 - **The circuit** is `quantum_film/circuits/givens.py`, held to the
-  authority's kernel to 1e-12. Its 16-qubit tile ran on Atlas on 2026-09-25.
+  authority's kernel to 1e-12 on a local statevector. For the 16-qubit tile
+  it has 59 rotations and 236 CNOTs.
+  - **It has not run on Atlas yet.** The tile Atlas ran on 2026-09-25 was a
+    research prototype with a different law: an open box's standing waves,
+    in snake order (docs/VALIDATION.md).
 
 ### Pauli, 16-qubit tile
 

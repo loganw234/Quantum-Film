@@ -1,5 +1,8 @@
 """Read full engine definitions (GET only) and print the fields that say how an
 engine is built, queued and priced - the route to a custom engine."""
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 import sys
 

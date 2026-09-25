@@ -96,17 +96,18 @@ ledger template.
 ## P3: circuits for hardware (Quantum-Film)
 
 - **Owns:**
-  - new modules under `quantum_film/circuits/` (not `givens.py`, which is
-    the Atlas-verified reference) and under `quantum_film/atlas/` (not
-    `client.py` or `decode.py`);
+  - new modules under `quantum_film/circuits/` (not `givens.py`, the
+    reference the kernel check holds; it has not run on Atlas) and under
+    `quantum_film/atlas/` (not `client.py` or `decode.py`);
   - new files under `tests/circuits/`;
   - a new script under `tools/`;
-  - records under `docs/records/2026-09-26/p3/`, or the date it runs.
+  - records under `docs/records/<date it runs>/p3/` (new).
 - **The job:**
   - the (M - N) * N Givens layout with 2-CNOT rotations for the Pauli
     tile, held to the same kernel check and the same kinds of sabotage;
   - its QASM run through tomography-api-v2 and read with
-    `quantum_film.atlas.decode`;
+    `quantum_film.atlas.decode`: **the first run of the shelf's Pauli law on
+    Atlas**, scored against the golden kernel;
   - device rolls fixed with `fixer.fix_device`, each commitment committed
     to the branch BEFORE the job's result is fetched.
 - **Negative controls:** the optimised circuit with one rotation dropped fails

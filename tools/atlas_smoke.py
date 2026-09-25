@@ -8,6 +8,8 @@ stages of the project can run at all.
 import pathlib
 import sys
 
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from quantum_film.atlas.client import call  # noqa: E402
 

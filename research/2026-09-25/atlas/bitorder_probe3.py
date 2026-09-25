@@ -7,6 +7,9 @@ full, sorted list the two coincide, which would explain why the first two
 calibrations decoded as plain Qiskit order. Here qubit_list = [9, 2, 14, 5]:
 the answer distinguishes "list order" from "sorted order" from "circuit order".
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 import math
 

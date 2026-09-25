@@ -1,4 +1,7 @@
 """Read-only survey of what this account can see. GET requests only."""
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 import sys
 

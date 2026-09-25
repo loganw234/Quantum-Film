@@ -22,7 +22,6 @@ was: the runner's permanent negative control (the fixer must refuse it).
 import argparse
 import copy
 import hashlib
-import json
 import pathlib
 import shutil
 import sys
@@ -40,8 +39,7 @@ MEASURED = [("tomography-bitorder-2026-09-25.json",
              ROOT / "research" / "2026-09-25" / "atlas" / "bitorder_probe3.json")]
 
 
-def text(record):
-    return json.dumps(record, sort_keys=True, indent=1) + "\n"
+text = fixer.text      # one file form, the fixer's own: its command line refuses any other bytes
 
 
 def tampered():
@@ -101,10 +99,12 @@ def main():
     elif sums.read_text(encoding="utf-8") != sums_text():
         problems.append("SHA256SUMS: does not match the files (a vector changed, appeared or vanished)")
     for name, _stock, _seed in GENERATED:
-        if (VEC / name).exists() and fixer.check(json.loads((VEC / name).read_text(encoding="utf-8"))):
+        if (VEC / name).exists() and fixer.check_file(VEC / name)[1]:
             problems.append(f"{name}: the fixer refuses a generated record")
-    if (VEC / TAMPERED).exists() and not fixer.check(json.loads((VEC / TAMPERED).read_text(encoding="utf-8"))):
-        problems.append(f"{TAMPERED}: the fixer ACCEPTS the tampered record")
+    if (VEC / TAMPERED).exists():
+        refusal = fixer.check_file(VEC / TAMPERED)[1]
+        if not any(p.startswith("digest:") for p in refusal):
+            problems.append(f"{TAMPERED}: the fixer does not refuse the tampered record by its digest: {refusal}")
     if problems:
         print("\n".join(problems), file=sys.stderr)
         return 1

@@ -8,7 +8,7 @@ the density scale stay sourced and only the placement of the crystals is new.
 
 This table is the ONLY place a stock's parameters are written. The golden
 model, the circuits, the fixer and the docs read them from here, and
-tests/test_stocks.py holds the table to the admission rules below.
+tests/golden/test_stocks.py holds the table to the admission rules below.
 
 ADMISSION: "physically plausible". A stock's law must be the measurement
 distribution of a physically realisable quantum state, one a circuit can

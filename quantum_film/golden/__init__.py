@@ -3,7 +3,7 @@
 Slow, exact and independent: pure Python on the standard library, with
 mpmath for the irrational constants. It imports nothing from this project but
 the stock table (the definition itself), and nothing numerical from outside
-the standard library and mpmath. tests/test_independence.py holds both rules
+the standard library and mpmath. tests/golden/test_independence.py holds both rules
 mechanically, because an authority that shares a helper with what it judges
 tests nothing.
 

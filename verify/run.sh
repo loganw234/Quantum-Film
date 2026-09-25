@@ -3,14 +3,18 @@
 #
 # Adapted from HonestFramework's templates/gate-runner.sh, keeping what it
 # argues for:
-#   §3  a negative-control stage that must FAIL, and fails the run if it
-#       passes, so the runner proves it can say no on every run;
+#   §3  a negative-control stage that must FAIL, for the reason it plants, and
+#       fails the run if it passes; its positive twin must pass. So the runner
+#       proves on every run that it can say no, and that it can say yes;
 #   §4  the stage list is DERIVED from this file's own `stage` calls; there is
 #       no second list to drift;
-#   §5  every skip is printed BY NAME with a reason; --require-all turns skips
-#       into failures; an unknown stage name is REFUSED;
-#   §6  a run id of timestamp + commit; per-stage .ok markers; --resume reruns
-#       only what has not passed, and REFUSES to cross commits;
+#   §5  every skip is printed BY NAME with a reason, and a skip happens only
+#       here, at stage level: a test that skips inside a stage fails it
+#       (pytest-stage.sh). --require-all turns skips into failures; an unknown
+#       stage name is REFUSED, and so is a selection of no stage at all;
+#   §6  a run id of timestamp + pid + commit; per-stage .ok markers; --resume
+#       reruns only what has not passed, and REFUSES to cross commits or to
+#       run on a dirty tree (two dirty trees of one commit share an id);
 #   §7  an append-only JSONL record of every stage verdict.
 #
 # USAGE
@@ -32,7 +36,7 @@ export PYTHONIOENCODING=utf-8
 ONLY=""; SKIP=""; REQUIRE_ALL=0; LIST=0; RESUME=""; FRESH=0; BUDGET=""
 
 # Named cuts, checked against the derived stage list below.
-BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,fixer,controls
+BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,fixer-cli,controls
 
 die () { echo "FATAL: $*" >&2; exit 2; }
 
@@ -65,20 +69,6 @@ SELF="${BASH_SOURCE[0]}"
 STAGELIST=$(grep -E '^stage [a-z0-9-]+ "' "$SELF" | awk '{print $2}' | tr '\n' ' ')
 STAGELIST="${STAGELIST% }"
 
-if [ "$LIST" = 1 ]; then
-  while IFS=$'\t' read -r _nm _ds; do
-    if [ -z "$ONLY" ] || in_list "$_nm" "$ONLY"; then _mk="*"; else _mk=" "; fi
-    printf '%s %-10s%s\n' "$_mk" "$_nm" "$_ds"
-  done < <(grep -E '^stage [a-z0-9-]+ "' "$SELF" | sed -E 's/^stage ([a-z0-9-]+) +"([^"]*)".*/\1\t\2/')
-  echo
-  if [ -n "$ONLY" ]; then
-    printf '* = would run%s. Unmarked stages are NOT in this selection.\n' "${BUDGET:+ under --budget $BUDGET}"
-  else
-    echo "* = would run: every stage (no --only, no --budget)."
-  fi
-  exit 0
-fi
-
 check_names() {  # <flagname> <comma-list>
   local n
   for n in $(echo "$2" | tr ',' ' '); do
@@ -93,10 +83,47 @@ check_names() {  # <flagname> <comma-list>
 }
 check_names --only "$ONLY"
 check_names --skip "$SKIP"
+# `--only ""` (or an unset variable) selects nothing, and a run of zero
+# stages is not a pass: the negative control would not even run (verifier-P0 7a).
+if [ -n "$ONLY" ] && [ -z "$(printf '%s' "$ONLY" | tr -d ', ')" ]; then
+  die "--only names no stage; a run of zero stages is not a pass"
+fi
 
-COMMIT=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo nogit)
-DIRTY=$(git -C "$ROOT" status --porcelain 2>/dev/null | grep -q . && echo "+dirty" || echo "")
+if [ "$LIST" = 1 ]; then
+  while IFS=$'\t' read -r _nm _ds; do
+    if [ -z "$ONLY" ] || in_list "$_nm" "$ONLY"; then _mk="*"; else _mk=" "; fi
+    printf '%s %-10s%s\n' "$_mk" "$_nm" "$_ds"
+  done < <(grep -E '^stage [a-z0-9-]+ "' "$SELF" | sed -E 's/^stage ([a-z0-9-]+) +"([^"]*)".*/\1\t\2/')
+  echo
+  if [ -n "$ONLY" ]; then
+    printf '* = would run%s. Unmarked stages are NOT in this selection.\n' "${BUDGET:+ under --budget $BUDGET}"
+  else
+    echo "* = would run: every stage (no --only, no --budget)."
+  fi
+  exit 0
+fi
+
+# git runs from inside the tree (the cd above), never with -C "$ROOT": under
+# MSYS_NO_PATHCONV=1, which Atlas work sets, git.exe cannot read a /c/... path.
+# That once made every run "nogit" and never dirty, so a dirty tree passed
+# the --resume guard below (found by the lead, 2026-09-25). A tree with a .git
+# that git cannot read is refused rather than called "nogit".
+if COMMIT=$(git rev-parse --short HEAD 2>/dev/null); then
+  STATUS=$(git status --porcelain) || die "git status failed in $ROOT"
+  DIRTY=$([ -n "$STATUS" ] && echo "+dirty" || echo "")
+elif [ -e "$ROOT/.git" ]; then
+  die "git cannot read the repository at $ROOT; a run id needs its commit"
+else
+  COMMIT=nogit; DIRTY=""
+fi
 if [ -n "$RESUME" ] && [ "$FRESH" = 1 ]; then die "--resume and --fresh are contradictory"; fi
+if [ -n "$RESUME" ] && [ "$COMMIT" = nogit ]; then die "--resume needs a git tree: without one a run id names no tree"; fi
+# A dirty tree has no identity: two different dirty trees of one commit share
+# an id, and a resumed run once reported PASSED over a failing authority that
+# way (verifier-P0 7b). Resuming is for a committed tree only.
+if [ -n "$RESUME" ] && [ -n "$DIRTY" ]; then
+  die "--resume refuses a dirty tree: its run id cannot say which tree it was. Commit, or run fresh."
+fi
 if [ -n "$RESUME" ]; then
   if [ "$RESUME" = last ]; then
     RUNID=$(ls -1 "$STATEROOT" 2>/dev/null | sort | tail -n 1)
@@ -110,10 +137,18 @@ if [ -n "$RESUME" ]; then
   run of another is a report about neither. Use --fresh.";;
   esac
 else
-  RUNID="$(date +%Y%m%d-%H%M%S)-$COMMIT$DIRTY"
+  RUNID="$(date +%Y%m%d-%H%M%S)-$$-$COMMIT$DIRTY"
 fi
 RUNDIR="$STATEROOT/$RUNID"
-mkdir -p "$RUNDIR"
+mkdir -p "$STATEROOT"
+if [ -z "$RESUME" ]; then
+  # Two fresh runs in one second once shared a directory, and the second read
+  # the first's .ok markers (verifier-P0 7c). The pid separates them, and a
+  # fresh run that finds its directory already there refuses.
+  mkdir "$RUNDIR" 2>/dev/null || die "run directory $RUNDIR already exists; a fresh run never reuses markers"
+else
+  [ -d "$RUNDIR" ] || die "--resume: there is no run $RUNID under $STATEROOT"
+fi
 JSONL="$RUNDIR/stages.jsonl"
 
 PASSED=0; FAILED=0; SKIPPED=0; CACHED=0
@@ -125,10 +160,13 @@ echo "   commit $COMMIT$DIRTY, python $(python -c 'import sys; print(sys.version
 
 # stage <name> <description> -- command...
 # MUST_FAIL=1 before a stage inverts its verdict: the command must fail.
+# MUST_SAY="text" with it: and its log must say why. A control that fails for
+# some other reason (a crash, a command line that refuses everything) proves
+# nothing about the fault it plants.
 stage() {
   local name=$1 desc=$2; shift 3
-  local t0 t1 rc verdict="" reason="" expect_fail="${MUST_FAIL:-0}"
-  MUST_FAIL=0
+  local t0 t1 rc verdict="" reason="" expect_fail="${MUST_FAIL:-0}" must_say="${MUST_SAY:-}"
+  MUST_FAIL=0; MUST_SAY=""
   if [ -n "$ONLY" ] && ! in_list "$name" "$ONLY"; then
     STAGE_SKIP_REASON=""
     return 0
@@ -162,6 +200,13 @@ stage() {
       FAILED=$((FAILED+1))
       note "$(printf '%-10s %-7s %s' "$name" "FAIL" "NEGATIVE CONTROL DID NOT FAIL - this runner cannot detect a defect")"
       echo "{\"stage\":\"$name\",\"verdict\":\"control-passed\"}" >> "$JSONL"
+      return 1
+    fi
+    if [ -n "$must_say" ] && ! grep -qF -- "$must_say" "$RUNDIR/$name.log"; then
+      : > "$RUNDIR/$name.fail"
+      FAILED=$((FAILED+1))
+      note "$(printf '%-10s %-7s %s' "$name" "FAIL" "the control failed, but not with \"$must_say\"; see $RUNDIR/$name.log")"
+      echo "{\"stage\":\"$name\",\"verdict\":\"control-wrong-reason\",\"rc\":$rc}" >> "$JSONL"
       return 1
     fi
     rc=0
@@ -202,7 +247,7 @@ stage docs "every link resolves, every document is indexed, every test file is r
 stage vectors "tests/vectors regenerate byte for byte; measured ones match SHA256SUMS" -- \
   python tools/make_vectors.py --check
 
-stage golden "the authority: uniforms, the shelf's rules, normalisation, the tie refusal, independence" -- \
+stage golden "the authority: its law (planted sampler bugs fail), the margin (premise at 512 bits, planted near-tie), uniforms" -- \
   bash verify/pytest-stage.sh tests/golden
 
 stage circuits "the Givens circuit against the golden kernel; three sabotages must fail" -- \
@@ -211,17 +256,29 @@ stage circuits "the Givens circuit against the golden kernel; three sabotages mu
 stage decode "Atlas's count order against a frozen known-answer run; plain order must fail" -- \
   bash verify/pytest-stage.sh tests/decode
 
+stage client "offline: the Atlas client sends its key to the API host only, and never reads one from the tree" -- \
+  bash verify/pytest-stage.sh tests/client
+
 stage fixer "negative records: fixed, checked from the record alone, reproduced, refused by name" -- \
   bash verify/pytest-stage.sh tests/fixer
 
-# §3: the control. It must FAIL. It runs the fixer's own command line, the
-# one a user runs, against a record with a crystal moved and the digest left
-# as it was. If this passes, a moved crystal would go unnoticed.
-MUST_FAIL=1
+# §3: the control and its twin. The twin runs the fixer's own command line,
+# the one a user runs, on the generated records, and must pass: a command line
+# that refused everything would otherwise pass the control (verifier-P0 7d).
+stage fixer-cli "the fixer's own command line accepts every generated record" -- \
+  python -m quantum_film.fixer check tests/vectors/negative-pauli-4x4-seed1.json \
+    tests/vectors/negative-pauli-seed1.json tests/vectors/negative-poisson-seed1.json
+
+# The control must FAIL, and name the digest as the reason: the record has a
+# crystal moved and the digest left as it was. If this passes, a moved crystal
+# would go unnoticed.
+MUST_FAIL=1 MUST_SAY="digest: the record's bytes are not the bytes it was fixed with"
 stage controls "a tampered negative MUST be refused by the fixer's own command line" -- \
   python -m quantum_film.fixer check tests/vectors/negative-tampered.json
 
-need_file vendor/cft-fp256/host/cft.dll "libcft is not built (docs/ROADMAP.md: the cft parcel)"
+# The DLL a parcel loads is the one QF_CFT_ROOT names, so that is the one
+# checked (verifier-P0 11a); the stage prints its path and SHA-256.
+need_file "${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" "libcft is not built at ${QF_CFT_ROOT:-vendor/cft-fp256} (CLAUDE.md has the build line)"
 stage cft "libcft loads, reports ABI 0.14, and one correctly rounded cos matches its known bits" -- \
   python tools/cft_smoke.py
 
@@ -234,6 +291,13 @@ stage atlas "live: the account answers and tomography-api-v2 is on the engine li
 echo "== summary"
 echo "   passed $PASSED, failed $FAILED, skipped $SKIPPED, cached $CACHED"
 echo "   record $JSONL"
+if [ $((PASSED + FAILED + SKIPPED + CACHED)) -eq 0 ]; then
+  echo "== FAILED: no stage ran"
+  exit 1
+fi
+if [ -n "$ONLY" ] && ! in_list controls "$ONLY"; then
+  echo "   (the negative control was not in this selection)"
+fi
 if [ "$FAILED" -ne 0 ]; then
   echo "== FAILED"
   exit 1

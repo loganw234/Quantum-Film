@@ -49,7 +49,9 @@ def auth_header_file():
 def call(method, path, body=None, save=True):
     """-> (http status, parsed JSON or None). Never raises on HTTP errors."""
     url = urllib.parse.urljoin(HOST, path)
-    if urllib.parse.urlsplit(url).netloc != urllib.parse.urlsplit(HOST).netloc:
+    # The scheme too: plain http to the right host would send the key in clear
+    # (found writing tests/client/, 2026-09-25).
+    if urllib.parse.urlsplit(url)[:2] != urllib.parse.urlsplit(HOST)[:2]:
         raise PermissionError(f"{url} is not {HOST}; the key goes nowhere else")
     with tempfile.TemporaryDirectory() as td:
         outp = pathlib.Path(td) / "body"

@@ -15,8 +15,11 @@ def staged_dirs(runner_text):
 
 
 def orphans(root, dirs):
+    """pytest collects both test_*.py and *_test.py; a registry that knew only
+    the first missed the second (verifier-P0 8d)."""
     out = []
-    for f in sorted((root / "tests").rglob("test_*.py")):
+    files = set((root / "tests").rglob("test_*.py")) | set((root / "tests").rglob("*_test.py"))
+    for f in sorted(files):
         rel = pathlib.PurePosixPath(f.relative_to(root).as_posix())
         if not any(d in rel.parents for d in dirs):
             out.append(str(rel))
@@ -35,5 +38,6 @@ def test_a_test_file_outside_every_stage_is_caught(tmp_path):
     (tmp_path / "tests" / "stray").mkdir()
     (tmp_path / "tests" / "golden" / "test_ok.py").write_text("", encoding="utf-8")
     (tmp_path / "tests" / "stray" / "test_lost.py").write_text("", encoding="utf-8")
+    (tmp_path / "tests" / "stray" / "law_test.py").write_text("", encoding="utf-8")
     dirs = staged_dirs("  bash verify/pytest-stage.sh tests/golden\n")
-    assert orphans(tmp_path, dirs) == ["tests/stray/test_lost.py"]
+    assert orphans(tmp_path, dirs) == ["tests/stray/law_test.py", "tests/stray/test_lost.py"]

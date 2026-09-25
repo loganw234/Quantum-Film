@@ -18,8 +18,15 @@ Sampling is the chain rule. At step j, site i is drawn with probability
 c_i / (N - j), where c_i is the squared norm of row i of Phi after the rows
 already drawn are projected out. The draw compares u * total with the
 cumulative sums of c using the stream's exact uniforms. When u * total lands
-within 2^-(PREC - 32) of a boundary, rounding could decide which crystal is
-laid, so the draw is REFUSED by name (TieRefusal) rather than decided.
+within margin(PREC) = 2^-(PREC - 32) of a boundary, rounding could decide
+which crystal is laid, so the draw is REFUSED by name (TieRefusal) rather
+than decided.
+
+mpmath's working precision is PROCESS-GLOBAL, so this module is not
+thread-safe: another thread's `mp.prec = 53` would silently turn the
+authority into binary64 arithmetic behind a 2^-224 margin (measured by the P0
+verifier, 2026-09-25). Every draw checks the precision it runs at, and
+refuses by name (PrecisionChanged) if it moved.
 """
 from fractions import Fraction
 from functools import lru_cache
@@ -32,10 +39,20 @@ from ..stocks import fermi_disc
 from .uniform import uniform
 
 PREC = 256
+MARGIN_SLACK = 32          # the margin is 2^32 times the unit of the working precision
 
 
 class TieRefusal(ValueError):
     """A draw's target landed within the refusal margin of a cumulative boundary."""
+
+
+class PrecisionChanged(RuntimeError):
+    """mpmath's working precision moved under a draw (another thread set it)."""
+
+
+def margin(prec=PREC):
+    """The refusal margin at `prec` bits: 2^-(prec - MARGIN_SLACK), exact at any precision."""
+    return mpf(2) ** (-(prec - MARGIN_SLACK))
 
 
 def _to_mpf(fr):
@@ -93,28 +110,44 @@ def total_probability(L, r2, prec=96):
         return mpmath.fsum(probability(rows, Y, prec) for Y in combinations(range(len(rows)), N))
 
 
-def sample(L, r2, stream_bytes, prec=PREC, uniform_fn=uniform):
-    """One crystal layout: the sorted site indices of N crystals."""
+def _same_precision(prec, j):
+    if mp.prec != prec:
+        raise PrecisionChanged(f"draw {j}: mpmath's working precision is {mp.prec} bits, not {prec}; "
+                               "something else changed it (another thread?), so the authority refuses")
+
+
+def sample(L, r2, stream_bytes, prec=PREC, uniform_fn=uniform, trace=None):
+    """One crystal layout: the sorted site indices of N crystals.
+
+    `trace(j, target, boundaries)`, if given, is called once per draw with the
+    target and every cumulative boundary the draw compared it with. It
+    observes, and cannot change, the roll: the margin's premise is measured
+    through it (tests/golden/test_golden_fermi.py).
+    """
     rows = orbitals(L, r2, prec)
     M, N = len(rows), len(rows[0])
     with mp.workprec(prec):
-        margin = mpf(2) ** (-(prec - 32))
+        gap = margin(prec)
         c = [mpmath.fsum(v * v for v in r) for r in rows]
         taken = [False] * M
         basis, picks = [], []
         for j in range(N):
+            _same_precision(prec, j)
             total = mpmath.fsum(c[i] for i in range(M) if not taken[i])
             u = uniform_fn(stream_bytes, j)
             if not isinstance(u, Fraction) or not 0 <= u < 1:
                 raise ValueError(f"draw {j}: uniform {u!r} is not an exact Fraction in [0, 1)")
             target = _to_mpf(u) * total
             acc, chosen = mpf(0), None
+            seen = [] if trace is not None else None
             for i in range(M):
                 if taken[i]:
                     continue
                 nxt = acc + (c[i] if c[i] > 0 else mpf(0))
-                if abs(nxt - target) < margin:
-                    raise TieRefusal(f"draw {j}: the target lies within 2^-{prec - 32} of the boundary "
+                if seen is not None:
+                    seen.append(nxt)
+                if abs(nxt - target) < gap:
+                    raise TieRefusal(f"draw {j}: the target lies within 2^-{prec - MARGIN_SLACK} of the boundary "
                                      f"after site {i}; rounding would choose, so the authority refuses")
                 if target < nxt:
                     chosen = i
@@ -122,6 +155,8 @@ def sample(L, r2, stream_bytes, prec=PREC, uniform_fn=uniform):
                 acc = nxt
             if chosen is None:
                 raise TieRefusal(f"draw {j}: the target is not below the last cumulative sum")
+            if trace is not None:
+                trace(j, target, seen)
             picks.append(chosen)
             taken[chosen] = True
             v = list(rows[chosen])
@@ -136,4 +171,5 @@ def sample(L, r2, stream_bytes, prec=PREC, uniform_fn=uniform):
                 if not taken[i]:
                     d = mpmath.fsum(a * b for a, b in zip(rows[i], e, strict=True))
                     c[i] -= d * d
+        _same_precision(prec, N)
     return sorted(picks)

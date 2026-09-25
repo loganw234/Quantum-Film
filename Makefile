@@ -5,7 +5,7 @@
 
 help:
 	@echo "START HERE, if you changed something and want to know whether it still holds:"
-	@echo "  make verify-quick   lint, docs, vectors, golden, circuits, decode, fixer and the negative control"
+	@echo "  make verify-quick   lint, docs, vectors, golden, circuits, decode, client, fixer, the control and its twin"
 	@echo "  make verify         everything; the cft and live Atlas stages skip BY NAME when they cannot run"
 	@echo "  bash verify/run.sh --list   every stage, with * on what a budget selects"
 	@echo ""

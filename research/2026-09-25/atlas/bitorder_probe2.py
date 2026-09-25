@@ -6,6 +6,9 @@ with probability (q + 0.5) / 16), followed by CZ on every JW-adjacent pair
 so every Z-marginal is unchanged: the known answer survives the gates, but a
 router must now place sixteen qubits on a line. Run twice.
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 import math
 

@@ -9,8 +9,8 @@ named negative control, and a verifier.
 ## The parcels
 
 **P1: cft, the pinned path.**
-- Build `vendor/cft-fp256/host/cft.dll` with the owner's command (CLAUDE.md),
-  so that the `cft` stage turns green.
+- (Done in P0: libcft is built in the pinned submodule, and the `cft` stage
+  is green.)
 - Add a ctypes shim for `cft_reduce_seg` and `cft_sha256`.
 - A binary64 Pauli sampler on libcft whose near-boundary draws are handed to
   the authority. It then equals the authority by construction, and the
@@ -32,8 +32,11 @@ found are that step not yet taken.
   check, the first prints, and the film-science statistics.
 
 **P3: circuits for hardware.**
-- The (M - N) * N Givens layout with 2-CNOT rotations: about 96 CNOTs for a
-  16-site tile, against 256 today.
+- The (M - N) * N Givens layout with 2-CNOT rotations: 55 rotations and 110
+  CNOTs for the `pauli-4x4` tile, against 59 rotations and 236 CNOTs in
+  `givens.py` today.
+- The first run of the shelf's Pauli law on Atlas. The 2026-09-25 tile was a
+  research prototype with another law.
 - Tile batches through Atlas, read through `decode`, fixed as device rolls
   with `fixed_at` and a commitment made before the results are read.
 - Negative control: the optimised circuit with one rotation dropped fails

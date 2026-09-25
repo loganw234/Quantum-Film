@@ -405,3 +405,134 @@ plan.
   shell, and the runner edit it carried failed its own match check before
   anything was written. The edit went through a script file instead, the
   owner's standing workaround.
+
+## 2026-09-25 - the P0 verifier: a run credited to the wrong law, gates that could not fail, and what now makes each one fail
+
+Asked of an independent verifier before any parcel was dispatched, at the
+owner's direction: does P0 at `775b5ed` hold? It re-ran every number on a
+fresh clone. Its report is in the round's ledger (`verifier-P0.md`), which is
+archived with the round. **The authority itself held**: its basis and span,
+its law over 50,000 rolls (none on a forbidden layout), normalisation, the
+uniforms' encoding, the decode rule and the Givens gauge. What did not hold
+is below, the loss first.
+
+### The loss: the Atlas run was credited to the wrong circuit and law
+
+- **The claim**, in the README, STOCKS.md, ROUND1.md, DETERMINISM.md and the
+  not-yet-dispatched P3 brief: `givens.py`'s Pauli tile ran on Atlas and
+  matched the exact law. ROADMAP's "256 today" rested on it too.
+- **What ran** (the lead reproduced the verifier's numbers):
+  - Atlas job `0082f37b` ran `research/2026-09-25/emulsions/fermion_tile.qasm`,
+    SHA-256 `d701cfb85790c2af...`. That is 64 rotations and 256 cx: an open
+    box's standing waves, in snake order. The entry above says so.
+  - `givens.circuit(4, 1)`, the `pauli-4x4` stock, is 59 rotations and 236 cx,
+    QASM SHA-256 `4ff16974a060b0d4...`. It has run only on a local
+    statevector.
+- **The same 4,096 layouts**, read through `decode.layouts`:
+
+  | scored against | sites: max \|z\|, chi^2 over 16 | pairs: max \|z\|, chi^2 over 120 |
+  |---|---|---|
+  | the open box, which ran | 2.18, 13.7 | 2.21, 112.2 |
+  | golden `pauli-4x4`, the shelf's law | 10.01, 521.2 | 20.20, 5328.3 |
+
+- **So the shelf's Pauli law has never run on Atlas.** P3's first job is its
+  first run. The five documents are corrected, and `givens.py`'s docstring
+  says so.
+- **How it happened.** The research tile was "the fermion tile"; the shelf's
+  stock became "the 16-qubit tile" later, and the documents joined the two by
+  name. A score is against one law, so the circuit's SHA-256 now goes beside
+  every score (CLAUDE.md, Atlas item 8).
+- **Two counts were wrong with it.** `givens.py` claimed N*M - N(N+1)/2
+  rotations (65 here). It skips entries that are already exactly zero, so it
+  lays 59. ROADMAP's "about 96 CNOTs" for the 2-CNOT layout is 55 rotations
+  and 110 CNOTs.
+
+### Gates that could not fail, and what now fails them
+
+Each fault was planted in a scratch copy of the fixed tree, and each was
+refused.
+
+| finding | what passed before | the gate now | planted, and refused |
+|---|---|---|---|
+| 1, the law test | a sampler that skips one projection update: chi^2/dof 1.203 < 1.6, while 18% of its rolls lay on forbidden layouts | no roll may lie on one of the 1,360 layouts with det(K_Y) = 0 (allowed det >= 2.4e-4; forbidden \|det\| <= 6.5e-19). A float copy of the chain rule must first lay the authority's own 2,000 rolls exactly (it does, 2,000 of 2,000); then two planted bugs must fail | "stale-last" in the copy: 366 of 2,000 forbidden; "half-update": 125. "stale-last" planted in the authority itself: 2 tests fail |
+| 2, the 256 vs 320 bits test | the refusal removed; a margin of 0; a margin of 2^-255 | the premise measured draw by draw at 512 bits (worst error 2^-248.8; headroom 2^24.8, where 2^16 is demanded); a target planted 2^-240 past a boundary must be refused, and 2^-200 past must be decided | refusal removed: 2 fail; margin 0: 3 fail; margin 2^-255: 2 fail |
+| 7a | `--only ""` ran zero stages: PASSED | refused, rc 2; zero stages run is FAILED | rc 2 |
+| 7b | `--resume` from one dirty tree to another: PASSED over a failing authority | `--resume` refuses any dirty tree | rc 2 |
+| 7c | two runs in one second shared `.ok` markers | pid in the run id; a fresh run refuses an existing directory | two concurrent runs, two directories |
+| 7d | a fixer command line that refused every record passed the control | a twin stage, `fixer-cli`, must accept the generated records, and the control must fail naming the digest | refuse-everything: `fixer-cli` FAIL. A crash on the tampered record: `controls` FAIL, "not with digest" |
+| 7e | a test that skipped inside a stage passed it, unseen by `--require-all` | a skipped, xpassed or deselected test fails its stage | a planted `skipif(True)`: `golden` FAIL |
+
+**Found on the way, by the lead: the runner could not see a dirty tree
+under `MSYS_NO_PATHCONV=1`.** CLAUDE.md sets that for Atlas work, and with it
+`git -C /c/...` failed silently. Every run was then "nogit" and never dirty,
+so 7b's new guard could not fire. git now runs from inside the tree, and a
+tree whose `.git` git cannot read is refused.
+
+### Claims with nothing behind them, now held
+
+- **6a.** A file with two `crystals` keys was accepted with the genuine
+  digest. A record on disk is now exactly `fixer.text(record)`, and a
+  duplicated key is refused by name.
+- **6b.** The digest covers the package version, so a version bump made
+  `reproduce()` reject correct rolls. `reproduce` now compares the roll
+  (stock, law, stream, crystals). DETERMINISM.md names the version.
+- **6c.** `fix_device` sealed `[0.7, 1.2, 4.0, 11.5, 13.9]` as
+  `[0, 1, 4, 11, 13]`. The constructors now refuse non-integers and a
+  non-integer seed, and `fix` refuses whatever `check` would.
+- **6d.** The commitment joined free text with a bare `|`, so an engine and a
+  job could be re-attributed together. It is now `quantum-film/commitment/v2`:
+  length-prefixed and type-tagged (golden.uniform's `stream` encoding), and
+  binding the stock, the shots and the decode rule too. No v1 device roll was
+  ever fixed.
+- **The fixer's minor findings.**
+  - A golden stream must be `["roll", stock, <int>]`.
+  - A golden roll carries no wall-clock time.
+  - The law is compared as JSON, so `true` is not 1.
+  - An unexpected top-level field is refused.
+  - A malformed record is refused by name, and the next file is still
+    checked.
+- **8c.** Seven research scripts called Atlas when imported. They now refuse
+  import, and tests/docs/test_atlas_guards.py fails any script that does not.
+  **On its first run, the gate found an eighth: `tools/atlas_smoke.py`, the
+  lead's own.**
+- **8d.** The registry now finds `*_test.py` as well as `test_*.py`.
+- **8f.** Seven stale test paths. A new rule in tools/check_docs.py fails any
+  repository path named in plain text that does not exist. Before the fix it
+  listed exactly those seven.
+- **8g.** The client's refusals now have offline tests (tests/client/, a new
+  stage), with a positive twin. **Found on the way:** the client compared the
+  host but not the scheme, so `http://api.mothquantum.com/...` would have sent
+  the key in clear. The scheme is now compared, and the new test failed on the
+  old client.
+- **8h.** libcft natively, at binary64 through cftmpfr: cos 0.236 ms and exp
+  0.119 ms per element (the lead; the verifier measured 0.211 and 0.110). The
+  0.4 ms figure was WASM.
+- **The verifier's own additions (11).**
+  - The `cft` stage checks the DLL that `QF_CFT_ROOT` names, and prints its
+    path and SHA-256. Two builds of the same source differ in hash
+    (`23f0f2e6...`, `6ca569a8...`).
+  - Each of the authority's draws checks mpmath's process-global precision
+    (`PrecisionChanged`).
+  - `build.log` is ignored.
+
+### Not changed, and why
+
+- **A device roll on a forbidden layout is kept.** A device records what it
+  laid, noise included, and P3 counts such layouts as a witness of noise.
+- **The fixer cannot tell which law a device roll's circuit lays.** The
+  commitment binds the circuit's hash, not its law. fixer.py and
+  DETERMINISM.md say so.
+- **The decode rule was inferred from, and held to, the same known-answer
+  run.** Its one use outside that run rests on the tile's physics. The entry
+  on it above already says so.
+- **The authority is not made thread-safe.** It refuses when its precision
+  moves.
+
+### What this does not prove
+
+The planted faults are the ones named here; a gate can still miss a fault
+nobody planted. One CPU so far.
+
+`make verify`: 12 passed, none skipped (the live Atlas smoke included),
+33.4 s. `make verify-quick`: 10 passed, 28.6 s, with P2 running on the same
+desktop.

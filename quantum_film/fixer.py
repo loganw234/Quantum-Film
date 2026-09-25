@@ -10,15 +10,27 @@ reproduced, only read.
 CANONICAL BYTES: JSON with sorted keys, no whitespace, ASCII only. The digest
 covers every field except the digest itself.
 
+THE FILE: a record on disk is exactly `text(record)`, byte for byte (sorted
+keys, a one-space indent, ASCII, a final newline). The command line refuses a
+file whose bytes are anything else, so a file cannot carry a second, unsealed
+reading of itself, such as a duplicated key that one JSON reader takes and
+another ignores (verifier-P0, 2026-09-25).
+
 The record carries the law it was laid under (the stock's resolved
 parameters at fixing time). A later change to the shelf therefore cannot
 quietly reinterpret an old roll: `check` refuses a record whose law is no
 longer the shelf's, by name.
 
 An EMULATED roll's record carries no wall-clock time. The same stock and
-stream give the same record, and so the same digest, on any machine: that is
-the reproducibility claim, and `reproduce` tests it. A roll from a device
-carries `fixed_at`, because there the event is the thing.
+stream give the same crystals on any machine, and the same record, byte for
+byte, from the same version of this package: the digest also covers
+`code.quantum_film`, the version that fixed it. `reproduce` compares the roll
+itself (stock, law, stream and crystals), so a later version that lays the
+same roll still reproduces it. A roll from a device carries `fixed_at`,
+because there the event is the thing.
+
+The constructors refuse what `check` refuses: `fix` seals nothing that
+`check` would reject, and never rounds a value into shape.
 
     python -m quantum_film.fixer check FILE...    # 0 = every record intact, 1 = refused
     python -m quantum_film.fixer lay STOCK SEED   # print a golden roll's record
@@ -29,28 +41,44 @@ import sys
 from itertools import pairwise
 
 from . import __version__
+from .golden.uniform import stream
 from .stocks import STOCKS, params
 
 FORMAT = "quantum-film/negative/v1"
+FIELDS = ("format", "stock", "law", "crystals", "source", "code", "digest")
 SOURCES = ("golden", "local-emu", "atlas-emu", "qpu")
 DEVICE = ("atlas-emu", "qpu")
-COMMITMENT_DOMAIN = "quantum-film/commitment/v1"
+GOLDEN_SOURCE = ("authority", "kind", "stream")
+COMMITMENT_DOMAIN = "quantum-film/commitment/v2"
 _HEX64 = set("0123456789abcdef")
 
-# A DEVICE ROLL (Atlas or a QPU) carries the job it came from and a commitment:
-#     commitment = SHA-256(COMMITMENT_DOMAIN | circuit_sha256 | engine | job_id | salt)
-# `check` recomputes it, so a record cannot be re-attributed to another circuit
-# or job without the refusal naming it. What the record alone CANNOT prove is
-# that the commitment was formed before the result existed. That is evidenced
-# only if the commitment was published (committed to git, say) before the
-# result was fetched, and the device-roll runner is responsible for doing that.
+# A DEVICE ROLL (Atlas or a QPU) carries the job it came from and a commitment
+# to everything known when the job was SUBMITTED, before any result existed:
+#     commitment = SHA-256(stream(COMMITMENT_DOMAIN, stock, circuit_sha256,
+#                                 engine, job_id, shots, decode, salt))
+# `stream` is golden.uniform's encoding: each field length-prefixed and
+# type-tagged, so no field can absorb its neighbour. (v1 joined the fields with
+# a bare "|", and an engine and a job could be re-attributed together with the
+# commitment intact; no v1 device roll was ever fixed.) `check` recomputes it,
+# so a record cannot be moved to another stock, circuit, engine, job, shot
+# count or decode rule without the refusal naming it.
+#
+# What the record alone CANNOT prove:
+#   - that the commitment was formed before the result existed. That is
+#     evidenced only if the commitment was published (committed to git, say)
+#     before the result was fetched, and the device-roll runner does that;
+#   - which law the circuit lays. The commitment binds circuit_sha256, and a
+#     reader must check that hash against the stock's circuit;
+#   - that the layout is one the law allows. A device records what it laid,
+#     noise included, so a layout the law forbids is kept, not refused.
 DEVICE_FIELDS = {"fixed_at": str, "engine": str, "job_id": str, "circuit_sha256": str,
                  "shots": int, "decode": str, "salt": str, "commitment": str}
+COMMITTED = ("circuit_sha256", "engine", "job_id", "shots", "decode", "salt")
 
 
-def commitment(circuit_sha256, engine, job_id, salt):
-    msg = "|".join((COMMITMENT_DOMAIN, circuit_sha256, engine, job_id, salt))
-    return hashlib.sha256(msg.encode("utf-8")).hexdigest()
+def commitment(*, stock, circuit_sha256, engine, job_id, shots, decode, salt):
+    msg = stream(COMMITMENT_DOMAIN, stock, circuit_sha256, engine, job_id, shots, decode, salt)
+    return hashlib.sha256(msg).hexdigest()
 
 
 def canonical(record):
@@ -62,23 +90,34 @@ def digest(record):
     return hashlib.sha256(canonical(record)).hexdigest()
 
 
+def text(record):
+    """The one file form of a record."""
+    return json.dumps(record, sort_keys=True, indent=1, ensure_ascii=True) + "\n"
+
+
+def _is_int(v):
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
 def fix(stock_id, crystals, source):
     """Make a negative record from a layout and the source that laid it."""
+    if not isinstance(crystals, (list, tuple)) or not all(_is_int(c) for c in crystals):
+        raise ValueError("the fixer refuses this layout: crystals: not a list of integers "
+                         "(it rounds nothing into shape)")
     law = params(stock_id)
-    rec = {"format": FORMAT, "stock": stock_id, "law": law,
-           "crystals": [int(c) for c in crystals], "source": source,
-           "code": {"quantum_film": __version__}}
-    problems = _layout_problems(rec, law)
+    rec = {"format": FORMAT, "stock": stock_id, "law": law, "crystals": list(crystals),
+           "source": source, "code": {"quantum_film": __version__}}
+    rec["digest"] = digest(rec)
+    problems = check(rec)
     if problems:
         raise ValueError("the fixer refuses this layout: " + "; ".join(problems))
-    rec["digest"] = digest(rec)
     return rec
 
 
 def _layout_problems(rec, law):
     out = []
     cs = rec.get("crystals")
-    if not isinstance(cs, list) or not all(isinstance(c, int) and not isinstance(c, bool) for c in cs):
+    if not isinstance(cs, list) or not all(_is_int(c) for c in cs):
         return ["crystals: not a list of integers"]
     if any(b <= a for a, b in pairwise(cs)):
         out.append("crystals: not strictly increasing (sorted, no site twice)")
@@ -89,42 +128,61 @@ def _layout_problems(rec, law):
     return out
 
 
+def _same_json(a, b):
+    """Equal as JSON, not as Python: true is not 1, and 16.0 is not 16."""
+    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+
+
 def check(record):
     """The named reasons this record is refused; an empty list means fixed and intact."""
     out = []
     if not isinstance(record, dict):
         return ["not a record"]
+    extra = sorted(set(record) - set(FIELDS))
+    if extra:
+        out.append(f"fields: unexpected {extra}; a record carries exactly {list(FIELDS)}")
     if record.get("format") != FORMAT:
         out.append(f"format: {record.get('format')!r} is not {FORMAT!r}")
     sid = record.get("stock")
-    if sid not in STOCKS:
+    if not isinstance(sid, str) or sid not in STOCKS:
         return out + [f"stock: {sid!r} is not on the shelf"]
     try:
         law = params(sid)
     except LookupError as e:
         return out + [f"stock: {e}"]
-    if record.get("law") != law:
+    if not _same_json(record.get("law"), law):
         out.append("law: the record was laid under a law the shelf no longer states")
     out += _layout_problems(record, law)
     src = record.get("source")
     if not isinstance(src, dict) or src.get("kind") not in SOURCES:
         out.append(f"source: kind must be one of {SOURCES}")
     elif src["kind"] == "golden":
-        parts = src.get("stream")
-        if not isinstance(parts, list) or not all(isinstance(p, (str, int)) for p in parts):
-            out.append("source: a golden roll must name its stream as a list of str and int parts")
+        out += _golden_problems(src, sid)
     elif "fixed_at" not in src:
         out.append("source: a roll from a device must carry fixed_at")
     elif src["kind"] in DEVICE:
-        out += _device_problems(src)
+        out += _device_problems(src, sid)
     elif not isinstance(src.get("backend"), str):
         out.append("source: a local-emu roll must name its backend")
+    if not isinstance(record.get("code"), dict) or not isinstance(record["code"].get("quantum_film"), str):
+        out.append("code: the record must name the quantum_film version that fixed it")
     if record.get("digest") != digest(record):
         out.append("digest: the record's bytes are not the bytes it was fixed with")
     return out
 
 
-def _device_problems(src):
+def _golden_problems(src, sid):
+    out = []
+    if sorted(src) != sorted(GOLDEN_SOURCE):
+        out.append(f"source: a golden roll's source is exactly {list(GOLDEN_SOURCE)}, "
+                   "with no wall-clock time, so its record is the same on every machine")
+    parts = src.get("stream")
+    if not (isinstance(parts, list) and len(parts) == 3 and parts[:2] == ["roll", sid] and _is_int(parts[2])):
+        out.append(f'source: a golden roll\'s stream is ["roll", {sid!r}, <integer seed>]')
+    return out
+
+
+def _device_problems(src, sid):
     out = []
     for field, kind in DEVICE_FIELDS.items():
         v = src.get(field)
@@ -137,8 +195,8 @@ def _device_problems(src):
             out.append(f"source: {field} must be 64 lowercase hex digits")
     if src["shots"] < 1:
         out.append("source: shots must be positive")
-    if not out and src["commitment"] != commitment(src["circuit_sha256"], src["engine"], src["job_id"], src["salt"]):
-        out.append("source: the commitment does not bind this circuit, engine, job and salt")
+    if not out and src["commitment"] != commitment(stock=sid, **{k: src[k] for k in COMMITTED}):
+        out.append("source: the commitment does not bind this stock, circuit, engine, job, shots, decode and salt")
     return out
 
 
@@ -146,7 +204,7 @@ def fix_device(stock_id, crystals, source):
     """Fix a roll laid by a device. `source` must carry DEVICE_FIELDS, the
     commitment included; the record is refused rather than fixed incomplete."""
     rec_source = dict(source)
-    problems = _device_problems(rec_source) if rec_source.get("kind") in DEVICE else \
+    problems = _device_problems(rec_source, stock_id) if rec_source.get("kind") in DEVICE else \
         [f"source: kind must be one of {DEVICE}"]
     if problems:
         raise ValueError("the fixer refuses this device roll: " + "; ".join(problems))
@@ -156,9 +214,10 @@ def fix_device(stock_id, crystals, source):
 def lay(stock_id, seed):
     """A golden roll of `stock_id`, fixed. Stream: ("roll", stock_id, seed)."""
     from .golden import binomial, fermi
-    from .golden.uniform import stream
+    if not _is_int(seed):
+        raise ValueError(f"a seed is an integer, not {seed!r}")
     law = params(stock_id)
-    parts = ["roll", stock_id, int(seed)]
+    parts = ["roll", stock_id, seed]
     s = stream(*parts)
     if law["family"] == "determinantal":
         crystals = fermi.sample(law["L"], law["fermi_r2"], s)
@@ -172,25 +231,46 @@ def lay(stock_id, seed):
 
 
 def reproduce(record):
-    """Re-lay a golden roll from its record and say whether it matches, bit for bit."""
+    """Re-lay a golden roll from its record, and say whether this code lays the
+    same roll: the same crystals under the same law from the same stream. The
+    digest is not compared, because it also covers the version that fixed it."""
     if record.get("source", {}).get("kind") != "golden":
         raise ValueError("only a golden roll can be reproduced; a device roll can only be read")
     parts = record["source"]["stream"]
     if parts[:2] != ["roll", record["stock"]] or len(parts) != 3:
         raise ValueError(f"stream {parts!r} is not a roll stream of {record['stock']!r}")
     again = lay(record["stock"], parts[2])
-    return again["digest"] == record["digest"], again
+    same = all(_same_json(again[k], record[k]) for k in ("format", "stock", "law", "crystals")) \
+        and _same_json(again["source"], record["source"])
+    return same, again
+
+
+def _no_twice(pairs):
+    keys = [k for k, _ in pairs]
+    twice = sorted({k for k in keys if keys.count(k) > 1})
+    if twice:
+        raise ValueError(f"a key appears twice: {twice}")
+    return dict(pairs)
+
+
+def check_file(path):
+    """The named reasons the record in this file is refused, its bytes included."""
+    try:
+        raw = open(path, "rb").read()
+        rec = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_twice)
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        return None, [f"unreadable: {e}"]
+    problems = check(rec)
+    if raw != text(rec).encode("ascii", "replace"):
+        problems.append("bytes: the file is not the record's canonical text (fixer.text)")
+    return rec, problems
 
 
 def main(argv):
     if len(argv) >= 2 and argv[0] == "check":
         bad = 0
         for f in argv[1:]:
-            try:
-                rec = json.loads(open(f, encoding="utf-8").read())
-                problems = check(rec)
-            except (OSError, json.JSONDecodeError) as e:
-                problems = [f"unreadable: {e}"]
+            rec, problems = check_file(f)
             if problems:
                 bad += 1
                 print(f"REFUSED {f}")
@@ -200,7 +280,7 @@ def main(argv):
                 print(f"fixed   {f}  {rec['digest'][:16]}  {rec['stock']}, {len(rec['crystals'])} crystals")
         return 1 if bad else 0
     if len(argv) == 3 and argv[0] == "lay":
-        print(json.dumps(lay(argv[1], int(argv[2])), sort_keys=True, indent=1))
+        sys.stdout.write(text(lay(argv[1], int(argv[2]))))
         return 0
     print(__doc__.split("\n\n")[-1])
     return 2

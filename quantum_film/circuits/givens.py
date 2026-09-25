@@ -13,10 +13,17 @@ transposes. On qubits (a, b), U(G^T) maps |10> to c|10> + s|01> and |01> to
 that in gates every QASM 2 reader knows: cx a,b; a controlled-ry from b onto a
 written as ry, cx, ry, cx; then cx a,b.
 
-KNOWN COST, not yet paid down: this elimination uses N*M - N(N+1)/2 rotations
-of 4 CNOTs each. The (M - N)*N layout with 2-CNOT rotations (Jiang et al.
-2018; Kivlichan et al. 2018) needs about a third as many CNOTs, which is what
-hardware needs; docs/ROADMAP.md holds it as a parcel.
+KNOWN COST, not yet paid down: this elimination uses at most N*M - N(N+1)/2
+rotations of 4 CNOTs each; an entry that is already exactly zero is skipped.
+For pauli-4x4 that is 59 rotations and 236 CNOTs (at most 65). The (M - N)*N
+layout with 2-CNOT rotations (Jiang et al. 2018; Kivlichan et al. 2018)
+needs 55 rotations and 110 CNOTs there, which is what hardware needs;
+docs/ROADMAP.md holds it as a parcel.
+
+NOT YET RUN ON ATLAS. The 16-qubit tile Atlas ran on 2026-09-25 was
+research/2026-09-25/emulsions/fermion_tile.py, with another law (an open
+box's standing waves, in snake order). This circuit has been checked only
+on a local statevector.
 
 GAUGE: negating every rotation angle conjugates the kernel by diag(+-1), which
 leaves every occupation probability unchanged. It is the same film, so such a

@@ -21,7 +21,7 @@ of the crystals is new.
 
 | stock | what lays the crystals | how its grain differs from real film | status |
 |---|---|---|---|
-| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler, circuit, a tile run on Atlas |
+| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler, and a circuit checked on a local statevector; not yet run on Atlas |
 | **Poisson** | uniform placement at the same density | none: the classical reference every other stock is measured against | on the shelf |
 | **Speckle** | Born-rule shots of a random pupil through a 2D quantum Fourier transform | crystals bunch; the grain's contrast equals the fidelity of the machine that exposed it | planned |
 
@@ -29,15 +29,22 @@ of the crystals is new.
 
 Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md).
 
-- **A Pauli tile ran as this project's own circuit on Moth's Atlas
-  emulator** (2026-09-25). It had 16 qubits, 5 fermions and 256 CNOTs, and
-  returned 4,096 whole crystal layouts:
+- **A fermion tile of this project's own ran on Moth's Atlas emulator**
+  (2026-09-25). It had 16 qubits, 5 fermions and 256 CNOTs, and returned
+  4,096 whole crystal layouts:
   - every layout held exactly 5 crystals;
-  - all 120 site-pair statistics fell within 2.21 standard errors of the
-    exact law.
+  - all 120 site-pair statistics fell within 2.21 standard errors of that
+    tile's exact law.
 
   Reading the samples needed a count order the platform does not document;
   it was decoded against known answers.
+  - **That tile was a research prototype, not the shelf's Pauli law.** It
+    filled the standing waves of an open box, not the Fermi disc of a
+    periodic tile. The shelf's circuit (`givens.py`, 236 CNOTs for
+    `pauli-4x4`) has so far been checked only on a local statevector.
+  - This README first said otherwise, and so did four other documents.
+    The P0 verifier caught it. Against the shelf's law, the same data
+    score 20 standard errors off.
 - **The three statistics are distinct at equal density** (2026-09-25). This
   was a classical simulation of the quantum laws, not hardware:
 
@@ -50,9 +57,10 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   random numbers were run at binary32, and 2 of 40 fermion films parted from
   the binary64 reference. From the first differing draw on, they shared only
   55–86% of their crystals.
-- **The authority's rolls do not depend on its arithmetic.** It lays the same
-  rolls at 256 and 320 bits, because a draw closer than 2^-224 to a boundary
-  is refused, not decided.
+- **The authority's rolls do not depend on its arithmetic.** A draw closer
+  than 2^-224 to a boundary is refused, not decided. The 256-bit error in
+  every target and boundary is at most 2^-248.8, measured draw by draw
+  against the same rolls at 512 bits: 2^24.8 of headroom.
 - **Identical requests to Atlas returned different bytes wherever sampling
   was involved**, seeded engines included; a seed fixes the circuit, not
   the shots.
@@ -76,7 +84,7 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
 One command, in two sizes:
 
 ```bash
-make verify-quick   # ~20 s: lint, docs, vectors, golden, circuits, decode, fixer, the negative control
+make verify-quick   # ~30 s: lint, docs, vectors, golden, circuits, decode, client, fixer, the control and its twin
 make verify         # adds the cft and live-Atlas stages, each skipped BY NAME when it cannot run
 bash verify/run.sh --list
 ```
@@ -87,9 +95,16 @@ bash verify/run.sh --list
   circuits, the float paths and Atlas's results are all scored against it.
 - **Refusals.** A draw that rounding could decide is refused by name, and so
   is a record whose bytes or law have changed.
-- **The negative control.** Every run ends by feeding the fixer's own command
-  line a record with one crystal moved. If the fixer ever accepts it, the run
-  fails with `NEGATIVE CONTROL DID NOT FAIL`.
+- **The negative control, and its twin.** Every run feeds the fixer's own
+  command line a record with one crystal moved. If the fixer accepts it, or
+  refuses it for any reason but its digest, the run fails. The twin feeds it
+  the genuine records, which it must accept, because a command line that
+  refused everything would pass the control alone.
+- **Gates are held to planted faults.** Among them: a sampler bug, a shrunken
+  margin, a moved crystal, a re-attributed job, a skipped test, a stale path.
+  The P0 verifier found gates that could not fail, and a runner that could
+  report PASSED over a failure. docs/VALIDATION.md records each, and what now
+  makes it fail.
 
 What is promised, and what is not, is written down once, in
 [docs/DETERMINISM.md](docs/DETERMINISM.md).

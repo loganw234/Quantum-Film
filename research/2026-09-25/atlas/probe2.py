@@ -1,6 +1,9 @@
 """Second probe set, emu only. Question 1: does a SEED make a seeded engine's
 output repeatable? Question 2: does any engine return full-register samples
 (a crystal layout needs every site's bit in the same shot, not pair marginals)?"""
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 
 from probe import canon, run

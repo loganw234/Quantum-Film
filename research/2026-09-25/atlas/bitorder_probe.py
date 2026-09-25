@@ -5,6 +5,9 @@ state whose marginals are 1/16 apart - about 8 standard errors at 4096 shots -
 so every string position names its qubit without any help from symmetry.
 Run twice: a layout that is chosen stochastically would change between jobs.
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import json
 import math
 

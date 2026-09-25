@@ -46,7 +46,7 @@ exploration. The measurements themselves are in
   scored 316.61: each string is little-endian over [the setting's non-I
   qubits, ascending] + [the rest, ascending], while the label is in circuit
   order. `quantum_film/atlas/decode.py` implements it, and
-  tests/test_decode.py replays the frozen run. Nothing in the response states
+  tests/decode/test_decode.py replays the frozen run. Nothing in the response states
   the order. The rule is inferred, and scoped to what the vectors show.
 
 ## The client

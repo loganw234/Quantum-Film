@@ -1,6 +1,9 @@
 """Fetch two qdrive output files through fresh download URLs and compare bytes.
 The presigned URL goes to storage WITHOUT the bearer token (it carries its own
 signature) and is never printed."""
+
+if __name__ != "__main__":
+    raise ImportError("this script calls Atlas when it runs; run it, never import it (CLAUDE.md)")
 import hashlib
 import pathlib
 import subprocess
