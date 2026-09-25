@@ -1,0 +1,20 @@
+{
+ "at": "2026-09-25T17:48:15.931539+00:00",
+ "seconds": 1.3537,
+ "method": "POST",
+ "path": "/api/v1/engines/graph-v1/process",
+ "body": {
+  "params": {
+   "num_qubits": 6,
+   "seed": 7,
+   "shots": 1000
+  }
+ },
+ "status": 202,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/SubmitJobOutputBody.json",
+  "job_id": "3bdb394e-770a-48c8-bfa2-294c4cbdd8dc",
+  "status": "queued",
+  "submitted_at": "2026-09-25T17:48:17Z"
+ }
+}

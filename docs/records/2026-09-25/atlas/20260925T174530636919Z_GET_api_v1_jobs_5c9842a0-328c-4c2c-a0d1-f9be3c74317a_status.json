@@ -1,0 +1,59 @@
+{
+ "at": "2026-09-25T17:45:30.636919+00:00",
+ "seconds": 0.802962,
+ "method": "GET",
+ "path": "/api/v1/jobs/5c9842a0-328c-4c2c-a0d1-f9be3c74317a/status",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobStatusOutputBody.json",
+  "job_id": "5c9842a0-328c-4c2c-a0d1-f9be3c74317a",
+  "engine_id": "coin-toss-v1",
+  "status": "completed",
+  "progress": {
+   "detail": "Counting results",
+   "step": "postprocess"
+  },
+  "steps": [
+   {
+    "extra": {
+     "backend_name": null,
+     "mode": "emu",
+     "qpu_instance": null,
+     "qpu_token": null,
+     "shots": 1000
+    },
+    "name": "build",
+    "output_type": "application/x-qasm",
+    "status": "completed"
+   },
+   {
+    "name": "submit",
+    "output_type": "application/json",
+    "status": "completed"
+   },
+   {
+    "name": "collect",
+    "output_type": "application/json",
+    "status": "completed"
+   },
+   {
+    "name": "format",
+    "output_type": "application/json",
+    "status": "completed"
+   }
+  ],
+  "result": {
+   "backend": "aer",
+   "heads": 509,
+   "ibm_job_id": "4a77b021d62e49869c4da9bf23f8023a",
+   "mode": "emu",
+   "output": "heads",
+   "shots": 1000,
+   "tails": 491
+  },
+  "warnings": [],
+  "submitted_at": "2026-09-25T17:45:27Z",
+  "updated_at": "2026-09-25T17:45:31Z"
+ }
+}

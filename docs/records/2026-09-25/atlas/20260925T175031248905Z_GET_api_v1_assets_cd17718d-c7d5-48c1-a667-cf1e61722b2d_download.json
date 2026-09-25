@@ -1,0 +1,13 @@
+{
+ "at": "2026-09-25T17:50:31.248905+00:00",
+ "seconds": 0.867976,
+ "method": "GET",
+ "path": "/api/v1/assets/cd17718d-c7d5-48c1-a667-cf1e61722b2d/download",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/DownloadAssetOutputBody.json",
+  "download_url": "<presigned url removed>",
+  "expires_at": "2026-09-25T18:05:33.215962495Z"
+ }
+}

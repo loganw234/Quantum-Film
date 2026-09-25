@@ -1,0 +1,13 @@
+{
+ "at": "2026-09-25T17:32:02.498543+00:00",
+ "seconds": 0.515022,
+ "method": "GET",
+ "path": "/api/v1/orgs",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/OrganizationsOutputBody.json",
+  "organizations": [],
+  "count": 0
+ }
+}

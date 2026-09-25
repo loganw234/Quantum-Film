@@ -1,0 +1,45 @@
+{
+ "at": "2026-09-25T17:33:51.469706+00:00",
+ "seconds": 1.419783,
+ "method": "POST",
+ "path": "/api/v1/engines/blur-core-v1/process",
+ "body": {
+  "params": {
+   "values": [
+    [
+     0,
+     1,
+     2,
+     3
+    ],
+    [
+     4,
+     5,
+     6,
+     7
+    ],
+    [
+     8,
+     9,
+     10,
+     11
+    ],
+    [
+     12,
+     13,
+     14,
+     15
+    ]
+   ],
+   "strength": 0.3,
+   "shots": 64
+  }
+ },
+ "status": 202,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/SubmitJobOutputBody.json",
+  "job_id": "0c6ec79b-cc6f-4fca-8b80-44b0083ce169",
+  "status": "queued",
+  "submitted_at": "2026-09-25T17:33:53Z"
+ }
+}

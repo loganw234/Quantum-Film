@@ -1,0 +1,22 @@
+{
+ "at": "2026-09-25T17:32:01.485031+00:00",
+ "seconds": 0.442237,
+ "method": "GET",
+ "path": "/api/v1/me/storage",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/MeStorageOutputBody.json",
+  "usage": {
+   "upload_bytes": 0,
+   "output_bytes": 0,
+   "notebook_bytes": 0,
+   "total_bytes": 0
+  },
+  "quota": {
+   "upload_bytes": 1073741824,
+   "total_bytes": 10737418240,
+   "notebook_bytes": 2147483648
+  }
+ }
+}

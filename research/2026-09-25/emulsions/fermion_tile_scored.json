@@ -1,0 +1,11 @@
+{
+ "setting": "ZIIIIZIIZZZIIZZZ",
+ "shots": 4096,
+ "crystals_per_layout": {
+  "5": 4096
+ },
+ "one_site_max_abs_z": 2.176387852526387,
+ "one_site_chi2": 13.716282575171535,
+ "pairs_max_abs_z": 2.2054462562419195,
+ "pairs_chi2": 112.2064866032052
+}

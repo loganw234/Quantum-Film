@@ -1,0 +1,50 @@
+{
+ "at": "2026-09-25T17:45:16.259503+00:00",
+ "seconds": 0.824873,
+ "method": "GET",
+ "path": "/api/v1/jobs/937c3047-22c9-4a8f-a495-25c6579ab9ff/status",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobStatusOutputBody.json",
+  "job_id": "937c3047-22c9-4a8f-a495-25c6579ab9ff",
+  "engine_id": "coin-toss-v1",
+  "status": "completed",
+  "progress": {
+   "detail": "Building coin toss circuit",
+   "step": "build"
+  },
+  "steps": [
+   {
+    "extra": {
+     "backend_name": null,
+     "mode": "emu",
+     "qpu_instance": null,
+     "qpu_token": null,
+     "shots": 1000
+    },
+    "name": "build",
+    "output_type": "application/x-qasm",
+    "status": "completed"
+   },
+   {
+    "name": "submit",
+    "output_type": "application/json",
+    "status": "skipped"
+   },
+   {
+    "name": "collect",
+    "output_type": "application/json",
+    "status": "skipped"
+   },
+   {
+    "name": "format",
+    "output_type": "application/json",
+    "status": "skipped"
+   }
+  ],
+  "warnings": [],
+  "submitted_at": "2026-09-25T17:45:12Z",
+  "updated_at": "2026-09-25T17:45:17Z"
+ }
+}

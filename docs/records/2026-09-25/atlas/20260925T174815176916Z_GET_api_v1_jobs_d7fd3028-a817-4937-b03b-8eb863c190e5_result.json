@@ -1,0 +1,22 @@
+{
+ "at": "2026-09-25T17:48:15.176916+00:00",
+ "seconds": 0.717018,
+ "method": "GET",
+ "path": "/api/v1/jobs/d7fd3028-a817-4937-b03b-8eb863c190e5/result",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobResultOutputBody.json",
+  "outputs": [
+   {
+    "slot": "circuit",
+    "output_asset_id": "594c2cb4-cafb-4442-8f9d-abd0a45b0037",
+    "url": "<presigned url removed>",
+    "expires_at": "2026-09-25T18:03:16.995786146Z",
+    "content_type": "text/plain",
+    "filename": "qdrive-api-v1-d7fd3028.brf",
+    "size_bytes": 1048
+   }
+  ]
+ }
+}

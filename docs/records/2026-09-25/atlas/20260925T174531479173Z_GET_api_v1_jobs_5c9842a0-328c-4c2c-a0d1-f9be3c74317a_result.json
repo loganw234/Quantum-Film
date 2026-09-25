@@ -1,0 +1,20 @@
+{
+ "at": "2026-09-25T17:45:31.479173+00:00",
+ "seconds": 0.991261,
+ "method": "GET",
+ "path": "/api/v1/jobs/5c9842a0-328c-4c2c-a0d1-f9be3c74317a/result",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobResultOutputBody.json",
+  "result": {
+   "backend": "aer",
+   "heads": 509,
+   "ibm_job_id": "4a77b021d62e49869c4da9bf23f8023a",
+   "mode": "emu",
+   "output": "heads",
+   "shots": 1000,
+   "tails": 491
+  }
+ }
+}

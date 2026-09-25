@@ -1,0 +1,26 @@
+# Raw Atlas responses carry presigned storage URLs, which are bearer
+# credentials for their lifetime. The sanitised copies live in docs/records/
+# (research/*/atlas/export_records.py writes them and refuses a credential).
+responses/
+.atlas/
+
+# The API key never lives in this tree: the client reads it from the file
+# QF_ATLAS_AUTH names, outside the repository, and refuses a path inside.
+# These patterns are the second lock on the same door.
+*.hdr
+*.key
+.env*
+
+# Moth's published API spec (https://api.mothquantum.com/openapi.yaml,
+# moth-api v0.41.0). It states no licence, so it is not redistributed here;
+# docs/ATLAS.md records its source and SHA-256.
+api-1.json
+
+# The runner's per-run state: markers, logs and the JSONL record.
+.gate-state/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/

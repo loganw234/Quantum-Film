@@ -1,0 +1,14 @@
+{
+ "at": "2026-09-25T17:45:17.115464+00:00",
+ "seconds": 0.820715,
+ "method": "GET",
+ "path": "/api/v1/jobs/937c3047-22c9-4a8f-a495-25c6579ab9ff/result",
+ "body": null,
+ "status": 410,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/ErrorModel.json",
+  "title": "Gone",
+  "status": 410,
+  "detail": "job produced no result"
+ }
+}

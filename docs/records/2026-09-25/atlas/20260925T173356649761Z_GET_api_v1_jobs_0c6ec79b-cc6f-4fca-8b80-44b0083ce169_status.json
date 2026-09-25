@@ -1,0 +1,49 @@
+{
+ "at": "2026-09-25T17:33:56.649761+00:00",
+ "seconds": 0.748682,
+ "method": "GET",
+ "path": "/api/v1/jobs/0c6ec79b-cc6f-4fca-8b80-44b0083ce169/status",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobStatusOutputBody.json",
+  "job_id": "0c6ec79b-cc6f-4fca-8b80-44b0083ce169",
+  "engine_id": "blur-core-v1",
+  "status": "completed",
+  "progress": {
+   "detail": "Recovered 4-qubit grid from measurement",
+   "step": "done"
+  },
+  "result": {
+   "output": [
+    [
+     4.5,
+     6,
+     3,
+     1.5
+    ],
+    [
+     1.5,
+     1.5,
+     7.5,
+     4.5
+    ],
+    [
+     6,
+     3,
+     4.5,
+     7.5
+    ],
+    [
+     15,
+     10.5,
+     10.5,
+     9
+    ]
+   ]
+  },
+  "warnings": [],
+  "submitted_at": "2026-09-25T17:33:53Z",
+  "updated_at": "2026-09-25T17:33:57Z"
+ }
+}

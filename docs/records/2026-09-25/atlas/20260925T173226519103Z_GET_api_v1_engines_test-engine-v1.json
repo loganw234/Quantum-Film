@@ -1,0 +1,43 @@
+{
+ "at": "2026-09-25T17:32:26.519103+00:00",
+ "seconds": 0.61844,
+ "method": "GET",
+ "path": "/api/v1/engines/test-engine-v1",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/Engine.json",
+  "engine_id": "test-engine-v1",
+  "name": "Test Engine",
+  "description": "Stub engine that returns a dummy result after 3 seconds",
+  "owner": "81908c64-fe37-4fe5-a13b-6590b200348a",
+  "owner_type": "organization",
+  "created_by": "moth",
+  "visibility": "public",
+  "queue": "archaeo-jobs",
+  "input_type": "application/json",
+  "output_type": "application/json",
+  "is_multipart": false,
+  "is_async": false,
+  "execution_mode": "handler",
+  "run_policy": {
+   "timeout": 300,
+   "max_retries": 3,
+   "heartbeat": 60
+  },
+  "credits_per_run": 0,
+  "enabled": true,
+  "registered_at": "2026-04-28T11:02:48Z",
+  "updated_at": "2026-09-09T21:42:30Z",
+  "banner_image_id": null,
+  "card_image_id": null,
+  "banner_image_tag": null,
+  "card_image_tag": null,
+  "has_estimate": false,
+  "estimate": null,
+  "has_estimate_fn": false,
+  "estimate_needs_container": false,
+  "sidecar_endpoint": null,
+  "has_validate_fn": false
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "at": "2026-09-25T17:45:25.202835+00:00",
+ "seconds": 1.387152,
+ "method": "POST",
+ "path": "/api/v1/engines/coin-toss-v1/process",
+ "body": {
+  "params": {
+   "shots": 1000
+  }
+ },
+ "status": 202,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/SubmitJobOutputBody.json",
+  "job_id": "5c9842a0-328c-4c2c-a0d1-f9be3c74317a",
+  "status": "queued",
+  "submitted_at": "2026-09-25T17:45:27Z"
+ }
+}

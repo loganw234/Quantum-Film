@@ -1,0 +1,14 @@
+{
+ "at": "2026-09-25T17:32:01.958882+00:00",
+ "seconds": 0.312704,
+ "method": "GET",
+ "path": "/api/v1/keys",
+ "body": null,
+ "status": 401,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/ErrorModel.json",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "authentication required"
+ }
+}

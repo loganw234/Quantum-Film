@@ -1,0 +1,32 @@
+{
+ "at": "2026-09-25T17:47:51.680459+00:00",
+ "seconds": 1.445341,
+ "method": "POST",
+ "path": "/api/v1/engines/qdrive-api-v1/process",
+ "body": {
+  "params": {
+   "n_qubits": 4,
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0
+     }
+    }
+   ],
+   "sample": true,
+   "shots": 1000,
+   "seed": 7
+  }
+ },
+ "status": 202,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/SubmitJobOutputBody.json",
+  "job_id": "4b13ab95-a6f8-4d06-aa86-f06196a5521b",
+  "status": "queued",
+  "submitted_at": "2026-09-25T17:47:53Z"
+ }
+}

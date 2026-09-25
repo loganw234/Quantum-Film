@@ -1,0 +1,66 @@
+{
+ "at": "2026-09-25T17:32:25.213927+00:00",
+ "seconds": 0.678225,
+ "method": "GET",
+ "path": "/api/v1/engines/test-engine-submission-v1",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/Engine.json",
+  "engine_id": "test-engine-submission-v1",
+  "name": "Test Engine Submission",
+  "description": "Hello world",
+  "owner": "37eae1ca-66b4-46f8-aca3-0baa7b011987",
+  "owner_type": "user",
+  "created_by": "37eae1ca-66b4-46f8-aca3-0baa7b011987",
+  "visibility": "public",
+  "queue": "",
+  "input_type": "application/json",
+  "output_type": "application/json",
+  "is_multipart": false,
+  "is_async": false,
+  "execution_mode": "handler",
+  "run_policy": {
+   "timeout": 30,
+   "max_retries": 3,
+   "heartbeat": 60
+  },
+  "params_schema": {
+   "properties": {
+    "example": {
+     "default": "hello",
+     "description": "An example parameter",
+     "title": "Example",
+     "type": "string"
+    }
+   },
+   "title": "Params",
+   "type": "object"
+  },
+  "credits_per_run": 1,
+  "enabled": true,
+  "registered_at": "2026-08-21T11:29:46Z",
+  "updated_at": "2026-08-21T11:29:46Z",
+  "description_md": "Hello world",
+  "code_samples": [
+   {
+    "lang": "Python",
+    "source": "import requests\nr = requests.post(\n    \"https://api.mothquantum.com/v1/generation/test-engine-submission-v1/process\",\n    headers={\"Authorization\": \"Bearer YOUR_KEY\"},\n    json={\"param\": \"value\"},\n)\njob = r.json()\nprint(job[\"job_id\"])\n"
+   },
+   {
+    "lang": "curl",
+    "source": "curl -X POST https://api.mothquantum.com/v1/generation/test-engine-submission-v1/process \\\n  -H \"Authorization: Bearer YOUR_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"param\": \"value\"}'\n"
+   }
+  ],
+  "banner_image_id": null,
+  "card_image_id": null,
+  "banner_image_tag": null,
+  "card_image_tag": null,
+  "has_estimate": false,
+  "estimate": null,
+  "has_estimate_fn": false,
+  "estimate_needs_container": false,
+  "sidecar_endpoint": null,
+  "has_validate_fn": false
+ }
+}

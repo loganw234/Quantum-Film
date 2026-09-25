@@ -1,0 +1,20 @@
+# Everything is LF in the repository and LF on checkout: the scripts here run
+# on Windows, WSL and the Linux box alike, and a CRLF shell script fails with a
+# syntax error naming a token that ends in a carriage return.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+
+# Binary fixtures say so rather than let git sniff them: a layout archive
+# with its line endings normalised is a different crystal field.
+*.npz binary
+*.png binary
+
+# The frozen vectors are hashed (tests/vectors/SHA256SUMS): their bytes are
+# the claim, so git stores them exactly and never converts line endings.
+# On 2026-09-25 the measured vector had been written by Python on Windows
+# with CRLF; normalised on commit, a fresh clone would have failed its own
+# hash. It was re-frozen as LF before the first commit, and this line keeps
+# a CRLF editor from reintroducing the problem silently: the vectors gate
+# fails locally instead.
+tests/vectors/** -text

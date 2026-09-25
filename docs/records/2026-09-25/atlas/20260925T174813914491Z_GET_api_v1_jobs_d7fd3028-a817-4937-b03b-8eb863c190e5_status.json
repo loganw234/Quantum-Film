@@ -1,0 +1,171 @@
+{
+ "at": "2026-09-25T17:48:13.914491+00:00",
+ "seconds": 1.224359,
+ "method": "GET",
+ "path": "/api/v1/jobs/d7fd3028-a817-4937-b03b-8eb863c190e5/status",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobStatusOutputBody.json",
+  "job_id": "d7fd3028-a817-4937-b03b-8eb863c190e5",
+  "engine_id": "qdrive-api-v1",
+  "status": "completed",
+  "progress": {
+   "detail": "Sampling final state",
+   "step": "run"
+  },
+  "result": {
+   "circuit": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\ngate rxx(p0) _gate_q_0, _gate_q_1 {\n  h _gate_q_0;\n  h _gate_q_1;\n  cx _gate_q_0, _gate_q_1;\n  rz(p0) _gate_q_1;\n  cx _gate_q_0, _gate_q_1;\n  h _gate_q_1;\n  h _gate_q_0;\n}\ngate sxdg _gate_q_0 {\n  s _gate_q_0;\n  h _gate_q_0;\n  s _gate_q_0;\n}\ngate ryy(p0) _gate_q_0, _gate_q_1 {\n  sxdg _gate_q_0;\n  sxdg _gate_q_1;\n  cx _gate_q_0, _gate_q_1;\n  rz(p0) _gate_q_1;\n  cx _gate_q_0, _gate_q_1;\n  sx _gate_q_0;\n  sx _gate_q_1;\n}\ngate rzz(p0) _gate_q_0, _gate_q_1 {\n  cx _gate_q_0, _gate_q_1;\n  rz(p0) _gate_q_1;\n  cx _gate_q_0, _gate_q_1;\n}\nqubit[4] q;\nrz(0.8006775725563232) q[0];\nry(-0.4100005378381382) q[0];\nrz(1.5020785148743003) q[0];\nrz(0.6062251259495665) q[1];\nry(1.0697174570833365) q[1];\nrz(0.11723280862010825) q[1];\nrxx(-0.15381406323492977) q[0], q[1];\nryy(0.30110482617011997) q[0], q[1];\nrzz(1.519761885708399) q[0], q[1];\nrz(0.12295930726006474) q[0];\nry(-0.4746106313187506) q[0];\nrz(1.3704562026261642) q[0];\nrz(-1.661715476054759) q[1];\nry(-1.0449306842449784) q[1];\nrz(-0.38145566764540195) q[1];\n",
+   "counts": {
+    "0000": 998,
+    "0011": 2
+   },
+   "measured": {
+    "IIII": 0.9825038402953844
+   },
+   "seed": 7,
+   "tomography": {
+    "0": {
+     "X": null,
+     "Y": null,
+     "Z": null
+    },
+    "0,1": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "0,2": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "0,3": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "1": {
+     "X": null,
+     "Y": null,
+     "Z": null
+    },
+    "1,2": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "1,3": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "2": {
+     "X": null,
+     "Y": null,
+     "Z": null
+    },
+    "2,3": {
+     "II": 0.9825038402953844,
+     "IX": null,
+     "IY": null,
+     "IZ": null,
+     "XI": null,
+     "XX": null,
+     "XY": null,
+     "XZ": null,
+     "YI": null,
+     "YX": null,
+     "YY": null,
+     "YZ": null,
+     "ZI": null,
+     "ZX": null,
+     "ZY": null,
+     "ZZ": null
+    },
+    "3": {
+     "X": null,
+     "Y": null,
+     "Z": null
+    }
+   }
+  },
+  "outputs": [
+   {
+    "slot": "circuit",
+    "output_asset_id": "594c2cb4-cafb-4442-8f9d-abd0a45b0037",
+    "content_type": "text/plain",
+    "filename": "qdrive-api-v1-d7fd3028.brf",
+    "size_bytes": 1048
+   }
+  ],
+  "warnings": [],
+  "submitted_at": "2026-09-25T17:48:04Z",
+  "updated_at": "2026-09-25T17:48:14Z"
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "at": "2026-09-25T17:32:02.297713+00:00",
+ "seconds": 0.17723,
+ "method": "GET",
+ "path": "/api/v1/me/invitations",
+ "body": null,
+ "status": 401,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/ErrorModel.json",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "authentication required"
+ }
+}

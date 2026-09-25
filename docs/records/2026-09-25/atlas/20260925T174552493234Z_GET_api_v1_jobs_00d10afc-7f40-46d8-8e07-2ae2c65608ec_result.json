@@ -1,0 +1,39 @@
+{
+ "at": "2026-09-25T17:45:52.493234+00:00",
+ "seconds": 0.903118,
+ "method": "GET",
+ "path": "/api/v1/jobs/00d10afc-7f40-46d8-8e07-2ae2c65608ec/result",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/JobResultOutputBody.json",
+  "result": {
+   "output": [
+    [
+     4.5,
+     1.5,
+     0,
+     4.5
+    ],
+    [
+     0,
+     4.5,
+     1.5,
+     1.5
+    ],
+    [
+     10.5,
+     12,
+     9,
+     7.5
+    ],
+    [
+     6,
+     7.5,
+     10.5,
+     15
+    ]
+   ]
+  }
+ }
+}

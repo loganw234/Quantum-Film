@@ -1,0 +1,185 @@
+{
+ "at": "2026-09-25T17:32:28.348516+00:00",
+ "seconds": 0.616851,
+ "method": "GET",
+ "path": "/api/v1/engines/coin-toss-v1",
+ "body": null,
+ "status": 200,
+ "response": {
+  "$schema": "https://api.mothquantum.com/schemas/Engine.json",
+  "engine_id": "coin-toss-v1",
+  "name": "Coin Toss",
+  "description": "Flip a quantum coin with a Hadamard gate and return heads and tails counts.",
+  "version": "1.0.15",
+  "owner": "81908c64-fe37-4fe5-a13b-6590b200348a",
+  "owner_type": "organization",
+  "created_by": "moth",
+  "visibility": "public",
+  "queue": "engine/coin-toss-v1",
+  "input_type": "application/json",
+  "output_type": "application/json",
+  "is_multipart": false,
+  "is_async": false,
+  "execution_mode": "steps",
+  "run_policy": {
+   "timeout": 300,
+   "max_retries": 3,
+   "heartbeat": 60
+  },
+  "params_schema": {
+   "properties": {
+    "backend_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "IBM Quantum backend to run on when mode is qpu, e.g. ibm_brisbane. Leave blank to let the platform choose the least busy one.",
+     "title": "Backend Name"
+    },
+    "mode": {
+     "default": "emu",
+     "description": "Where the circuit runs. emu uses the platform's simulator and returns in seconds; qpu submits to real IBM Quantum hardware and can queue for minutes.",
+     "enum": [
+      "emu",
+      "qpu"
+     ],
+     "title": "Mode",
+     "type": "string"
+    },
+    "qpu_instance": {
+     "anyOf": [
+      {
+       "format": "password",
+       "type": "string",
+       "writeOnly": true
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "IBM Quantum instance (hub/group/project) that pairs with qpu_token. Leave blank together with qpu_token to use Moth's account.",
+     "title": "Qpu Instance"
+    },
+    "qpu_token": {
+     "anyOf": [
+      {
+       "format": "password",
+       "type": "string",
+       "writeOnly": true
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Your own IBM Quantum API token for mode qpu. Recommended to leave blank: runs then use Moth's own IBM account through the platform backend.",
+     "title": "Qpu Token"
+    },
+    "shots": {
+     "default": 10,
+     "description": "Number of coin tosses to run. More shots bring the heads/tails split closer to 50/50.",
+     "exclusiveMinimum": 0,
+     "title": "Shots",
+     "type": "integer"
+    }
+   },
+   "title": "Params",
+   "type": "object"
+  },
+  "credits_per_run": 2,
+  "enabled": true,
+  "registered_at": "2026-06-23T14:49:24Z",
+  "updated_at": "2026-09-10T01:28:28Z",
+  "description_md": "Flip a quantum coin a number of times and get back the heads and tails counts.\n\nA single qubit is put into equal superposition with a Hadamard gate and measured\n`shots` times. Each measurement lands on heads or tails with 50/50 probability, so\nthe counts converge towards an even split as `shots` grows. Runs on an emulator\nby default, or on an IBM Quantum device when `mode` is `qpu`.\n\n### How it works\n\n1. Builds a one-qubit circuit: Hadamard gate, then measurement.\n2. Runs it for `shots` measurements on the emulator, or submits it to the chosen\n   IBM Quantum backend and waits for the device to finish.\n3. Counts the outcomes and reports the majority as the result.\n\n### Output\n\nInline JSON in `result`:\n\n- `output`: `\"heads\"` or `\"tails\"`, whichever had more counts.\n- `heads`, `tails`: integer counts.\n- `shots`: the number of measurements taken.\n\n### Limits\n\n- `mode: \"qpu\"` needs an IBM Quantum token, either supplied per request or\n  configured on the platform; device queue times can be minutes to hours.\n- The circuit is one qubit; results are a probability sample, not a random-number\n  service with guarantees.\n\n### Further reading\n\n- [Hadamard gate](https://en.wikipedia.org/wiki/Quantum_logic_gate#Hadamard_gate):\n  the single operation this engine uses.",
+  "code_samples": [
+   {
+    "lang": "Python",
+    "source": "import time, requests\n\nBASE = \"https://api.mothquantum.com/v1\"\nHEADERS = {\"Authorization\": \"Bearer YOUR_KEY\"}\n\n# 1. Submit\nr = requests.post(f\"{BASE}/generation/coin-toss-v1/process\",\n                  headers=HEADERS, json={\"shots\": 10})\njob_id = r.json()[\"job_id\"]\n\n# 2. Poll — watch per-step progress\nwhile True:\n    s = requests.get(f\"{BASE}/status/{job_id}\", headers=HEADERS).json()\n    for step in s.get(\"steps\", []):\n        print(step[\"name\"], \"→\", step[\"status\"])\n    if s[\"status\"] in (\"completed\", \"failed\"):\n        break\n    time.sleep(1)\n\n# 3. Fetch final result (deleted after fetch)\nresult = requests.get(f\"{BASE}/result/{job_id}\", headers=HEADERS).json()\nprint(result[\"result\"][\"output\"])  # \"heads\" or \"tails\"\n"
+   },
+   {
+    "lang": "Python (stop after build)",
+    "source": "import requests\n\nBASE = \"https://api.mothquantum.com/v1\"\nHEADERS = {\"Authorization\": \"Bearer YOUR_KEY\"}\n\n# Run only the build step, skip run + format\nr = requests.post(f\"{BASE}/generation/coin-toss-v1/process?stop_after=build\",\n                  headers=HEADERS, json={\"shots\": 10})\njob_id = r.json()[\"job_id\"]\n"
+   },
+   {
+    "lang": "curl",
+    "source": "curl -X POST https://api.mothquantum.com/v1/generation/coin-toss-v1/process \\\n  -H \"Authorization: Bearer YOUR_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"shots\": 10}'\n"
+   }
+  ],
+  "error_codes": [
+   {
+    "type": "coin_toss_failed",
+    "description": "The quantum circuit failed to execute."
+   },
+   {
+    "type": "missing_credentials",
+    "description": "No IBM Quantum token available for a QPU run."
+   },
+   {
+    "type": "unknown_backend",
+    "description": "The requested backend does not exist."
+   },
+   {
+    "type": "circuit_too_large",
+    "description": "The circuit does not fit the selected backend."
+   },
+   {
+    "type": "ibm_submission_failed",
+    "description": "mothbackend could not submit the circuit to IBM."
+   },
+   {
+    "type": "ibm_collection_failed",
+    "description": "The QPU job did not complete successfully."
+   }
+  ],
+  "steps": [
+   {
+    "name": "build",
+    "timeout": 600,
+    "heartbeat": 300,
+    "input_type": "application/json",
+    "max_retries": 0,
+    "output_type": "application/x-qasm"
+   },
+   {
+    "name": "submit",
+    "timeout": 600,
+    "heartbeat": 300,
+    "input_type": "application/x-qasm",
+    "max_retries": 2,
+    "output_type": "application/json"
+   },
+   {
+    "name": "collect",
+    "timeout": 3600,
+    "heartbeat": 900,
+    "input_type": "application/json",
+    "max_retries": 5,
+    "output_type": "application/json"
+   },
+   {
+    "name": "format",
+    "timeout": 120,
+    "heartbeat": 60,
+    "input_type": "application/json",
+    "max_retries": 0,
+    "output_type": "application/json"
+   }
+  ],
+  "banner_image_id": null,
+  "card_image_id": null,
+  "banner_image_tag": null,
+  "card_image_tag": null,
+  "has_estimate": false,
+  "estimate": null,
+  "has_estimate_fn": false,
+  "estimate_needs_container": false,
+  "sidecar_endpoint": null,
+  "has_validate_fn": false
+ }
+}
