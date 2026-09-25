@@ -1,0 +1,59 @@
+{
+ "chi2_per_dof": 0.8980225044563281,
+ "circuit_sha256": "ed767c01bd4b851d08993da80f715676e345fc95a10f3bda05400f738e400b36",
+ "commitment": "394300991b272221b4ca3a2ff4c5fa63cd8ea10bf66eec459dae3cd9a22a93f4",
+ "crystals_per_layout": {
+  "5": 4096
+ },
+ "decode": "quantum_film.atlas.decode/v1",
+ "distinct_layouts": 1995,
+ "engine": "tomography-api-v2",
+ "fixer_cli": {
+  "fixed": 1995,
+  "refused": 0
+ },
+ "forbidden": {
+  "distinct_laid": 0,
+  "fraction": 0.0,
+  "layouts_in_law": 1360,
+  "shots": 0
+ },
+ "job_id": "8586f1cc-a312-4ad4-8f4b-2ff2524676ae",
+ "not_fixed": [],
+ "one_site": {
+  "chi2": 9.797727272727274,
+  "max_abs_z": 1.4832396974191326,
+  "n": 16,
+  "z": [
+   -0.3371,
+   0.7416,
+   0.0674,
+   0.8427,
+   -1.0787,
+   -1.4832,
+   -1.3821,
+   -0.236,
+   -0.5056,
+   0.236,
+   0.0,
+   -0.0674,
+   0.809,
+   0.5056,
+   1.1461,
+   0.7416
+  ]
+ },
+ "pairs": {
+  "chi2": 112.33333333333336,
+  "max_abs_z": 2.517439175034821,
+  "n": 120,
+  "worst_pair": [
+   3,
+   9
+  ],
+  "worst_z": -2.517439175034821
+ },
+ "records": 1995,
+ "shots": 4096,
+ "stock": "pauli-4x4"
+}
