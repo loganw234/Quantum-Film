@@ -10,13 +10,15 @@ and the two together) and five orchestration faults (D8). So certificate.py is h
 
 THE FILE IS CLOSED. Its top-level statements are its docstring, the imports in IMPORTS, TAU, and definitions: every
 function a STEP registered in test_pinned_certificate.py's CHECKS (with its tight check) or a HELPER registered in
-test_pinned_orchestration.py's HELPER_CHECKS (with its exact test), or `enclosure`; every class one of CLASSES, and
-Certificate's methods exactly __init__, decide and extend. Nothing is defined inside a function.
+test_pinned_orchestration.py's HELPER_CHECKS (with its exact test), or `enclosure`; every class one of CLASSES, with
+exactly its bases and decorators, EnclosureBroken's body its docstring, Enclosure's and Located's their fields, and
+Certificate's its docstring and the methods __init__, decide and extend. Nothing is defined inside a function.
 
 EVERYWHERE:
 - CALLS: a function or class the module defines; a callable imported by IMPORTS; bounds' directed functions (DIRECTED,
   each held bit for bit by tests/pinned/test_pinned_bounds.py); the numpy functions in NP_ARITY, at most that many
-  positional arguments; the builtins in BUILTINS; the methods in METHODS; float.fromhex of one literal that is exactly
+  positional arguments; the builtins in BUILTINS; the methods in METHODS, with at most METHODS' positional
+  arguments (a positional argument of ndarray.max is its initial value); float.fromhex of one literal that is exactly
   a binary64; and `trace`, only as a statement. Keywords only as KEYWORDS names them. Fraction takes integers only.
   `bounds64` only in uniform_box; `lower` only as the argument of `self.q.append`.
 - NAMES of bd and np: only those, called or not. No dunder attribute; `float` and `int` only as float.fromhex.
@@ -32,7 +34,8 @@ EVERYWHERE:
 THE ORCHESTRATION (Certificate, enclosure) only composes steps and helpers, and passes each interval whole: it calls
 only STEPS, HELPERS, EnclosureBroken, trace and Fraction; it builds no tuple, list, dict or set (a return's value,
 trace's record and the empty column list excepted); it holds no float literal, no subscript, star or unpacking, no
-bd or np, and no literal as a step's argument; its state is set only in __init__ (e, M, N, s, g, q) and in extend's
+bd or np, and no literal as a step's argument; it assigns each local name once; its state is set only in __init__
+(e, M, N, s, g, q) and in extend's
 two accumulations, each its own step fed its own state first, and its column list grows only by
 `self.q.append(lower(q))`.
 
@@ -83,7 +86,7 @@ DIRECTED = {f"{op}_{side}" for op in ("add", "sub", "mul", "div", "sqrt", "cospi
 NP_ARITY = {"where": 3, "abs": 1, "tile": 2, "vstack": 1, "zeros": 1, "ones": 1, "argmin": 1, "eye": 1}
 NP_VALUES = {"ndarray", "float64", "inf"}
 BUILTINS = {"len", "min", "max", "all", "zip"}
-METHODS = {"max", "all", "any", "ravel", "append"}
+METHODS = {"max": 0, "all": 0, "any": 0, "ravel": 0, "append": 1}      # each with its positional arity
 KEYWORDS = {("zip", "strict"), ("dataclass", "frozen"), ("lru_cache", "maxsize")}
 INT_NAMES = {"L", "M", "N", "j", "k", "p"}
 TRUSTED_PARAMS = {"L", "j", "p"}        # the tile edge, a draw's index, and a position: each indexes, or refuses
@@ -92,7 +95,9 @@ INT_LITERAL_LIMIT = 2 ** 16
 INT_OK = {("modes", 0), ("angles", 0), ("Fraction", 0), ("Fraction", 1), ("assemble_box", 0), ("assemble", 0),
           ("zero", 0), ("holds", 1), ("np.ones", 0), ("np.zeros", 0), ("np.eye", 0), ("np.tile", 1),
           ("bd.dot_lo", 2), ("bd.dot_hi", 2), ("Enclosure", 4), ("Enclosure", 5), ("Located", 0), ("trace", 0)}
-CLASSES = {"EnclosureBroken", "Enclosure", "Located", "Certificate"}
+CLASSES = {"EnclosureBroken": (["AssertionError"], [], "docstring"), "Enclosure": ([], ["dataclass(frozen=True)"],
+                                                                                    "fields"),
+           "Located": (["NamedTuple"], [], "fields"), "Certificate": ([], [], "methods")}
 ORCHESTRATION = {"Certificate", "enclosure"}
 CERTIFICATE_METHODS = {"__init__", "decide", "extend"}
 ORCHESTRATION_CALLS = STEPS | HELPERS | {"EnclosureBroken", "trace", "Fraction"}
@@ -169,6 +174,27 @@ def fromhex_exact(node):
         return False
 
 
+def class_violation(node):
+    """Why a class departs from its registered shape, or None."""
+    if node.name not in CLASSES:
+        return f"a class {node.name} the file does not name"
+    bases, decorators, kind = CLASSES[node.name]
+    if [ast.unparse(b) for b in node.bases] != bases or node.keywords \
+            or [ast.unparse(d) for d in node.decorator_list] != decorators:
+        return f"{node.name}'s bases or decorators are not {bases} {decorators}"
+    body = [n for n in node.body if not (n is node.body[0] and isinstance(n, ast.Expr)
+                                         and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str))]
+    if kind == "docstring" and body:
+        return f"{node.name}'s body is more than its docstring"
+    if kind == "fields" and not all(isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+                                    and n.value is None for n in body):
+        return f"{node.name}'s body is more than its fields: a method there is neither a step nor a helper"
+    if kind == "methods" and ({n.name for n in body if isinstance(n, ast.FunctionDef)} != CERTIFICATE_METHODS
+                              or not all(isinstance(n, ast.FunctionDef) for n in body) or len(body) != 3):
+        return f"Certificate's body is not its docstring and {sorted(CERTIFICATE_METHODS)}"
+    return None
+
+
 def closed_violations(tree):
     """The file is closed: every definition registered, nothing else at the top level, nothing nested."""
     out = []
@@ -185,14 +211,7 @@ def closed_violations(tree):
             if node.name not in STEPS | HELPERS | {"enclosure"}:
                 why = f"{node.name} is neither a registered step (CHECKS) nor a registered helper (HELPER_CHECKS)"
         elif isinstance(node, ast.ClassDef):
-            if node.name not in CLASSES:
-                why = f"a class {node.name} the file does not name"
-            elif node.name == "Certificate":
-                methods = {n.name for n in node.body if isinstance(n, ast.FunctionDef)}
-                others = [n for n in node.body if not isinstance(n, ast.FunctionDef)
-                          and not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
-                if methods != CERTIFICATE_METHODS or others:
-                    why = f"Certificate's body is not its docstring and {sorted(CERTIFICATE_METHODS)}"
+            why = class_violation(node)
         else:
             why = "a top-level statement the file does not name"
         if why:
@@ -286,6 +305,12 @@ def orchestration_violations(tree):
                     ok = False
                 if not ok:
                     bad(node, f"sets its state self.{attr} outside __init__ and its own accumulation in extend")
+            names = [tg.id for node in body_nodes(fn) if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign))
+                     for tg in (node.targets if isinstance(node, ast.Assign) else [node.target])
+                     if isinstance(tg, ast.Name)]                 # a local name; self.x is state, held above
+            for name in sorted({x for x in names if names.count(x) > 1}):
+                out.append(f"line {fn.lineno}: the orchestration assigns {name} more than once in {fn.name}: a "
+                           f"value traced is not the value used")
             if fn.name == "extend":
                 for attr in ACCUMULATIONS:
                     if [a for a, _ in assigned].count(attr) != 1:
@@ -359,7 +384,9 @@ def global_violations(tree, source):
                 if not fromhex_exact(node):
                     bad(node, "float.fromhex of anything but a literal that is exactly a binary64")
             elif isinstance(f, ast.Attribute) and f.attr in METHODS:
-                pass
+                if len(node.args) > METHODS[f.attr]:
+                    bad(node, f"a method {f.attr} with more positional arguments than {METHODS[f.attr]}: "
+                              f"they carry values")
             else:
                 bad(node, "a call the allowlist does not name")
         elif isinstance(node, ast.Attribute):
@@ -568,6 +595,9 @@ PLANTED = {
     "R4: an int field on any name": "def planted(b):\n    return b.N * 3\n",
     "R5: R1 with R3's integer": "def planted(w):\n    k = 94906267\n    k = k * k\n    return w.max(initial=k)\n",
     "bounds64 outside uniform_box": "def planted(u):\n    return bounds64(u)\n",
+    # verifier-P1's 06:24Z minor: R1 with its initial value passed positionally
+    "R1 positional: ndarray.max's initial as its fourth argument":
+        "def planted(w):\n    return w.max(None, None, False, Fraction(1, 3))\n",
 }
 
 
@@ -588,19 +618,36 @@ CLOSED_PLANTS = {
     "an unregistered class": "class Box(NamedTuple):\n    lo: object\n",
     "a module-level statement": "K = TAU\n",
     "a step defined twice": "def square(y):\n    return y\n",
-    "a fourth method": None,
+}
+# verifier-P1's 06:24Z minor: a method added to a class other than Certificate; and each class's shape.
+CLASS_PLANTS = {
+    "a fourth method in Certificate": ("    def extend(self, drawn, t):\n",
+                                       "    def reset(self):\n        return self.e\n\n"
+                                       "    def extend(self, drawn, t):\n"),
+    "a method in Located": ("    reason: object       # why no position is certified, or None\n",
+                            "    reason: object       # why no position is certified, or None\n\n"
+                            "    def ends(self):\n        return self.reason, self.position\n"),
+    "a method in Enclosure": ("    N: int\n",
+                              "    N: int\n\n    def swapped(self):\n        return self.box[1], self.box[0]\n"),
+    "a field with a value in Enclosure": ("    N: int\n", "    N: int\n    extra: float = 0.1\n"),
+    "a body in EnclosureBroken": ("never absorbed.\"\"\"\n",
+                                  "never absorbed.\"\"\"\n\n    def __str__(self):\n        return 'fine'\n"),
+    "a base changed": ("class Located(NamedTuple):\n", "class Located(tuple):\n"),
+    "a decorator dropped": ("@dataclass(frozen=True)\nclass Enclosure:\n", "@dataclass\nclass Enclosure:\n"),
 }
 
 
 @pytest.mark.parametrize("name", sorted(CLOSED_PLANTS))
 def test_the_rule_refuses_what_the_file_does_not_register(name):
-    if CLOSED_PLANTS[name] is None:
-        old = "    def extend(self, drawn, t):\n"
-        assert SOURCE.count(old) == 1, "the plant's anchor is gone: re-anchor this plant"
-        source = SOURCE.replace(old, "    def reset(self):\n        return self.e\n\n" + old)
-    else:
-        source = SOURCE + "\n\n" + CLOSED_PLANTS[name]
+    source = SOURCE + "\n\n" + CLOSED_PLANTS[name]
     assert closed_violations(ast.parse(source)), f"the closed file let {name} through"
+
+
+@pytest.mark.parametrize("name", sorted(CLASS_PLANTS))
+def test_the_rule_refuses_a_class_that_departs_from_its_shape(name):
+    old, new = CLASS_PLANTS[name]
+    assert SOURCE.count(old) == 1, "the plant's anchor is gone: re-anchor this plant"
+    assert closed_violations(ast.parse(SOURCE.replace(old, new))), f"the closed file let {name} through"
 
 
 # Faults written into the orchestration, anchors kept: each is refused by the rule. verifier-P1's five D8 faults are
@@ -657,3 +704,10 @@ FIVE_MODULE = five()
 def test_the_rule_refuses_each_of_verifier_p1s_five_as_planted(name):
     found = violations(FIVE_MODULE.planted(name))
     assert found, f"the rule let {name} through"
+
+
+def test_the_rule_refuses_n3b_as_written_by_its_reassignment():
+    """verifier-P1's N3b reassigns `found`; the single-assignment rule refuses that spelling. A respelling that does
+    not reassign may pass the rule: the returned decision's check in test_pinned_orchestration.py is what holds it."""
+    found = violations(FIVE_MODULE.planted("N3b: the returned position certified without the Gram factor"))
+    assert any("assigns found more than once" in f for f in found)

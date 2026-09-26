@@ -30,8 +30,10 @@ from u's own exact bounds (`uniform_box`), bounds its target (`target`).
 boundary it is compared with by TAU.
 
 THE FILE IS CLOSED: every top-level function is a STEP, a HELPER or the
-orchestration, and each is registered with the test that holds it; anything
-else is refused (tests/pinned/test_pinned_source_rule.py).
+orchestration, and each is registered with the test that holds it; each class
+has exactly its registered bases, decorators and body (fields only, but
+Certificate's three methods); anything else is refused
+(tests/pinned/test_pinned_source_rule.py).
   - A STEP holds every directed rounding (the `bd` functions, and `bounds64`
     in `uniform_box`). Each is held to exact rational arithmetic on TIGHT
     inputs, where only its own roundings separate its bound from the exact
@@ -45,25 +47,30 @@ else is refused (tests/pinned/test_pinned_source_rule.py).
     helpers, and an interval passes between them only whole. The rule refuses
     there: any tuple or list built (a return, `trace`'s record and the empty
     column list excepted), any float literal, any subscript, star or
-    unpacking, `bd` and `np`, `lower` anywhere but its one call site, and a
-    state (`s`, `g`, `q`) set anywhere but in `__init__` and its one
-    accumulation in `extend`. And Certificate's composition is run end to end
-    on TIGHT inputs (test_pinned_orchestration.py): an exactly orthonormal
-    basis whose rows are binary64, a basis deliberately off orthonormal by
-    2^-36, uniforms one part in ten of an ulp from a binary64, columns that
-    round. Every claim it composes (the weights, their sums, the target, the
-    state after each draw) is held there to the exact chain rule, in
-    Fractions. `enclosure`'s composition is held by its box containing every
-    orbital of the authority (tests/pinned/test_pinned_exact.py).
+    unpacking, `bd` and `np`, `lower` anywhere but its one call site, a local
+    name assigned twice, and a state (`s`, `g`, `q`) set anywhere but in
+    `__init__` and its one accumulation in `extend`. And Certificate's
+    composition is run end to end on TIGHT inputs
+    (test_pinned_orchestration.py): an exactly orthonormal basis whose rows
+    are binary64, a basis deliberately off orthonormal by 2^-36, uniforms one
+    part in ten of an ulp from a binary64, columns that round, and on family
+    G's first plans targets planted either side of every boundary at relative
+    distances 0 to 1e-6. Held there to the exact chain rule, in Fractions:
+    the boundaries and target decide traces; the decision decide RETURNS,
+    which the sampler draws from (the traced one; None, or the exact position
+    cleared by TAU; None within TAU of a boundary; certified where the target
+    clears every boundary by 1e-7); and the state after each extend.
+    `enclosure`'s composition is held by its box containing every orbital of
+    the authority (tests/pinned/test_pinned_exact.py).
 
-WHAT IS LEFT, STATED (verifier-P1's D8 and D9, 2026-09-26):
+WHAT IS LEFT, STATED (verifier-P1's D8, D9 and D10, 2026-09-26):
   - The source rule reads spellings. A respelling it does not list may pass it.
   - Inside a step, the tight check sees a rounding however it is spelled, on
     the check's inputs: every directed call and every reduction is shown to
     matter there.
   - In a helper, its exact test holds its answer on that test's inputs.
   - In the orchestration, a fault passes only if it is spelled past the rule
-    AND moves no claimed value on the end-to-end check's inputs (for
+    AND moves none of the claims above on the end-to-end check's inputs (for
     `enclosure`, no orbital out of its box). The rolls alone would not see
     it: within the enclosures' slack a fault moves no roll.
 """

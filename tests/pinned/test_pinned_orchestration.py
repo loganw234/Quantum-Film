@@ -16,7 +16,14 @@ THE ORCHESTRATION, END TO END. Certificate is driven on inputs where what it com
   - family Q: two columns whose coefficients carry 53 significant bits, so the columns round and their width is
     all that keeps the projections' state true.
 Every claim is held to the exact chain rule, in Fractions: after each extend, the state (|y|^2's interval, the three
-Gram sums, the Gram bound F); at each decide, the boundaries, the target and the certified position.
+Gram sums, the Gram bound F); at each decide, the boundaries and the target it traces, and the decision it RETURNS,
+which is what the sampler draws from (verifier-P1's D10: the first version read only the trace, and a decide that
+traced honestly and returned a position certified on other weights passed it). The returned position must be the
+traced one; None, or the exact chain rule's position cleared by TAU on both sides; None wherever the exact target lies
+within TAU of a boundary; and not None wherever it clears every boundary by CERTAIN. On the first LADDER plans of
+family G, decide is also asked about planted targets on both sides of every exact boundary, at relative distances from
+0 to 1e-6 (PROBE_DISTANCES): there the Gram factor moves the boundaries by about 1e-12, so a decision taken from other
+weights than the ones traced lands on the wrong side of some of them.
 """
 from fractions import Fraction
 
@@ -345,18 +352,44 @@ def families():
 
 
 FAMILIES = families()
+LADDER = {"G": 3}                  # how many of each family's plans are probed with planted targets
+PROBE_DISTANCES = (Fraction(0), Fraction(1, 2 ** 210), Fraction(1, 10 ** 14), Fraction(1, 10 ** 13),
+                   Fraction(1, 10 ** 12), Fraction(1, 10 ** 11), Fraction(1, 10 ** 10), Fraction(1, 10 ** 8),
+                   Fraction(1, 10 ** 6))
+CERTAIN = Fraction(1, 10 ** 7)     # a target this far from every boundary is certified: enclosures here are narrower
 
 
-def decide_problems(ns, tag, j, taken, u, info):
-    """The claims decide composed at draw j, held to the exact chain rule."""
+def exact_boundaries(taken):
+    """The exact chain rule's cumulative weights over the untaken sites, in site order."""
+    cs = exact_weights(taken)
+    out, acc = [], Fraction(0)
+    for i in range(MS):
+        if i not in taken:
+            acc += cs[i]
+            out.append(acc)
+    return out
+
+
+def probes(u, B, j, ladder):
+    """The uniforms decide is asked about at draw j: the plan's own and, on a ladder plan, a target at each of
+    PROBE_DISTANCES either side of every exact boundary, where that is a uniform below 1."""
+    out = [u]
+    if ladder:
+        for v in B:
+            for d in PROBE_DISTANCES:
+                for side in (-1, 1):
+                    w = v * (1 + side * d) / (NS - j)
+                    if 0 <= w < 1 and w not in out:
+                        out.append(w)
+    return out
+
+
+def decide_problems(ns, tag, j, B, u, info):
+    """The claims decide traced at draw j, held to the exact chain rule: every boundary, and the target."""
     out = []
     TAU = Fraction(ns["TAU"])
-    idx = [i for i in range(MS) if i not in taken]
-    cs = exact_weights(taken)
-    B, acc = [], Fraction(0)
-    for i in idx:
-        acc += cs[i]
-        B.append(acc)
+    if not info:
+        return [f"{tag} draw {j} u={float(u)!r}: decide traced nothing"]
     b_lo, b_hi = info["bounds"]
     out += [f"{tag} draw {j}: boundary {k} {float(B[k])!r} outside [{b_lo[k]!r}, {b_hi[k]!r}]"
             for k in range(len(B)) if not X(b_lo[k]) <= B[k] <= X(b_hi[k])]
@@ -364,11 +397,36 @@ def decide_problems(ns, tag, j, taken, u, info):
     target = u * (NS - j)
     if not X(t_lo) <= target - TAU or not X(t_hi) >= target + TAU:
         out.append(f"{tag} draw {j}: the exact target {float(target)!r} +- TAU is outside [{t_lo!r}, {t_hi!r}]")
-    p = info["position"]
+    return out
+
+
+def decision_problems(ns, tag, j, B, u, returned, info):
+    """The decision decide RETURNED at draw j, the one the sampler draws from, held to the exact chain rule's own."""
+    out = []
+    TAU = Fraction(ns["TAU"])
+    p, why, slack = returned
+    T = u * (NS - j)
+    where = f"{tag} draw {j} u={float(u)!r}"
+    if info.get("position", "untraced") != p:
+        out.append(f"{where}: decide returned position {p}, and traced {info.get('position', 'nothing')}")
+    if (p is None) != (why is not None) or (p is None) != (slack is None):
+        out.append(f"{where}: decide returned {returned!r}: a position with a slack, or a reason, never both")
+    exact = next(k for k, v in enumerate(B) if T < v)
+    near = min(abs(T - v) for v in B)
     if p is not None:
-        want = next(k for k, v in enumerate(B) if target < v)
-        if p != want or target - (B[p - 1] if p else 0) <= TAU or B[p] - target <= TAU:
-            out.append(f"{tag} draw {j}: certified position {p}, the exact chain rule's is {want}")
+        if p != exact:
+            out.append(f"{where}: decide certified position {p}; the exact chain rule's is {exact}")
+        else:
+            gap = min(B[p] - T, T - B[p - 1] if p else B[p] - T)
+            if gap <= TAU:
+                out.append(f"{where}: decide certified position {p} with the exact target {float(gap)!r} from a "
+                           f"boundary, inside TAU")
+            elif not X(slack[0]) <= gap:
+                out.append(f"{where}: decide's clearance {slack[0]!r} is above the exact one {float(gap)!r}")
+    if near <= TAU and p is not None:
+        out.append(f"{where}: the exact target is within TAU of a boundary, and decide certified {p}")
+    if near >= CERTAIN and p is None:
+        out.append(f"{where}: the exact target clears every boundary by {float(near)!r}, and decide handed off")
     return out
 
 
@@ -399,29 +457,39 @@ def state_problems(ns, tag, j, taken, ts, cert):
     return out
 
 
-def orchestration_problems(ns, family):
-    """Every claim the orchestration composes, on every plan of a family, against the exact chain rule."""
-    out = []
-    for n, (taken_plan, ts, us) in enumerate(family):
-        tag = f"plan {n}"
+def orchestration_problems(ns, name, ladder=None):
+    """Every claim the orchestration composes, on every plan of a family, against the exact chain rule: yielded one
+    by one. `ladder` overrides how many plans are probed with planted targets (LADDER)."""
+    ladder = LADDER.get(name, 0) if ladder is None else ladder
+    for n, (taken_plan, ts, us) in enumerate(FAMILIES[name]):
+        tag = f"{name} plan {n}"
         cert = ns["Certificate"](ns["rows"]((PHI, PHI)))
         taken = []
         for j, u in enumerate(us):
-            info = {}
             idx = np.array([i for i in range(MS) if i not in taken])
-            try:
-                cert.decide(j, idx, u, trace=lambda _j, record, info=info: info.update(record))
-            except AssertionError as e:                    # EnclosureBroken, the mutant's own class
-                out.append(f"{tag} draw {j}: {e}")
-                break
-            if info:
-                out += decide_problems(ns, tag, j, taken, u, info)
+            B = exact_boundaries(taken)
+            for w in probes(u, B, j, n < ladder):
+                info = {}
+                try:
+                    returned = cert.decide(j, idx, w, trace=lambda _j, record, info=info: info.update(record))
+                except AssertionError as e:                # EnclosureBroken, the mutant's own class
+                    yield f"{tag} draw {j}: {e}"
+                    return
+                yield from decide_problems(ns, tag, j, B, w, info)
+                yield from decision_problems(ns, tag, j, B, w, returned, info)
             if j == len(taken_plan):
                 break
             taken.append(taken_plan[j])
             cert.extend(np.array(taken), ts[j])
-            out += state_problems(ns, tag, j, taken, ts, cert)
-    return out
+            yield from state_problems(ns, tag, j, taken, ts, cert)
+
+
+def first_problem(ns, **kw):
+    for name in sorted(FAMILIES):
+        found = next(orchestration_problems(ns, name, **kw), None)
+        if found:
+            return found
+    return None
 
 
 SHIPPED = {"Certificate": c.Certificate, "rows": c.rows, "gram_bound": c.gram_bound, "TAU": c.TAU}
@@ -429,7 +497,23 @@ SHIPPED = {"Certificate": c.Certificate, "rows": c.rows, "gram_bound": c.gram_bo
 
 @pytest.mark.parametrize("family", sorted(FAMILIES))
 def test_every_claim_the_orchestration_composes_holds_exactly_on_tight_inputs(family):
-    assert orchestration_problems(SHIPPED, FAMILIES[family]) == []
+    assert list(orchestration_problems(SHIPPED, family)) == []
+
+
+def test_the_ladder_reaches_both_decisions_and_the_hand_off():
+    """On the ladder, the shipped decide certifies some planted targets and hands others off: the probes reach both
+    sides of its enclosures, so a decision taken from other weights has somewhere to go wrong."""
+    certified = handed = 0
+    taken_plan, ts, us = FAMILIES["G"][0]
+    cert = c.Certificate(c.rows((PHI, PHI)))
+    cert.extend(np.array(taken_plan[:1]), ts[0])
+    B = exact_boundaries(taken_plan[:1])
+    idx = np.array([i for i in range(MS) if i not in taken_plan[:1]])
+    for w in probes(us[1], B, 1, True):
+        p, _why, _slack = cert.decide(1, idx, w)
+        certified += p is not None
+        handed += p is None
+    assert certified > 50 and handed > 50
 
 
 def test_the_tight_basis_is_exactly_orthonormal_and_its_enclosure_a_point():
@@ -462,6 +546,8 @@ ANCHOR_S = "        self.s = accumulate(self.s, square(inner(self.e, q)))\n"
 ANCHOR_F = "        factors = gram_factors(gram_bound(self.g))\n"
 ANCHOR_T = "        t = target(uniform_box(u), last(b))\n"
 
+DECIDE_TRACE = '            trace(j, {"target": t, "bounds": b, "untaken": idx, "position": found.position})\n'
+
 FIVE = {
     "B2a_kept: the Gram sums reset to (0.0, 0.0, 0.0) after every draw":
         [(ANCHOR_S, ANCHOR_S + "        self.g = (0.0, 0.0, 0.0)\n")],
@@ -476,9 +562,31 @@ FIVE = {
 }
 
 
+# verifier-P1's D10: decide traces honestly and RETURNS a decision taken elsewhere. N3b is its fault as written
+# (two lines, within the rule's spellings at 6dcd5a1): a position certified on weights without the Gram factor.
+# N3d takes the decision on weights with no projection at all. Each is caught by the returned decision's check.
+DECISIONS = {
+    "N3b: the returned position certified without the Gram factor": [(DECIDE_TRACE, DECIDE_TRACE + (
+        "        unsound = gram_factors(gram_bound(gram_zero()))\n"
+        "        found = locate(t, boundaries(weights(select(self.e.norm, idx), select(self.s, idx), unsound)))\n"))],
+    "N3d: the returned position certified on unprojected weights": [(DECIDE_TRACE, DECIDE_TRACE + (
+        "        found = locate(t, boundaries(weights(select(self.e.norm, idx), select(zero(self.M), idx), "
+        "factors)))\n"))],
+    "N3e: N3b respelled with a second name, which the rule's single assignment does not refuse": [
+        (DECIDE_TRACE, DECIDE_TRACE + (
+            "        unsound = gram_factors(gram_bound(gram_zero()))\n"
+            "        chosen = locate(t, boundaries(weights(select(self.e.norm, idx), select(self.s, idx), "
+            "unsound)))\n")),
+        ("        if found.position is None:\n            return None, f\"draw {j}: {found.reason}\", None\n"
+         "        return found.position, None, clearance(t, b, found.position)\n",
+         "        if chosen.position is None:\n            return None, f\"draw {j}: {chosen.reason}\", None\n"
+         "        return chosen.position, None, clearance(t, b, chosen.position)\n")],
+}
+
+
 def planted(name):
     source = SOURCE
-    for old, new in FIVE[name]:
+    for old, new in {**FIVE, **DECISIONS}[name]:
         assert source.count(old) == 1, f"the plant's anchor {old.strip()!r} is gone: re-anchor this plant"
         source = source.replace(old, new)
     return source
@@ -486,6 +594,19 @@ def planted(name):
 
 @pytest.mark.parametrize("name", sorted(FIVE))
 def test_each_of_verifier_p1s_five_fails_the_orchestrations_tight_end_to_end_check(name):
-    ns = load(planted(name))
-    found = [p for family in FAMILIES.values() for p in orchestration_problems(ns, family)]
-    assert found, f"{name} passed the tight end-to-end check"
+    assert first_problem(load(planted(name))), f"{name} passed the tight end-to-end check"
+
+
+@pytest.mark.parametrize("name", sorted(DECISIONS))
+def test_a_returned_decision_that_differs_from_the_traced_one_fails_the_check(name):
+    found = first_problem(load(planted(name)))
+    assert found and "decide" in found, f"{name} passed the tight end-to-end check: {found}"
+
+
+def test_n3b_is_seen_only_by_the_returned_decision_on_the_ladder():
+    """What catches N3b: with the ladder off it passes every claim, as it passed the first version of this check."""
+    ns = load(planted("N3b: the returned position certified without the Gram factor"))
+    assert first_problem(ns, ladder=0) is None
+    found = list(orchestration_problems(ns, "G"))
+    assert any("and traced" in p for p in found)                   # returned, not what it traced
+    assert any("; the exact chain rule's is" in p for p in found)  # and a wrong site, as verifier-P1 found it
