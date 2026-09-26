@@ -112,7 +112,7 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
   one, and the `cft` stage checks that DLL (it prints its path and SHA-256).
 - **`pinned`, in the quick budget, needs that DLL too.** Without it pinned and
   cft skip BY NAME, and `--require-all` fails them. In ctypes pass
-  `ndarray.ctypes.data` (2 us), not `.ctypes.data_as` (5 us an operand).
+  `ndarray.ctypes.data`, not `.ctypes.data_as`: P1 measured 5 us an operand.
 - **The build** is the owner's tested invocation, from Git Bash:
   `PATH="/c/msys64/mingw64/bin:$PATH" make -C vendor/cft-fp256/host CC=gcc OS=Windows_NT TMP='C:/Users/logan/AppData/Local/Temp' TEMP='C:/Users/logan/AppData/Local/Temp' cft.dll > build.log 2>&1`.
   - The i686 `cc` first on PATH, a missing `OS=Windows_NT` (the DLL then

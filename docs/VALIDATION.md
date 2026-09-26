@@ -1029,3 +1029,31 @@ The merged tree at 04fe2fe:
   beside it;
 - one pytest session over tests/: 537 passed. That is 539 less the two
   duplicate basename tests.
+
+## 2026-09-26 - corrections to the P1 entry: two labels copied without their definitions
+
+The P0 verifier's fifth pass found the first (`verifier-P0.md` 07:09Z). The
+lead found the second while checking it, in the same table's source.
+
+- **"The worst error in (boundary - target), in units of u: binary32 4.6e-7,
+  binary64 1.7e-15, binary128 1.3e-33" is false as stated.** Beside a format,
+  "u" reads as its unit roundoff. Read that way, binary32's worst error would
+  be about 2.7e-14, below binary32's own rounding.
+  - The figures are (boundary - target) / (N - j), the error as a fraction of
+    the weight left to draw. That is the scale of the uniform the target is
+    drawn from, and P1's measuring script calls it "units of u". The entry
+    copied the label without its definition.
+  - In each format's unit roundoff they are about 7.7, 15.3 and 13.5.
+  - The P0 verifier measured the absolute errors with P1's plain chain over
+    40 pauli-4x4 streams: 4.97e-7, 1.07e-15 and 6.42e-34. Those are 8.3, 9.7
+    and 6.7 unit roundoffs.
+  - "Random targets came no closer than 1.2e-6 to a boundary" is on the same
+    scale: a fraction of the weight left to draw.
+- **"2.8e-17 to 3.4e-16 from a boundary (relative)" mislabels absolute
+  distances.** In P1's control table the first figure is the absolute
+  distance, and the bracketed one is relative to the boundary's value
+  (`report_control` in quantum_film/pinned/measure.py). Relative to the
+  boundary, the six plants lie 3.0e-17 to 4.1e-16 from it.
+- The README's sentence on random targets now says "of the weight left to
+  draw" where it said "relative". CLAUDE.md drops a 2 us ctypes figure that
+  P1 had not measured as stated (the verifier's minor).

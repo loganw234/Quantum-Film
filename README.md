@@ -74,8 +74,8 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   From the first differing draw on, they shared only 55–86% of their
   crystals. On the shelf's own stocks no random roll parted at any format:
   binary32 on 5,800 rolls, binary64 and binary128 on 2,300. Random targets
-  came no closer than about 1e-6 to a boundary, relative. A target planted
-  inside a format's own error parts that format's roll.
+  came no closer to a boundary than about 1e-6 of the weight left to draw. A
+  target planted inside a format's own error parts that format's roll.
 - **The authority's rolls do not depend on its arithmetic.** A draw closer
   than 2^-224 to a boundary is refused, not decided. The 256-bit error in
   every target and boundary is at most 2^-249.2. It was measured draw by draw
