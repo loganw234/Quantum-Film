@@ -1,0 +1,78 @@
+{
+ "chi2_per_dof": 1.5825651930051015,
+ "circuit_sha256": "ed767c01bd4b851d08993da80f715676e345fc95a10f3bda05400f738e400b36",
+ "commitment": "bac5e2681a889cb61f9958101667e055908010e805dd3f2571becd18ccd4cb1b",
+ "crystals_per_layout": {
+  "5": 4096
+ },
+ "decode": "quantum_film.atlas.decode/v1",
+ "distinct_layouts": 2020,
+ "engine": "tomography-api-v2",
+ "engine_observables": {
+  "coherence": [
+   {
+    "exact": 0.37499999999999434,
+    "measured": 0.365234375,
+    "observable": "<XX>_01",
+    "z": -0.6741998624628496
+   },
+   {
+    "exact": 0.37499999999999434,
+    "measured": 0.3818359375,
+    "observable": "<YY>_01",
+    "z": 0.4719399037246592
+   }
+  ],
+  "max_abs_z": 2.6630894567301944,
+  "n": 57,
+  "worst": "<Z_13>"
+ },
+ "fixer_cli": {
+  "fixed": 2020,
+  "refused": 0
+ },
+ "forbidden": {
+  "distinct_laid": 0,
+  "fraction": 0.0,
+  "layouts_in_law": 1360,
+  "shots": 0
+ },
+ "job_id": "933138bc-fd0b-445b-be96-c19dd7fe2b3d",
+ "not_fixed": [],
+ "one_site": {
+  "chi2": 34.013636363636365,
+  "max_abs_z": 3.1350293604540758,
+  "n": 16,
+  "z": [
+   1.0787,
+   -1.7529,
+   3.135,
+   0.3371,
+   0.0,
+   0.7416,
+   -1.0113,
+   0.6742,
+   -3.0339,
+   0.5731,
+   -0.9776,
+   0.0674,
+   -2.1911,
+   0.1348,
+   1.0113,
+   1.2136
+  ]
+ },
+ "pairs": {
+  "chi2": 181.21522988505745,
+  "max_abs_z": 3.1091263510296048,
+  "n": 120,
+  "worst_pair": [
+   2,
+   9
+  ],
+  "worst_z": 3.1091263510296048
+ },
+ "records": 2020,
+ "shots": 4096,
+ "stock": "pauli-4x4"
+}
