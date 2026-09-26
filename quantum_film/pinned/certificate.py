@@ -29,28 +29,43 @@ from u's own exact bounds (`uniform_box`), bounds its target (`target`).
 `locate` certifies a draw only when the target's enclosure clears every
 boundary it is compared with by TAU.
 
-THREE LAYERS HOLD IT (verifier-P1's D2 and D3, 2026-09-26):
-  1. THE STEPS, behaviourally. Every directed operation lives in a step: a
-     module-level function from intervals (lo, hi) to intervals or bounds.
-     Each step is held to exact rational arithmetic on TIGHT inputs, where
-     the exact value its bound claims is not representable and nothing but
-     the step's own roundings separates the bound from it, so a bound on the
-     wrong side of its exact value shows however it was spelled
-     (tests/pinned/test_pinned_certificate.py). And every directed call,
-     flipped alone to the other direction, fails its step's check there: a
-     mutation gate over this file's source. A one-ulp wrong direction in an
-     accumulation passed every gate before (six of them, verifier-P1), because
-     the accumulations sat outside any step and wide boxes left slack.
-  2. THE ORCHESTRATION, structurally. `Certificate` and `enclosure` only
-     compose steps: no bounds, no numpy, no subscripts, no unpacking, only
-     integer arithmetic. An interval passes from step to step whole, so its
-     two ends cannot be swapped between them. The ALLOWLIST read from this
-     file's source (tests/pinned/test_pinned_source_rule.py) holds that, and
-     what the whole module may name: its imports, its calls by name and
-     arity, exact float literals and fromhex strings, integers up to 2^53, and
-     no item or slice assignment.
-  3. THE ROLLS, end to end: equality with the authority, exact containment,
-     refusals that survive, and the planted control (tests/pinned).
+THE FILE IS CLOSED: every top-level function is a STEP, a HELPER or the
+orchestration, and each is registered with the test that holds it; anything
+else is refused (tests/pinned/test_pinned_source_rule.py).
+  - A STEP holds every directed rounding (the `bd` functions, and `bounds64`
+    in `uniform_box`). Each is held to exact rational arithmetic on TIGHT
+    inputs, where only its own roundings separate its bound from the exact
+    value it claims (tests/pinned/test_pinned_certificate.py). A mutation gate
+    flips each directed call to its other direction, and each reduction to
+    its first element: every mutant fails its step's check.
+  - A HELPER rounds nothing: it selects, compares or moves data. Each has an
+    exact test of its own, which fails when its ends are swapped or its
+    answer inverted (tests/pinned/test_pinned_orchestration.py).
+  - THE ORCHESTRATION (`Certificate`, `enclosure`) only composes steps and
+    helpers, and an interval passes between them only whole. The rule refuses
+    there: any tuple or list built (a return, `trace`'s record and the empty
+    column list excepted), any float literal, any subscript, star or
+    unpacking, `bd` and `np`, `lower` anywhere but its one call site, and a
+    state (`s`, `g`, `q`) set anywhere but in `__init__` and its one
+    accumulation in `extend`. And Certificate's composition is run end to end
+    on TIGHT inputs (test_pinned_orchestration.py): an exactly orthonormal
+    basis whose rows are binary64, a basis deliberately off orthonormal by
+    2^-36, uniforms one part in ten of an ulp from a binary64, columns that
+    round. Every claim it composes (the weights, their sums, the target, the
+    state after each draw) is held there to the exact chain rule, in
+    Fractions. `enclosure`'s composition is held by its box containing every
+    orbital of the authority (tests/pinned/test_pinned_exact.py).
+
+WHAT IS LEFT, STATED (verifier-P1's D8 and D9, 2026-09-26):
+  - The source rule reads spellings. A respelling it does not list may pass it.
+  - Inside a step, the tight check sees a rounding however it is spelled, on
+    the check's inputs: every directed call and every reduction is shown to
+    matter there.
+  - In a helper, its exact test holds its answer on that test's inputs.
+  - In the orchestration, a fault passes only if it is spelled past the rule
+    AND moves no claimed value on the end-to-end check's inputs (for
+    `enclosure`, no orbital out of its box). The rolls alone would not see
+    it: within the enclosures' slack a fault moves no roll.
 """
 from dataclasses import dataclass
 from fractions import Fraction
@@ -119,6 +134,11 @@ def lower(x):
 def zero(size):
     """The interval [0, 0] of `size` sums not yet begun."""
     return np.zeros(size), np.zeros(size)
+
+
+def gram_zero():
+    """The three Gram sums |G0|_F^2, |Q_lo|_F^2 and |D|_F^2 before any column: each 0."""
+    return 0.0, 0.0, 0.0
 
 
 def upper_negative(c):
@@ -334,12 +354,13 @@ def enclosure(L, r2):
 class Certificate:
     """Enclosures of the exact chain rule along one roll: `decide` a draw, then `extend` by its column."""
 
-    def __init__(self, L, r2):
-        self.e = enclosure(L, r2)
-        self.M = self.e.M
-        self.N = self.e.N
-        self.s = zero(self.M)
-        self.g = (0.0, 0.0, 0.0)
+    def __init__(self, e):
+        """e: the Enclosure of the exact basis's rows (`enclosure`, or any box of exactly orthonormal rows)."""
+        self.e = e
+        self.M = e.M
+        self.N = e.N
+        self.s = zero(e.M)
+        self.g = gram_zero()
         self.q = []
 
     def decide(self, j, idx, u, trace=None):

@@ -234,10 +234,37 @@ def check_column(fn):
     return out, inexact
 
 
+def spread(rng, n, draw, first_least=True):
+    """n positive values from draw(), the least of them moved to index 0 and not the only one: so a reduction that
+    reads the first entry instead of the greatest is wrong on it."""
+    while True:
+        v = [draw() for _ in range(n)]
+        if len(set(v)) > 1:
+            break
+    i = v.index(min(v))
+    v[0], v[i] = v[i], v[0]
+    return v
+
+
 def inner_family(rng, name, M=24):
     """A family of tight inputs for `inner`: (rows lo, rows hi, q_lo, q_hi), N = 1 unless noted. Each makes one of
-    its bound's terms, or the sum of two, attain the exact extreme it bounds."""
+    its bound's terms, or the sum of two, attain the exact extreme it bounds. The Wm and Qm families have N = 2 to 6
+    entries, with the widest q box, or the largest |q|, never first (verifier-P1's D7: B1a and B1b)."""
     few = 12
+    if name in ("Wm+", "Wm-"):                    # point rows of one sign, q boxes: l1 * max(w) over several widths
+        s = 1 if name.endswith("+") else -1
+        N = rng.randrange(2, 7)
+        x = [[fl(rng, -4, 2, few, sign=s) for _ in range(N)] for _ in range(M)]
+        q_lo = [fl(rng, -6, 2, few, sign=pm(rng)) for _ in range(N)]
+        w = spread(rng, N, lambda: fl(rng, -8, 0, few))
+        return x, x, q_lo, [a + b for a, b in zip(q_lo, w, strict=True)]
+    if name in ("Qm+", "Qm-"):                    # row boxes, q a point of one sign: dl1 * max|q| over several entries
+        s = 1 if name.endswith("+") else -1
+        N = rng.randrange(2, 7)
+        x = [[fl(rng, -4, 2, few, sign=pm(rng)) for _ in range(N)] for _ in range(M)]
+        d = [[fl(rng, -10, -2, few) for _ in range(N)] for _ in range(M)]
+        q = [s * v for v in spread(rng, N, lambda: fl(rng, -4, 2, few))]
+        return x, [[a + b for a, b in zip(r, dr, strict=True)] for r, dr in zip(x, d, strict=True)], q, q
     if name == "C":                                        # points: the dot product alone
         N = 4
         lo = [[fl(rng, -8, 2, sign=pm(rng)) for _ in range(N)] for _ in range(M)]
@@ -269,7 +296,7 @@ def inner_family(rng, name, M=24):
     return [[v] for v in x], [[v + w] for v, w in zip(x, a, strict=True)], [b], [cc]
 
 
-INNER_FAMILIES = ("A+", "A-", "B0+", "B0-", "B+", "B-", "Bt+", "Bt-", "C", "D0", "D")
+INNER_FAMILIES = ("A+", "A-", "B0+", "B0-", "B+", "B-", "Bt+", "Bt-", "C", "D0", "D", "Wm+", "Wm-", "Qm+", "Qm-")
 
 
 def check_inner(fn):
@@ -562,6 +589,43 @@ def mutant(*nodes):
         assert line[node.col_offset:node.end_col_offset] == f"bd.{node.attr}"
         lines[node.lineno - 1] = line[:node.col_offset] + f"bd.{twin(node.attr)}" + line[node.end_col_offset:]
     return load("".join(lines))
+
+
+def reductions():
+    """(step, the `X.max()` call node) for every reduction over entries inside a step."""
+    for top in ast.parse(SOURCE).body:
+        if getattr(top, "name", None) not in CHECKS:
+            continue
+        for node in ast.walk(top):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "max" \
+                    and not node.args and not node.keywords:
+                yield top.name, node
+
+
+REDUCTIONS = list(reductions())
+
+
+def first_entry(node):
+    """certificate.py with the reduction `X.max()` replaced by `X[0]`, its first entry: a wrong operand."""
+    lines = SOURCE.splitlines(keepends=True)
+    assert node.lineno == node.end_lineno
+    line = lines[node.lineno - 1]
+    inner_text = ast.get_source_segment(SOURCE, node.func.value)
+    lines[node.lineno - 1] = line[:node.col_offset] + f"{inner_text}[0]" + line[node.end_col_offset:]
+    return load("".join(lines))
+
+
+def test_the_reductions_are_the_two_of_inner():
+    assert [(name, ast.get_source_segment(SOURCE, n)) for name, n in REDUCTIONS] == \
+        [("inner", "magnitudes(q)[1].max()"), ("inner", "w.max()")]
+
+
+@pytest.mark.parametrize("site", range(len(REDUCTIONS)), ids=[ast.get_source_segment(SOURCE, n) for _, n in REDUCTIONS])
+def test_each_reduction_replaced_by_its_first_entry_fails_its_steps_check(site):
+    """verifier-P1's B1a (wmax = w[0]) and B1b (qabs = magnitudes(q)[1][0]), and any reduction like them."""
+    name, node = REDUCTIONS[site]
+    problems, _ = CHECKS[name](first_entry(node)[name])
+    assert problems, f"{ast.get_source_segment(SOURCE, node)} replaced by its first entry, and {name} still passes"
 
 
 def test_every_directed_call_is_in_a_step_that_has_a_check():

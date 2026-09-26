@@ -112,7 +112,7 @@ def test_the_hand_off_audits_a_certificate_that_decided_a_draw_the_authority_ref
 def test_an_enclosure_that_misses_the_exact_total_is_refused_by_name(monkeypatch):
     real = certificate.enclosure(4, 1)
     shifted = dataclasses.replace(real, norm=(real.norm[0] + 0.25, real.norm[1] + 0.25))
-    monkeypatch.setattr(certificate, "enclosure", lambda L, r2: shifted)
+    monkeypatch.setattr(sampler, "enclosure", lambda L, r2: shifted)
     with pytest.raises(sampler.EnclosureBroken, match="N - j"):
         sampler.roll(4, 1, stream("roll", "pauli-4x4", 1))
 

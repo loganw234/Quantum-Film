@@ -186,7 +186,7 @@ def roll(L, r2, stream_bytes, uniform_fn=None, certify=True, handoff=True, fmt="
     ufn = uniform_fn if uniform_fn is not None else pinned_uniform
     weights = not certify or not handoff
     chain = Chain(L, r2, f, weights=weights, coefficients=certify)
-    cert = Certificate(L, r2) if certify else None
+    cert = Certificate(enclosure(L, r2)) if certify else None
     taken = np.zeros(chain.M, dtype=bool)
     draws, slack, uncertified = [], [], []
     for j in range(chain.N):

@@ -2,45 +2,44 @@
 
 A rule that lists forbidden spellings is bypassed by other spellings. The P0 verifier passed binary64 through the
 authority's source rule as int/int division, a `math` alias, mpmath's `fp` context and `__float__`
-(verifier-P0.md, 2026-09-25 23:30Z), and this rule's first version, a list of rounding-attribute names, missed ten
-respellings of a rounding slip in the certificate (a numpy multiply, bd.cft.add, getattr, a math alias, np.dot,
-sum, __mul__, np.float64('0.1'), bd.LO, __import__; P1.md), and its second passed six round-to-nearest conversions
-(verifier-P1's D3, 2026-09-26: a Fraction stored into a float64 array by item or slice assignment; np.array with a
-positional dtype, np.float64 or float; float.fromhex of 68 significant bits; np.where with an integer past 2^53).
-So the certificate is held to what it MAY do:
+(verifier-P0.md, 2026-09-25 23:30Z); this rule's first version, a list of rounding-attribute names, missed ten
+respellings (a numpy multiply, bd.cft.add, getattr, a math alias, np.dot, sum, __mul__, np.float64('0.1'), bd.LO,
+__import__; P1.md); its second passed six round-to-nearest conversions (verifier-P1's D3), its third five more (D9:
+a method keyword, a float dunder as a default, an integer name squared past 2^53, a float in a field declared int,
+and the two together) and five orchestration faults (D8). So certificate.py is held to what it MAY do:
 
-- IMPORTS: exactly the statements in IMPORTS.
-- CALLS: a function or class the module defines; a callable it imports from IMPORTS; bounds' directed functions
-  (DIRECTED, each held bit for bit by tests/pinned/test_pinned_bounds.py); the numpy functions in NP_ARITY, which
-  only move, select or index, with at most that many positional arguments and no keyword (either would carry a
-  dtype, which converts); the builtins in BUILTINS; the methods in METHODS; float.fromhex of one string literal whose
-  value is exactly a binary64; and the `trace` observer. Fraction takes integers only.
-- NAMES of bd and np: only those, called or not (bd.cft, bd.LO and np.dot are refused even uncalled).
+THE FILE IS CLOSED. Its top-level statements are its docstring, the imports in IMPORTS, TAU, and definitions: every
+function a STEP registered in test_pinned_certificate.py's CHECKS (with its tight check) or a HELPER registered in
+test_pinned_orchestration.py's HELPER_CHECKS (with its exact test), or `enclosure`; every class one of CLASSES, and
+Certificate's methods exactly __init__, decide and extend. Nothing is defined inside a function.
+
+EVERYWHERE:
+- CALLS: a function or class the module defines; a callable imported by IMPORTS; bounds' directed functions (DIRECTED,
+  each held bit for bit by tests/pinned/test_pinned_bounds.py); the numpy functions in NP_ARITY, at most that many
+  positional arguments; the builtins in BUILTINS; the methods in METHODS; float.fromhex of one literal that is exactly
+  a binary64; and `trace`, only as a statement. Keywords only as KEYWORDS names them. Fraction takes integers only.
+  `bounds64` only in uniform_box; `lower` only as the argument of `self.q.append`.
+- NAMES of bd and np: only those, called or not. No dunder attribute; `float` and `int` only as float.fromhex.
 - NO ITEM OR SLICE ASSIGNMENT: numpy converts what it stores into an array, to nearest.
-- ARITHMETIC (+ - * // %) between integers only: int literals, the names in INT_NAMES, .M and .N, and len(), one
-  operator deep, and integer literals no larger than 2^53, so no integer that meets a float can round. True
-  division, powers and matrix products are refused outright: `2 / M` is a rounded float. Unary minus is exact.
-  Bitwise operators cannot round and pass.
-- An INT_NAME is bound only from an integer (.shape, .size, len, np.argmin, locate, integer arithmetic), or is one
-  of TRUSTED_PARAMS; so a float cannot be laundered through one. A name the list relies on (an allowed callable,
-  np, bd) is never rebound.
-- FLOAT LITERALS are exact: the literal's text is its value (2.0 passes; 0.1 does not).
-- No lambda, walrus, global, nonlocal, with, try, match, async, yield or del.
-- THE ORCHESTRATION (ORCHESTRATION: the Certificate class and enclosure) only composes steps: it names neither bd nor
-  np, subscripts nothing, stars nothing and unpacks nothing, so each interval passes from step to step whole and its
-  two ends cannot be swapped or rounded between steps. The steps are held behaviourally, each directed call flipped
-  (tests/pinned/test_pinned_certificate.py).
+- ARITHMETIC (+ - * // %) between integers only, one operator deep: integer literals up to 2^16, the INT_NAMES,
+  `.M` and `.N` of self, e and self.e, and len(). True division, powers and matrix products are refused outright.
+  An integer may be a call's argument only where INT_OK names it (a size, a count, a segment, an exact value), never
+  as a numpy value. Each INT_NAME is bound once in its function, from an integer; fields declared int only in
+  Enclosure.
+- DEFAULTS are None. Float literals are exact. No lambda, walrus, global, nonlocal, with, try, match, async, yield
+  or del.
 
-WHICH LAYER HOLDS WHAT. This rule reads spellings, so it holds what can be named: the imports, the calls, the
-conversions above, and the orchestration's shape. The tight-input checks in test_pinned_certificate.py hold
-behaviour: whatever moves a step's output across its exact value on those inputs, however it is spelled (a flipped
-call, a conversion this list never thought of), is seen there, and every directed call is shown to matter. A rounding
-that moves no step's output on any input is harmless to the certificate, whatever its spelling.
+THE ORCHESTRATION (Certificate, enclosure) only composes steps and helpers, and passes each interval whole: it calls
+only STEPS, HELPERS, EnclosureBroken, trace and Fraction; it builds no tuple, list, dict or set (a return's value,
+trace's record and the empty column list excepted); it holds no float literal, no subscript, star or unpacking, no
+bd or np, and no literal as a step's argument; its state is set only in __init__ (e, M, N, s, g, q) and in extend's
+two accumulations, each its own step fed its own state first, and its column list grows only by
+`self.q.append(lower(q))`.
 
-What the rule rests on, held elsewhere: bounds' directed functions are exact floors and ceilings
-(tests/pinned/test_pinned_bounds.py); encode.exact and to_fraction are exact
-(tests/pinned/test_pinned_encode.py); basis.angles, assemble and modes are integer and data-movement code, and the
-enclosure they build holds the authority's own orbitals (tests/pinned/test_pinned_exact.py).
+WHICH LAYER HOLDS WHAT. This rule reads spellings, so a respelling it does not list may pass it. The tight checks in
+test_pinned_certificate.py hold each step's behaviour however it is spelled, on their inputs; the exact tests in
+test_pinned_orchestration.py hold each helper's; and its tight end-to-end check holds what the orchestration
+composes, on its inputs. A fault spelled past this rule that moves no claimed value on those inputs may pass.
 """
 import ast
 import inspect
@@ -51,6 +50,20 @@ from fractions import Fraction
 import pytest
 
 from quantum_film.pinned import bounds, certificate
+
+HERE = pathlib.Path(__file__).resolve().parent
+
+
+def registry(file, name):
+    """The string keys of the dict literal assigned to `name` in a sibling test file."""
+    for node in ast.parse((HERE / file).read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            return {k.value for k in node.value.keys}
+    raise AssertionError(f"{file} has no {name}")
+
+
+STEPS = registry("test_pinned_certificate.py", "CHECKS")
+HELPERS = registry("test_pinned_orchestration.py", "HELPER_CHECKS")
 
 IMPORTS = {
     "from dataclasses import dataclass",
@@ -71,24 +84,36 @@ NP_ARITY = {"where": 3, "abs": 1, "tile": 2, "vstack": 1, "zeros": 1, "ones": 1,
 NP_VALUES = {"ndarray", "float64", "inf"}
 BUILTINS = {"len", "min", "max", "all", "zip"}
 METHODS = {"max", "all", "any", "ravel", "append"}
+KEYWORDS = {("zip", "strict"), ("dataclass", "frozen"), ("lru_cache", "maxsize")}
 INT_NAMES = {"L", "M", "N", "j", "k", "p"}
 TRUSTED_PARAMS = {"L", "j", "p"}        # the tile edge, a draw's index, and a position: each indexes, or refuses
-INT_LIMIT = 2 ** 53
+INT_BASES = {"self", "e", "self.e"}
+INT_LITERAL_LIMIT = 2 ** 16
+INT_OK = {("modes", 0), ("angles", 0), ("Fraction", 0), ("Fraction", 1), ("assemble_box", 0), ("assemble", 0),
+          ("zero", 0), ("holds", 1), ("np.ones", 0), ("np.zeros", 0), ("np.eye", 0), ("np.tile", 1),
+          ("bd.dot_lo", 2), ("bd.dot_hi", 2), ("Enclosure", 4), ("Enclosure", 5), ("Located", 0), ("trace", 0)}
+CLASSES = {"EnclosureBroken", "Enclosure", "Located", "Certificate"}
 ORCHESTRATION = {"Certificate", "enclosure"}
+CERTIFICATE_METHODS = {"__init__", "decide", "extend"}
+ORCHESTRATION_CALLS = STEPS | HELPERS | {"EnclosureBroken", "trace", "Fraction"}
+INIT_STATE = {"e", "M", "N", "s", "g", "q"}
+ACCUMULATIONS = {"s": "accumulate", "g": "gram_accumulate"}
 INT_OPS = (ast.Add, ast.Sub, ast.Mult, ast.FloorDiv, ast.Mod)
 BIT_OPS = (ast.BitAnd, ast.BitOr, ast.BitXor)
+DISPLAYS = (ast.Tuple, ast.List, ast.Dict, ast.Set, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 FORBIDDEN = tuple(getattr(ast, n) for n in ("Lambda", "NamedExpr", "Global", "Nonlocal", "With", "AsyncWith", "Try",
                                             "TryStar", "Match", "AsyncFunctionDef", "Await", "Yield", "YieldFrom",
                                             "Delete") if hasattr(ast, n))
 
 
-def _names_only(e):
-    """A name, or a chain of attributes on one (self.e)."""
-    return isinstance(e, ast.Name) or (isinstance(e, ast.Attribute) and _names_only(e.value))
-
-
-def _is_self(e, attrs):
-    return isinstance(e, ast.Attribute) and isinstance(e.value, ast.Name) and e.value.id == "self" and e.attr in attrs
+def dotted(e):
+    """'a.b.c' for a Name or a chain of attributes on one, else None."""
+    if isinstance(e, ast.Name):
+        return e.id
+    if isinstance(e, ast.Attribute):
+        base = dotted(e.value)
+        return None if base is None else f"{base}.{e.attr}"
+    return None
 
 
 def is_int(e):
@@ -97,14 +122,27 @@ def is_int(e):
         return type(e.value) is int
     if isinstance(e, ast.Name):
         return e.id in INT_NAMES
-    if isinstance(e, ast.Attribute) and e.attr in ("M", "N") and _names_only(e.value):
-        return True
+    if isinstance(e, ast.Attribute):
+        return e.attr in ("M", "N") and dotted(e.value) in INT_BASES
     if isinstance(e, ast.Call):
         return isinstance(e.func, ast.Name) and e.func.id == "len"
     if isinstance(e, ast.BinOp):
         return isinstance(e.op, INT_OPS) and is_int(e.left) and is_int(e.right)
     if isinstance(e, ast.UnaryOp):
         return isinstance(e.op, ast.USub) and is_int(e.operand)
+    return False
+
+
+def int_source(e):
+    """A value an integer name may be bound from."""
+    if is_int(e):
+        return True
+    if isinstance(e, ast.Attribute) and e.attr in ("shape", "size"):
+        return True
+    if isinstance(e, ast.Call) and dotted(e.func) == "np.argmin":
+        return True
+    if isinstance(e, ast.IfExp):
+        return int_source(e.body) and int_source(e.orelse)
     return False
 
 
@@ -131,56 +169,159 @@ def fromhex_exact(node):
         return False
 
 
-def int_source(e):
-    """A value an INT_NAME may be bound from."""
-    if is_int(e):
-        return True
-    if isinstance(e, ast.Attribute) and e.attr in ("shape", "size"):
-        return True
-    if isinstance(e, ast.Call) and ast.unparse(e.func) in ("np.argmin", "locate"):
-        return True
-    if isinstance(e, ast.IfExp):
-        return int_source(e.body) and int_source(e.orelse)
-    return False
-
-
-def orchestration_violations(tree):
-    """The orchestration composes steps only: no bd, no np, no subscript, no star, no unpacking."""
+def closed_violations(tree):
+    """The file is closed: every definition registered, nothing else at the top level, nothing nested."""
     out = []
+    for i, node in enumerate(tree.body):
+        why = None
+        if isinstance(node, ast.Expr) and i == 0 and isinstance(node.value, ast.Constant) \
+                and isinstance(node.value.value, str):
+            pass
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            pass                                            # held by IMPORTS below
+        elif isinstance(node, ast.Assign) and [dotted(t) for t in node.targets] == ["TAU"]:
+            pass
+        elif isinstance(node, ast.FunctionDef):
+            if node.name not in STEPS | HELPERS | {"enclosure"}:
+                why = f"{node.name} is neither a registered step (CHECKS) nor a registered helper (HELPER_CHECKS)"
+        elif isinstance(node, ast.ClassDef):
+            if node.name not in CLASSES:
+                why = f"a class {node.name} the file does not name"
+            elif node.name == "Certificate":
+                methods = {n.name for n in node.body if isinstance(n, ast.FunctionDef)}
+                others = [n for n in node.body if not isinstance(n, ast.FunctionDef)
+                          and not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
+                if methods != CERTIFICATE_METHODS or others:
+                    why = f"Certificate's body is not its docstring and {sorted(CERTIFICATE_METHODS)}"
+        else:
+            why = "a top-level statement the file does not name"
+        if why:
+            out.append(f"line {node.lineno}: {why}")
+    names = [n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))]
+    out += [f"{n} is defined twice" for n in sorted({n for n in names if names.count(n) > 1})]
     for top in tree.body:
-        if getattr(top, "name", None) not in ORCHESTRATION:
-            continue
-        for node in ast.walk(top):
-            why = None
-            if isinstance(node, ast.Name) and node.id in ("bd", "np"):
-                why = f"the orchestration names {node.id}: its arithmetic belongs in a step"
-            elif isinstance(node, ast.Subscript):
-                why = "the orchestration subscripts: an interval passes whole between steps"
-            elif isinstance(node, ast.Starred):
-                why = "the orchestration stars an interval open"
-            elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.For, ast.comprehension)):
-                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-                if any(isinstance(t, (ast.Tuple, ast.List)) for t in targets):
-                    why = "the orchestration unpacks an interval"
-            if why:
-                out.append(f"line {node.lineno}: {why}: {ast.unparse(node)[:70]}")
+        scope = top.body if isinstance(top, ast.ClassDef) and top.name == "Certificate" else [top]
+        for fn in scope:
+            if isinstance(fn, ast.FunctionDef):
+                out += [f"line {n.lineno}: a definition inside {fn.name}" for n in ast.walk(fn)
+                        if n is not fn and isinstance(n, (ast.FunctionDef, ast.ClassDef))]
     return out
 
 
-def violations(source):
-    tree = ast.parse(source)
+def body_nodes(fn):
+    """Every node of a function's parameters and body: its decorators are not its orchestration."""
+    for part in [fn.args, *fn.body]:
+        yield from ast.walk(part)
+
+
+def annotations(tree):
+    """The ids of every node inside an annotation: a type named there converts nothing."""
+    out = set()
+    for node in ast.walk(tree):
+        for ann in (getattr(node, "annotation", None), getattr(node, "returns", None)):
+            if ann is not None:
+                out.update(id(n) for n in ast.walk(ann))
+    return out
+
+
+def orchestration_violations(tree):
+    """The orchestration composes steps and helpers only, and passes each interval whole."""
+    out = []
+
+    def bad(node, why):
+        out.append(f"line {node.lineno}: the orchestration {why}: {ast.unparse(node)[:70]}")
+
+    for top in tree.body:
+        if getattr(top, "name", None) not in ORCHESTRATION:
+            continue
+        functions = [n for n in top.body if isinstance(n, ast.FunctionDef)] if isinstance(top, ast.ClassDef) \
+            else [top]
+        for fn in functions:
+            allowed = set()                                   # the displays this function may build
+            for node in body_nodes(fn):
+                if isinstance(node, ast.Return) and node.value is not None:
+                    allowed.add(id(node.value))
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) \
+                        and dotted(node.value.func) == "trace" and len(node.value.args) == 2:
+                    allowed.add(id(node.value.args[1]))
+                if fn.name == "__init__" and isinstance(node, ast.Assign) and [dotted(t) for t in node.targets] \
+                        == ["self.q"] and isinstance(node.value, ast.List) and not node.value.elts:
+                    allowed.add(id(node.value))
+            assigned = []
+            for node in body_nodes(fn):
+                if isinstance(node, ast.Name) and node.id in ("bd", "np"):
+                    bad(node, f"names {node.id}: its arithmetic belongs in a step")
+                elif isinstance(node, ast.Subscript):
+                    bad(node, "subscripts: an interval passes whole between steps")
+                elif isinstance(node, ast.Starred):
+                    bad(node, "stars an interval open")
+                elif isinstance(node, DISPLAYS) and id(node) not in allowed:
+                    bad(node, "builds a tuple, list, dict or set: an interval passes whole between steps")
+                elif isinstance(node, ast.Constant) and isinstance(node.value, float):
+                    bad(node, "holds a float literal: a step is fed only what steps and helpers return")
+                elif isinstance(node, ast.Call):
+                    name = dotted(node.func)
+                    if name not in ORCHESTRATION_CALLS and name != "self.q.append":
+                        bad(node, f"calls {name}, which is neither a step nor a helper")
+                    elif name in STEPS and any(isinstance(a, ast.Constant) for a in node.args):
+                        bad(node, "feeds a step a literal")
+                if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.For, ast.comprehension)):
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    if any(isinstance(t, (ast.Tuple, ast.List)) for t in targets):
+                        bad(node, "unpacks an interval")
+                    for t in targets:
+                        name = dotted(t)
+                        if name and name.startswith("self."):
+                            assigned.append((name[5:], node))
+            for attr, node in assigned:
+                if fn.name == "__init__":
+                    ok = attr in INIT_STATE and [a for a, _ in assigned].count(attr) == 1
+                elif fn.name == "extend":
+                    step = ACCUMULATIONS.get(attr)
+                    ok = step is not None and isinstance(node, ast.Assign) and isinstance(node.value, ast.Call) \
+                        and dotted(node.value.func) == step and node.value.args \
+                        and dotted(node.value.args[0]) == f"self.{attr}" \
+                        and [a for a, _ in assigned].count(attr) == 1
+                else:
+                    ok = False
+                if not ok:
+                    bad(node, f"sets its state self.{attr} outside __init__ and its own accumulation in extend")
+            if fn.name == "extend":
+                for attr in ACCUMULATIONS:
+                    if [a for a, _ in assigned].count(attr) != 1:
+                        out.append(f"line {fn.lineno}: the orchestration's extend does not accumulate self.{attr} "
+                                   f"exactly once")
+                appends = [n for n in ast.walk(fn) if isinstance(n, ast.Call) and dotted(n.func) == "self.q.append"]
+                if len(appends) != 1:
+                    out.append(f"line {fn.lineno}: the orchestration's extend grows its column list "
+                               f"{len(appends)} times, not once")
+    return out
+
+
+def global_violations(tree, source):
+    out = []
     defined = {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
     callables = defined | IMPORTED_CALLABLE | BUILTINS | {"trace"}
-    reserved = callables | {"np", "bd", "float", "FP64", "self"}
-    out = orchestration_violations(tree)
+    reserved = callables | {"np", "bd", "float", "int", "FP64", "self"}
 
     def bad(node, why):
         out.append(f"line {node.lineno}: {why}: {ast.unparse(node)[:70]}")
 
-    def int_targets(target):
-        return [t for t in ast.walk(target) if (isinstance(t, ast.Name) and t.id in INT_NAMES)
-                or _is_self(t, ("M", "N"))]
-
+    statement_traces, append_lowers, fromhex_funcs = set(), set(), set()
+    typed = annotations(tree)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and dotted(node.value.func) == "trace":
+            statement_traces.add(id(node.value))
+        if isinstance(node, ast.Call) and dotted(node.func) == "self.q.append" and len(node.args) == 1 \
+                and isinstance(node.args[0], ast.Call) and dotted(node.args[0].func) == "lower":
+            append_lowers.add(id(node.args[0]))
+        if isinstance(node, ast.Call) and dotted(node.func) == "float.fromhex":
+            fromhex_funcs.update({id(node.func), id(node.func.value)})
+    for top in tree.body:
+        if isinstance(top, ast.FunctionDef) and top.name != "uniform_box":
+            for node in ast.walk(top):
+                if isinstance(node, ast.Call) and dotted(node.func) == "bounds64":
+                    bad(node, "bounds64 outside uniform_box: a directed rounding outside its checked step")
     for node in ast.walk(tree):
         if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
@@ -192,7 +333,18 @@ def violations(source):
             if ast.unparse(node) not in IMPORTS:
                 bad(node, "an import the allowlist does not name")
         elif isinstance(node, ast.Call):
-            f = node.func
+            f, name = node.func, dotted(node.func)
+            for kw in node.keywords:
+                if (name, kw.arg) not in KEYWORDS:
+                    bad(node, f"a keyword {kw.arg} the allowlist does not name (a keyword can carry a value)")
+            for i, a in enumerate(node.args):
+                if is_int(a) and (name, i) not in INT_OK:
+                    bad(node, f"an integer as argument {i} of {name}: an integer meets a float only where INT_OK "
+                              f"names it")
+            if name == "trace" and id(node) not in statement_traces:
+                bad(node, "trace used for its value: it only observes")
+            if name == "lower" and id(node) not in append_lowers:
+                bad(node, "lower outside self.q.append: an interval's end taken where a whole interval passes")
             if isinstance(f, ast.Name) and f.id in callables:
                 if f.id == "Fraction" and (node.keywords or not all(is_int(a) for a in node.args)):
                     bad(node, "Fraction takes integers only here")
@@ -201,29 +353,37 @@ def violations(source):
             elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == "np":
                 if f.attr not in NP_ARITY:
                     bad(node, "a numpy call the allowlist does not name (np.float64 is a dtype here, not a call)")
-                elif node.keywords or len(node.args) > NP_ARITY[f.attr]:
-                    bad(node, "a numpy call with a keyword or an extra positional argument (either carries a dtype)")
-            elif ast.unparse(f) == "float.fromhex":
+                elif len(node.args) > NP_ARITY[f.attr]:
+                    bad(node, "a numpy call with an extra positional argument (it carries a dtype)")
+            elif name == "float.fromhex":
                 if not fromhex_exact(node):
                     bad(node, "float.fromhex of anything but a literal that is exactly a binary64")
             elif isinstance(f, ast.Attribute) and f.attr in METHODS:
                 pass
             else:
                 bad(node, "a call the allowlist does not name")
-        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "bd":
-            if node.attr not in DIRECTED:
+        elif isinstance(node, ast.Attribute):
+            if node.attr.startswith("__") and node.attr.endswith("__"):
+                bad(node, "a dunder attribute: an operator reached by name")
+            elif isinstance(node.value, ast.Name) and node.value.id == "bd" and node.attr not in DIRECTED:
                 bad(node, "bounds is reached only through its directed functions")
-        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "np":
-            if node.attr not in NP_ARITY.keys() | NP_VALUES:
+            elif isinstance(node.value, ast.Name) and node.value.id == "np" and \
+                    node.attr not in NP_ARITY.keys() | NP_VALUES:
                 bad(node, "a numpy name the allowlist does not name")
+            elif isinstance(node.value, ast.Name) and node.value.id in ("float", "int") \
+                    and id(node) not in fromhex_funcs:
+                bad(node, f"{node.value.id}.{node.attr}: float is used only as float.fromhex")
+        elif isinstance(node, ast.Name) and node.id in ("float", "int", "complex", "bool") and \
+                isinstance(node.ctx, ast.Load) and id(node) not in fromhex_funcs | typed:
+            bad(node, f"the type {node.id} as a value: it converts")
         elif isinstance(node, ast.BinOp):
             if not isinstance(node.op, BIT_OPS) and not (isinstance(node.op, INT_OPS) and is_int(node.left)
                                                          and is_int(node.right)):
                 bad(node, "arithmetic outside bounds: only + - * // % between integers")
             elif isinstance(node.left, ast.BinOp) or isinstance(node.right, ast.BinOp):
                 bad(node, "integer arithmetic more than one operator deep: its value could pass 2^53")
-        elif isinstance(node, ast.Constant) and type(node.value) is int and abs(node.value) > INT_LIMIT:
-            bad(node, "an integer literal past 2^53: it rounds where it meets a float")
+        elif isinstance(node, ast.Constant) and type(node.value) is int and abs(node.value) > INT_LITERAL_LIMIT:
+            bad(node, "an integer literal past 2^16: two of them multiplied could pass 2^53")
         elif isinstance(node, ast.AugAssign):
             if not isinstance(node.op, BIT_OPS) and not (isinstance(node.op, INT_OPS) and is_int(node.target)
                                                          and is_int(node.value)):
@@ -234,23 +394,56 @@ def violations(source):
                 bad(node, "a float literal that is not exactly its value")
         elif isinstance(node, ast.Constant) and isinstance(node.value, complex):
             bad(node, "a complex literal")
-        # Bindings.
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            declared = isinstance(node, ast.AnnAssign) and node.value is None and ast.unparse(node.annotation) == "int"
-            bound = node.value is not None and int_source(node.value)
-            if any(int_targets(t) for t in targets) and not declared and not bound:
-                bad(node, "an integer name bound from something not an integer")
-        elif isinstance(node, (ast.For, ast.comprehension)):
-            if int_targets(node.target):
-                bad(node.target, "an integer name bound by a loop")
         elif isinstance(node, ast.arguments):
             for a in node.posonlyargs + node.args + node.kwonlyargs + [x for x in (node.vararg, node.kwarg) if x]:
                 if a.arg in INT_NAMES - TRUSTED_PARAMS or (a.arg in reserved and a.arg not in ("trace", "self")):
                     bad(a, f"a parameter named {a.arg}")
+            for d in node.defaults + [d for d in node.kw_defaults if d is not None]:
+                if not (isinstance(d, ast.Constant) and d.value is None):
+                    bad(d, "a default that is not None: a value reaches a parameter unseen")
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id in reserved:
             bad(node, f"{node.id} rebound")
     return out
+
+
+def binding_violations(tree):
+    """Integer names bound once per function, from an integer; fields declared int only in Enclosure."""
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            for n in node.body:
+                if isinstance(n, ast.AnnAssign) and ast.unparse(n.annotation) == "int" and \
+                        (node.name != "Enclosure" or dotted(n.target) not in ("M", "N") or n.value is not None):
+                    out.append(f"line {n.lineno}: an int field declared outside Enclosure's M and N")
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        a = node.args
+        bound = [x.arg for x in a.posonlyargs + a.args + a.kwonlyargs if x.arg in INT_NAMES]
+        for n in ast.walk(node):
+            targets = []
+            if isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                targets = n.targets if isinstance(n, ast.Assign) else [n.target]
+                ints = [t for tg in targets for t in ast.walk(tg) if isinstance(t, ast.Name) and t.id in INT_NAMES]
+                if ints and not (getattr(n, "value", None) is not None and int_source(n.value)):
+                    out.append(f"line {n.lineno}: an integer name bound from something not an integer")
+                bound += [t.id for t in ints]
+                selfs = [t for tg in targets for t in ast.walk(tg) if dotted(t) in ("self.M", "self.N")]
+                if selfs and not (getattr(n, "value", None) is not None and int_source(n.value)):
+                    out.append(f"line {n.lineno}: self.M or self.N bound from something not an integer")
+            elif isinstance(n, (ast.For, ast.comprehension)):
+                if any(isinstance(t, ast.Name) and t.id in INT_NAMES for t in ast.walk(n.target)):
+                    out.append(f"line {n.target.lineno}: an integer name bound by a loop")
+        out += [f"line {node.lineno}: {x} bound more than once in {node.name}: its value could grow past 2^53"
+                for x in sorted({x for x in bound if bound.count(x) > 1})]
+    return out
+
+
+def violations(source, closed=True):
+    """Every way certificate.py's source departs from what the allowlist names. closed=False leaves out the check
+    that its definitions are registered: a planted respelling is appended as a function of its own."""
+    tree = ast.parse(source)
+    out = closed_violations(tree) if closed else []
+    return out + orchestration_violations(tree) + global_violations(tree, source) + binding_violations(tree)
 
 
 SOURCE = inspect.getsource(certificate)
@@ -258,6 +451,12 @@ SOURCE = inspect.getsource(certificate)
 
 def test_the_certificate_does_only_what_the_allowlist_names():
     assert violations(SOURCE) == []
+
+
+def test_the_registries_name_what_the_certificate_defines_or_imports():
+    tree = ast.parse(SOURCE)
+    defined = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert STEPS <= defined and HELPERS <= defined | IMPORTED_CALLABLE and not STEPS & HELPERS
 
 
 def test_the_directed_functions_are_bounds_whole_set_and_each_is_held_bit_for_bit():
@@ -293,6 +492,8 @@ def test_the_basename_check_sees_a_clash(tmp_path):
     assert shared_basenames(tmp_path) == {"test_uniform.py": ["golden", "pinned"]}
 
 
+# Respellings: each is appended to the certificate's source as a function of its own and must be refused by the
+# layers that read every function (closed=False, so the registration check does not refuse it first).
 PLANTED = {
     # arithmetic that rounds to nearest, outside libcft
     "a numpy multiply": "def planted(x, y):\n    return x * y\n",
@@ -352,12 +553,27 @@ PLANTED = {
     "float.fromhex of a decimal-looking string": "def planted():\n    return float.fromhex('0x0.1')\n",
     "np.where with an integer past 2^53": "def planted(c):\n    return np.where(c > 0, c, 10000000000000001)\n",
     "an integer past 2^53 built by arithmetic": "def planted():\n    return 94906267 * 94906267 + 1\n",
+    # verifier-P1's D9: the five respellings that passed the third version (R1-R5), and variants
+    "R1: a method keyword": "def planted(w):\n    return w.max(initial=Fraction(1, 3))\n",
+    "R2: a float dunder as a default": "def planted(x, y, trace=float.__mul__):\n    return trace(x, y)\n",
+    "R2: an ndarray dunder as a default": "def planted(x, y, trace=np.ndarray.__add__):\n    return trace(x, y)\n",
+    "R2: trace used for its value": "def planted(x, y, trace=None):\n    return trace(x, y)\n",
+    "R3: an integer name squared past 2^53":
+        "def planted(c):\n    k = 94906267\n    k = k * k\n    return np.where(c > 0, c, k)\n",
+    "R3: integers past 2^53 through two names":
+        "def planted(c):\n    k = 65536 * 65536\n    p = k * k\n    return np.where(c > 0, c, p)\n",
+    "R3: an integer as a numpy value": "def planted(c, k):\n    return np.where(c > 0, c, k)\n",
+    "R4: a float in a field declared int":
+        "class B(NamedTuple):\n    N: int\n\n\ndef planted(b):\n    return b.N * 3\n",
+    "R4: an int field on any name": "def planted(b):\n    return b.N * 3\n",
+    "R5: R1 with R3's integer": "def planted(w):\n    k = 94906267\n    k = k * k\n    return w.max(initial=k)\n",
+    "bounds64 outside uniform_box": "def planted(u):\n    return bounds64(u)\n",
 }
 
 
 @pytest.mark.parametrize("name", sorted(PLANTED))
 def test_the_rule_refuses_each_respelling_planted_in_the_certificate(name):
-    found = violations(SOURCE + "\n\n" + PLANTED[name])
+    found = violations(SOURCE + "\n\n" + PLANTED[name], closed=False)
     assert found, f"the allowlist let {name} through"
 
 
@@ -366,36 +582,78 @@ def test_the_rule_passes_an_exact_hex_literal_and_the_certificates_own():
     assert fromhex_exact(ast.parse("float.fromhex('-0x1.8p+3')").body[0].value)
 
 
-# verifier-P1's D2 faults as they were written, in decide and extend, and the sixth's swap of u's ends: each is now
-# an arithmetic or a subscript in the orchestration, which the rule refuses (inside a step, the mutation gate sees it).
+# The file is closed: a function, class or statement it does not register is refused.
+CLOSED_PLANTS = {
+    "an unregistered helper": "def ends(x):\n    return x[1], x[0]\n",
+    "an unregistered class": "class Box(NamedTuple):\n    lo: object\n",
+    "a module-level statement": "K = TAU\n",
+    "a step defined twice": "def square(y):\n    return y\n",
+    "a fourth method": None,
+}
+
+
+@pytest.mark.parametrize("name", sorted(CLOSED_PLANTS))
+def test_the_rule_refuses_what_the_file_does_not_register(name):
+    if CLOSED_PLANTS[name] is None:
+        old = "    def extend(self, drawn, t):\n"
+        assert SOURCE.count(old) == 1, "the plant's anchor is gone: re-anchor this plant"
+        source = SOURCE.replace(old, "    def reset(self):\n        return self.e\n\n" + old)
+    else:
+        source = SOURCE + "\n\n" + CLOSED_PLANTS[name]
+    assert closed_violations(ast.parse(source)), f"the closed file let {name} through"
+
+
+# Faults written into the orchestration, anchors kept: each is refused by the rule. verifier-P1's five D8 faults are
+# test_pinned_orchestration.py's FIVE, planted here as there, where the tight end-to-end check fails each as well.
+ANCHOR_S = "        self.s = accumulate(self.s, square(inner(self.e, q)))\n"
 ORCHESTRATION_PLANTS = {
     "lower boundaries scanned up, in decide": (
-        "        b = boundaries(c)\n",
-        "        b = (bd.scan_hi(lower(c)), bd.scan_hi(c[1]))\n"),
+        "        b = boundaries(c)\n", "        b = (bd.scan_hi(lower(c)), bd.scan_hi(c[1]))\n"),
     "s_lo accumulated up, in extend": (
-        "        self.s = accumulate(self.s, square(inner(self.e, q)))\n",
-        "        self.s = (bd.add_hi(self.s[0], lower(square(inner(self.e, q)))), self.s[1])\n"),
+        ANCHOR_S, "        self.s = (bd.add_hi(self.s[0], lower(square(inner(self.e, q)))), self.s[1])\n"),
     "the Gram sums accumulated down, in extend": (
         "        self.g = gram_accumulate(self.g, gram_terms(self.q, q))\n",
         "        self.g = bd.add_lo(self.g, gram_terms(self.q, q))\n"),
     "u's ends swapped before the target": (
-        "        t = target(uniform_box(u), last(b))\n",
-        "        t = target(uniform_box(u)[::-1], last(b))\n"),
+        "        t = target(uniform_box(u), last(b))\n", "        t = target(uniform_box(u)[::-1], last(b))\n"),
     "u's ends unpacked and swapped": (
         "        t = target(uniform_box(u), last(b))\n",
         "        u_lo, u_hi = uniform_box(u)\n        t = target((u_hi, u_lo), last(b))\n"),
     "a clamp by numpy in decide": (
-        "        b = boundaries(c)\n",
-        "        b = boundaries((np.where(lower(c) > 0, lower(c), 0.0), c[1]))\n"),
+        "        b = boundaries(c)\n", "        b = boundaries((np.where(lower(c) > 0, lower(c), 0.0), c[1]))\n"),
     "a directed call in enclosure": (
         "    a = sqrt_box(exact(Fraction(2, M), FP64))\n",
         "    a = (bd.sqrt_hi(exact(Fraction(2, M), FP64)), bd.sqrt_hi(exact(Fraction(2, M), FP64)))\n"),
+    "a step's state accumulated from another's": (
+        ANCHOR_S, "        self.s = accumulate(self.g, square(inner(self.e, q)))\n"),
+    "a column appended twice": (
+        "        self.q.append(lower(q))\n", "        self.q.append(lower(q))\n        self.q.append(lower(q))\n"),
+    "an accumulation dropped": (ANCHOR_S, ""),
+    "state set in decide": (
+        "        b = boundaries(c)\n", "        b = boundaries(c)\n        self.s = zero(self.M)\n"),
 }
 
 
 @pytest.mark.parametrize("name", sorted(ORCHESTRATION_PLANTS))
-def test_the_rule_refuses_arithmetic_or_a_subscript_in_the_orchestration(name):
+def test_the_rule_refuses_arithmetic_or_a_subscript_or_a_stray_state_in_the_orchestration(name):
     old, new = ORCHESTRATION_PLANTS[name]
-    assert SOURCE.count(old) == 1
+    assert SOURCE.count(old) == 1, "the plant's anchor is gone: re-anchor this plant"
     found = violations(SOURCE.replace(old, new))
     assert any("orchestration" in f for f in found), f"the rule let {name} through: {found}"
+
+
+def five():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_rule_orchestration", HERE / "test_pinned_orchestration.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+FIVE_MODULE = five()
+
+
+@pytest.mark.parametrize("name", sorted(FIVE_MODULE.FIVE))
+def test_the_rule_refuses_each_of_verifier_p1s_five_as_planted(name):
+    found = violations(FIVE_MODULE.planted(name))
+    assert found, f"the rule let {name} through"
