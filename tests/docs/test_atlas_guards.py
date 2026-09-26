@@ -8,11 +8,18 @@ quantum_film/:
     with nothing before it that calls anything outside the allowlist), or
     runs NOTHING AT IMPORT BUT THE ALLOWLIST below.
 
-The allowlist is pure construction:
-  - pathlib.Path and its resolve/with_name/joinpath/absolute;
-  - re.compile, functools.lru_cache, sys.path.insert, os.environ.get;
-  - a few builtins, provided the module does not rebind them;
+The allowlist is pure construction, calls that cannot reach a network, a
+process or a file:
+  - anything in a pure module: math, fractions, dataclasses, typing, enum,
+    collections, itertools, functools, operator, re, struct, hashlib, mpmath,
+    and numpy apart from its file functions (load, save, fromfile, ...);
+  - pathlib.Path and its resolve/with_name/joinpath/absolute (a path made,
+    no file touched); sys.path.insert; os.environ.get;
+  - float.fromhex, int.from_bytes, bytes.fromhex, and a few builtins,
+    provided the module does not rebind them;
   - the module's own functions whose bodies call only these.
+The first allowlist named functions, not modules, and would have refused
+the parcels' np.dtype, Fraction, dataclass and math.sqrt at merge.
 
 Code that runs at import is read everywhere it hides: module-level
 statements; the bodies of module-level if/try/with/for/while blocks and of
@@ -34,9 +41,14 @@ import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 EVERYWHERE = ("research", "tools", "quantum_film")
-BUILTINS = {"set", "frozenset", "dict", "list", "tuple", "sorted", "len", "str", "int", "range", "enumerate",
-            "zip", "max", "min", "sum", "abs", "bool", "isinstance"}
-DOTTED = {"pathlib.Path", "re.compile", "functools.lru_cache", "sys.path.insert", "os.environ.get"}
+BUILTINS = {"set", "frozenset", "dict", "list", "tuple", "sorted", "len", "str", "int", "float", "range",
+            "enumerate", "zip", "max", "min", "sum", "abs", "bool", "isinstance", "bytes", "round", "pow"}
+BUILTIN_METHODS = {("float", "fromhex"), ("int", "from_bytes"), ("bytes", "fromhex")}
+PURE_MODULES = {"math", "fractions", "dataclasses", "typing", "enum", "collections", "itertools", "functools",
+                "operator", "re", "struct", "hashlib", "mpmath", "numpy"}
+NUMPY_FILES = {"load", "save", "savez", "savez_compressed", "loadtxt", "savetxt", "genfromtxt", "fromfile",
+               "tofile", "memmap", "fromregex", "lib", "ctypeslib", "DataSource"}
+DOTTED = {"pathlib.Path", "sys.path.insert", "os.environ.get"}
 PATH_METHODS = {"resolve", "with_name", "joinpath", "absolute"}
 
 
@@ -94,14 +106,24 @@ class _Module:
             node = node.func.value if isinstance(node, ast.Call) else node.value
         return isinstance(node, ast.Call) and self.dotted(node.func) == "pathlib.Path"
 
+    def _unbound_builtin(self, name):
+        return name not in self.bound and name not in self.imports
+
     def allowed(self, call):
         f = call.func
-        if isinstance(f, ast.Name) and f.id in BUILTINS and f.id not in self.bound and f.id not in self.imports:
+        if isinstance(f, ast.Name) and f.id in BUILTINS and self._unbound_builtin(f.id):
             return True
         if isinstance(f, ast.Name) and f.id in self.pure:
             return True
-        if self.dotted(f) in DOTTED:
+        if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and \
+                (f.value.id, f.attr) in BUILTIN_METHODS and self._unbound_builtin(f.value.id):
             return True
+        dotted = self.dotted(f)
+        if dotted in DOTTED:
+            return True
+        if dotted and dotted.split(".")[0] in PURE_MODULES:
+            parts = dotted.split(".")
+            return not (parts[0] == "numpy" and any(p in NUMPY_FILES for p in parts[1:]))
         return isinstance(f, ast.Attribute) and f.attr in PATH_METHODS and self._path_made(f.value)
 
 
@@ -183,6 +205,8 @@ CAUGHT = {
     "function-local import": "def main():\n    from moth import call\n    call('GET', '/')\n\n\nmain()\n",
     "rebound builtin": "from moth import call\nlen = call\nlen('GET')\n",
     "a Path that is not one": "from moth import call as Path\nPath('x').resolve()\n",
+    "numpy's file functions": "import numpy as np\nX = np.load('layouts.npz')\n",
+    "a pure module's name on something else": "from moth import call as math\nmath.sqrt(2)\n",
 }
 
 

@@ -775,3 +775,19 @@ verifier-P3's in the fixer. Their entries are in the round's ledger
   external.
 
 `make verify --require-all`: 12 passed, none skipped.
+
+### Correction, the same day: the import allowlist named functions, and would have refused the parcels
+
+- Checked against P1's and P3's branches before either merged, the
+  allowlist above refused their pure module-level constructors: `np.dtype`,
+  `Fraction`, `dataclass` and `field`, `float.fromhex`, `math.sqrt` and
+  `np.array`.
+- It now allows modules, not functions: anything in math, fractions,
+  dataclasses, typing, enum, collections, itertools, functools, operator, re,
+  struct, hashlib, mpmath, and numpy apart from its file functions (load,
+  save, fromfile, ...). Also float.fromhex, int.from_bytes and bytes.fromhex.
+- Two more negative controls: `np.load` at import, and a client imported
+  under a pure module's name (`from moth import call as math`).
+- Every new module on both parcel branches now passes. The files the rule
+  still refuses there are the research scripts of their base, which main has
+  since guarded.
