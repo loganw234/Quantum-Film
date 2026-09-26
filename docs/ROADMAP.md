@@ -24,13 +24,14 @@ named negative control, and a verifier.
 - Negative control: a sampler with the hand-off removed disagrees with the
   authority on a near-tie planted inside binary64's own error.
 
-**P2: atlas-film on pinned arithmetic.** The owner's direction (2026-09-25):
-atlas-film was always meant to move onto cft-fp256, and the gaps its survey
-found are that step not yet taken.
-- A deterministic mode in atlas-film, built only from correctly rounded
-  primitives, coated with counter-based uniforms, with cft-fp256 as its
-  authority. It runs in atlas-film's own repository; docs/ROUND1.md has
-  the scope and the controls.
+**P2: atlas-film on pinned arithmetic.** (Pushed, round 1: atlas-film's
+`pinned` branch at d4007b2, not merged into its main.) The owner's direction
+(2026-09-25): atlas-film was always meant to move onto cft-fp256, and the
+gaps its survey found are that step not yet taken.
+- Done: a deterministic mode in atlas-film, built only from correctly
+  rounded primitives, coated with counter-based uniforms, with cft-fp256 as
+  its authority. docs/ROUND1.md has the scope and the controls.
+- Its gates, and what no gate sees, are in atlas-film's docs/PINNED.md.
 - Quantum-Film's side of development waits for it, in round 2: turning a
   layout into atlas-film's `(K, thr)` sheet, the honesty floor and mean-K
   check, the first prints, and the film-science statistics.
@@ -66,6 +67,27 @@ found are that step not yet taken.
 - It needs an account the owner creates.
 - What noise does to the grain (particle-number leak, the low-k floor,
   speckle contrast = fidelity) is the measurement.
+
+## Carried from round 1
+
+What round 1's verifiers left open, each stated where it lives:
+- **Device rolls.**
+  - A commitment v3 that binds `kind`.
+  - Anchor evidence beyond the local clock: push the commitment before the
+    first status call, or put its hash in the job request.
+  - A bundle format: one job made 1,995 files.
+  - A test that holds `--score`'s exit code.
+  - An upper bound on `fixed_at`.
+- **libcft's DLL** pinned by a hash with its PE timestamps and checksum
+  zeroed, not by its path and full hash.
+- **The pinned sampler** (quantum_film/pinned/certificate.py's stated limit).
+  N3m is a decision fault that fires only where the Gram bound is below
+  2^-40, and it passes every gate. A laddered family with a smaller bound
+  would narrow it.
+- **atlas-film's pinned mode** (its docs/PINNED.md):
+  - a tripwire at chain entry for code the interpreter runs inside a chain
+    (sys.gettrace and the rest);
+  - operand types in the integer and primitive layers (INT1, CAST1b).
 
 ## After the week
 

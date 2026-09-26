@@ -32,10 +32,12 @@ These are lead-owned. Parcels read them and never edit them.
 
 ## The ledger
 
-`C:\Users\logan\source\repos\quantum-film-ledger\round1\`. It is outside every
-worktree and every repository. It has one file per author, append only, and an
-`urgent/` directory that every agent watches. Its README is ParcelRound's
-ledger template.
+`C:\Users\logan\source\repos\quantum-film-ledger\round1\` while the round
+ran. It was outside every worktree and every repository. It had one file per
+author, append only, and an `urgent/` directory that every agent watched. Its
+README is ParcelRound's ledger template. Since 2026-09-26 it is archived beside
+the round's case study, as ParcelRound's `archive/round4-ledger.zip`, and the
+working copy is deleted.
 
 ## P1: the pinned path (Quantum-Film)
 
