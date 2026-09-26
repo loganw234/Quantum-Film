@@ -14,6 +14,7 @@ The DLL is built from the pinned submodule, never from the owner's own
 checkout, where another session may be working. The build commands and their
 traps are in CLAUDE.md.
 """
+
 import ctypes
 import hashlib
 import os
@@ -21,6 +22,8 @@ import pathlib
 import struct
 import sys
 
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CFT_ROOT = pathlib.Path(os.environ.get("QF_CFT_ROOT") or ROOT / "vendor" / "cft-fp256")
 DLL = CFT_ROOT / "host" / "cft.dll"

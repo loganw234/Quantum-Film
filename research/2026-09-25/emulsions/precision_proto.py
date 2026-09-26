@@ -9,6 +9,9 @@ uniforms under four arithmetics:
 A layout is compared as its ORDERED pick sequence; the first differing step is
 where the two films part. Exploration, not the project's authority.
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 import json
 import os
 import subprocess

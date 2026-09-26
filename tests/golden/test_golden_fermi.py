@@ -130,3 +130,29 @@ def test_a_basis_built_while_the_precision_moved_is_refused_and_never_cached(mon
     rows = fermi.orbitals(4, 1, 200)                      # built again, cleanly
     with mp.workprec(200):
         assert abs(mpmath.fsum(v * v for v in rows[0]) - mpmath.mpf(5) / 16) < mpmath.mpf(2) ** -190
+
+
+def test_a_target_just_below_a_boundary_is_refused_too():
+    """The mirror of the 2^-240 plant above. A margin checked only on one side,
+    or checked after the choice is made, decides this draw; every other gate
+    passed such a reordering (the P0 verifier's third pass)."""
+    with pytest.raises(fermi.TieRefusal, match="refuses"):
+        fermi.sample(4, 1, b"near-tie-below", uniform_fn=planted(-Fraction(1, 2 ** 240)))
+
+
+def test_a_basis_whose_rows_are_not_n_over_m_is_refused_before_it_is_cached(monkeypatch):
+    """A transient precision drop in another thread can come and go between
+    two checks, and the P0 verifier cached a corrupted 16x16 basis 26 times in
+    40 that way. So the basis's content is checked too: every row's squared
+    norm is N/M. This stands in for a drop that the precision check misses."""
+    real_sqrt = mpmath.sqrt
+
+    def coarse(x):
+        return real_sqrt(mpmath.mpf(float(x)))           # a binary64 value, returned at full precision
+
+    fermi.orbitals.cache_clear()
+    monkeypatch.setattr(mpmath, "sqrt", coarse)
+    with pytest.raises(fermi.PrecisionChanged, match="the basis: its rows"):
+        fermi.orbitals(6, 1, 192)
+    monkeypatch.undo()
+    assert fermi.orbitals.cache_info().currsize == 0

@@ -108,3 +108,41 @@ def test_a_device_may_lay_a_layout_the_law_forbids_and_the_record_keeps_it():
     """A device records what it laid, noise included. [0, 1, 2, 3, 4] has
     det(K_Y) = 0 under pauli-4x4, and is kept rather than censored."""
     assert fixer.check(fixer.fix_device("pauli-4x4", [0, 1, 2, 3, 4], source())) == []
+
+
+def test_a_device_roll_keeps_a_crystal_count_the_law_never_lays():
+    """A device records what it laid (verifier-P3: the count rule made a QPU's
+    leaked layouts unfixable). A golden roll is still held to the count."""
+    assert fixer.check(fixer.fix_device("pauli-4x4", [0, 1, 4, 11], source())) == []
+    with pytest.raises(ValueError, match="count"):
+        fixer.fix("pauli-4x4", [0, 1, 4, 11], {"kind": "golden", "stream": ["roll", "pauli-4x4", 1],
+                                               "authority": fixer.authority(fixer.params("pauli-4x4"))})
+
+
+def test_occurrences_is_known_and_held_and_other_fields_are_refused(roll):
+    for bad in (-5, 0, 4097, "many", True):
+        r = copy.deepcopy(roll)
+        r["source"]["occurrences"] = bad
+        assert any("occurrences must be" in p for p in resealed(r)), bad
+    r = copy.deepcopy(roll)
+    r["source"]["occurrences"] = 18
+    assert resealed(r) == []
+    r = copy.deepcopy(roll)
+    r["source"]["mode"] = "qpu"
+    assert any("fields the fixer does not know" in p for p in resealed(r))
+
+
+def test_fixed_at_is_a_utc_time(roll):
+    r = copy.deepcopy(roll)
+    r["source"]["fixed_at"] = "yesterday"
+    assert any("fixed_at must be a UTC time" in p for p in resealed(r))
+
+
+def test_a_recomputed_commitment_passes_the_record_alone_which_is_why_the_anchor_binds(roll):
+    """verifier-P3's A11: the salt is in the record, so a re-attributed roll with
+    its commitment recomputed passes check(). The fixer says so; the anchor, the
+    commitment published before the result, is what a reader holds it to."""
+    r = copy.deepcopy(roll)
+    r["source"]["job_id"] = "another-job"
+    r["source"]["commitment"] = fixer.commitment(stock="pauli-4x4", **{k: r["source"][k] for k in fixer.COMMITTED})
+    assert resealed(r) == []

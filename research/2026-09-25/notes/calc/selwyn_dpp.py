@@ -1,3 +1,5 @@
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 # Exact (no sampling) second-order statistics on an L x L torus for:
 #  - Poisson (reference), Bernoulli lattice gas, projection DPP (2D Fermi sea),
 #    and the alpha=1 permanental (boson/speckle Cox) process with the SAME kernel.

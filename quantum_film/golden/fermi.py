@@ -89,9 +89,17 @@ def orbitals(L, r2, prec=PREC):
             cols.append([a * c[m] for m in ms])
             cols.append([a * s[m] for m in ms])
         _same_precision(prec, "the basis")          # raising here also keeps it out of the cache
-    if len(cols) != len(ks):
-        raise AssertionError(f"basis has {len(cols)} columns for {len(ks)} modes")
-    return tuple(tuple(col[i] for col in cols) for i in range(M))
+        if len(cols) != len(ks):
+            raise AssertionError(f"basis has {len(cols)} columns for {len(ks)} modes")
+        rows = tuple(tuple(col[i] for col in cols) for i in range(M))
+        # The content, not just the setting: a precision that dropped and came
+        # back between two checks leaves rows whose squared norms miss N/M by
+        # about 2^-53 (the P0 verifier cached such a basis 26 times in 40).
+        tol, want = mpf(2) ** -(prec - 16), mpf(len(ks)) / M
+        if any(abs(mpmath.fsum(v * v for v in r) - want) > tol for r in rows):
+            raise PrecisionChanged(f"the basis: its rows' squared norms are not N/M to 2^-{prec - 16}; "
+                                   "it was built at a lower precision than asked, so the authority refuses")
+    return rows
 
 
 def kernel(L, r2, prec=PREC):

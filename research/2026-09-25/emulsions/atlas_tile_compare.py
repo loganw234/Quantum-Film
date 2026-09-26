@@ -14,6 +14,9 @@ order and reported disagreements of up to 11 sigma. The engine's own derived
 observables agreed with the exact law, which is what sent the reading, not
 the engine's physics, back for checking.
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 import json
 import math
 import pathlib

@@ -21,9 +21,13 @@ and tests/docs/test_registry.py fails a test file no stage runs.
   verify/run.sh, where `--require-all` can see it.
 - **There is no cache across runs.** A run id is timestamp + pid + commit
   (+dirty). `--resume` refuses to cross commits, a dirty tree, or a changed
-  environment (QF_CFT_ROOT, the DLL's hash, python and its packages, whether
-  an Atlas key is set). `--only ""` is refused, and a run whose every stage
-  skipped FAILS: a skip is not a run.
+  environment (QF_CFT_ROOT's DLL and binding, python and its packages, ruff
+  and pytest, whether an Atlas key is set). `--only ""` is refused, and a run
+  whose every stage skipped FAILS: a skip is not a run.
+- **A device roll's commitment is bound by its anchor, not by its value.**
+  The salt is in the record, so a changed field can be re-sealed with its
+  commitment recomputed. What binds is the commitment committed to git before
+  the job's first status call, which already carries the result.
 - `make vectors` regenerates tests/vectors after a deliberate change; never
   hand-edit a vector. A record on disk is exactly `fixer.text(record)`, and
   the fixer's command line refuses any other bytes.
@@ -39,17 +43,16 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 `quantum_film/stocks.py`.
 
 - **mpmath's working precision is process-global.** Never call the authority
-  from threads: another thread's `mp.prec = 53` would make it binary64
-  arithmetic behind a 2^-224 margin. It refuses a draw, or a basis before it
-  is cached, whose precision moved (`PrecisionChanged`).
-- **The authority does no binary64 arithmetic at all**, read from its source
-  (tests/golden/test_independence.py): no float literal, no `float()`, and
-  from `math` only what is exact on Fractions. Some binary64 slips change no
-  output on today's shelf (K_ii = N/M is dyadic), so no output gate sees them.
-- **Measure the authority against code it does not share.** The first premise
-  gate compared it with itself at 512 bits and passed a binary64 `math.fsum`
-  that moved every boundary by 2^-51.5. The references now are exact
-  Fractions (pauli-4x4's kernel is rational) and an independent chain rule.
+  from threads. It refuses (`PrecisionChanged`) a draw whose precision moved,
+  and a basis whose rows' squared norms miss N/M, before it is cached: a
+  brief drop in another thread can come and go between two checks.
+- **Measure the authority against code it does not share, on a tile whose
+  arithmetic is not accidentally exact.** The first premise gate compared it
+  with itself, and passed a binary64 `math.fsum` 2^-51.5 off. On the shelf's
+  tiles (L = 4, 16) several binary64 slips round to the exact value and show
+  nowhere. The references are exact Fractions on L = 4 and L = 6 (Niven: the
+  only L with rational cosines besides 1-3) and an independent 512-bit chain
+  rule on 16x16. The source rule (no binary64 in golden) reads spellings only.
 
 ## Atlas (Moth's platform): what bites
 
@@ -85,18 +88,19 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
    until the P0 verifier checked the QASM hashes. A score is against one
    law; name the circuit's SHA-256 beside it.
 
-## Controls that cannot fail (both happened on 2026-09-25)
+## Controls that cannot fail (every one happened, 2026-09-25/26)
 
-- **Negating every rotation angle of the Pauli circuit is a gauge
-  transformation** (K -> SKS). Every occupation probability is unchanged, so
-  it is the same film, and it can never be a sabotage.
-  tests/circuits/test_givens.py pins this.
+- **The same film is never a sabotage.** Negating every rotation angle is a
+  gauge (K -> SKS), and so is reversing the qubit line, q -> 15 - q, on the
+  4x4 tile (verifier-P3). tests/circuits/test_givens.py pins the first.
 - **On a mirror-symmetric tile, occupation statistics cannot tell two bit
   orders apart.** Decide an order with a known-answer circuit, not with the
   physics you are trying to measure.
-- **Random seeds never test a margin.** They come no closer than about 2^-15
-  to a boundary, so the first precision test passed with the refusal removed.
-  Plant the target where the fault would show (tests/golden/test_golden_fermi.py).
+- **Random seeds never test a margin**, and a plant on one side of a
+  boundary tests one side. A margin checked after the choice passed every
+  gate until the mirror plant, 2^-240 below (tests/golden/test_golden_fermi.py).
+- **A control named by a number can miss.** "Plant 1e-14 from a boundary"
+  (P1's brief) is where binary64 is still right; plant inside its own error.
 
 ## cft-fp256 (the pinned-arithmetic path)
 
@@ -123,15 +127,16 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 
 ## Housekeeping that has bitten
 
-- **Nothing calls Atlas because it was imported** (tests/docs/test_atlas_guards.py).
-  An import re-ran nine probe jobs on 2026-09-25. Two rules:
-  - a script under research/ or tools/ that imports an Atlas client, in any
-    spelling, starts with `if __name__ != "__main__": raise ImportError(...)`;
-  - no module calls a client in code that runs at import, class bodies,
-    decorators and defaults included.
-
-  The first version tracked a few import spellings, and the verifier passed
-  seven others through it.
+- **An import runs nothing but pure construction, or is refused**
+  (tests/docs/test_atlas_guards.py). An import re-ran nine probe jobs on
+  2026-09-25. Every module under research/, tools/ and quantum_film/ either
+  starts with `if __name__ != "__main__": raise ImportError(...)` or calls
+  only an allowlist at import (Path, re.compile, lru_cache, sys.path.insert,
+  a few builtins, its own pure helpers). Two versions that named Atlas
+  spellings instead were each walked past by the verifier.
+- **Never compare two spellings of a path.** Git Bash mounts %TEMP% at /tmp,
+  and a check that did refused every verifier's clone; the runner asks git
+  `--show-cdup`.
 - **The session scratchpad is shared by every agent**, and it holds the Atlas
   key. Brief every agent to write only under a subdirectory named for it:
   P1 overwrote a lead file at its root on 2026-09-25.

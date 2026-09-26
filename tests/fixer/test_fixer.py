@@ -176,3 +176,9 @@ def test_the_code_field_is_exactly_the_version(roll):
 def test_the_lay_command_refuses_a_seed_that_is_not_an_integer(capsys):
     assert fixer.main(["lay", "pauli-4x4", "1.9"]) == 2
     assert "REFUSED: a seed is an integer" in capsys.readouterr().out
+
+
+def test_the_lay_command_refuses_a_stock_that_is_not_on_the_shelf(capsys):
+    for stock in ("nosuch", "speckle"):
+        assert fixer.main(["lay", stock, "1"]) == 2
+        assert capsys.readouterr().out.startswith("REFUSED: ")

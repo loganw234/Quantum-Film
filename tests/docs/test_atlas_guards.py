@@ -1,41 +1,43 @@
-"""No module calls Atlas because it was imported (CLAUDE.md).
+"""Importing a module runs nothing that could reach Atlas (CLAUDE.md).
 
-An import of a probe script re-ran nine Atlas jobs on 2026-09-25. Two rules
-hold that shut:
+An import of a probe script re-ran nine Atlas jobs on 2026-09-25. The rule
+that holds this shut, for every module under research/, tools/ and
+quantum_film/:
 
-  1. A SCRIPT (anything under research/ or tools/) that imports an Atlas
-     client in any form refuses to be imported: an
-     `if __name__ != "__main__": raise ...` at module level, with nothing but
-     the docstring and imports before it. A module that another script
-     imports (research's probe.py, fermion_tile.py) cannot refuse import; it is
-     held by rule 2 instead.
-  2. No module anywhere (the package under quantum_film/ included, where a
-     library module cannot refuse import) calls an Atlas client in code that
-     runs at import: module-level statements, the bodies of module-level
-     if/try/with/for/while blocks and of classes, decorators and default
-     arguments.
+    a module either REFUSES IMPORT (an `if __name__ != "__main__": raise ...`
+    with nothing before it that calls anything outside the allowlist), or
+    runs NOTHING AT IMPORT BUT THE ALLOWLIST below.
 
-The first version of this gate tracked a few import spellings, and the P0
-verifier passed seven others through it: a dotted `import
-quantum_film.atlas.client`, a star import, `from . import client`, an import
-inside `try`, and a call in a class body, a decorator or a default argument.
-Rule 1 no longer depends on spelling. Rule 2 reads all seven, and they are
-this file's negative controls.
+The allowlist is pure construction:
+  - pathlib.Path and its resolve/with_name/joinpath/absolute;
+  - re.compile, functools.lru_cache, sys.path.insert, os.environ.get;
+  - a few builtins, provided the module does not rebind them;
+  - the module's own functions whose bodies call only these.
 
-An Atlas client is a module whose last name is `moth`, `probe` or `client`
-(research's clients, and quantum_film.atlas.client), however it is imported.
+Code that runs at import is read everywhere it hides: module-level
+statements; the bodies of module-level if/try/with/for/while blocks and of
+classes; decorators, defaults, annotations and base classes. Only
+`if __name__ == "__main__":` blocks and lambda bodies are skipped.
+
+Why an allowlist. Two earlier versions named what to refuse: calls to
+modules called client, moth or probe, and the spellings that import them. The
+P0 verifier passed over a dozen shapes through them: a dotted import, a star
+import, a relative import, an import inside `try`, a wrapper module, an
+alias (`fetch = client.call`), `getattr`, `importlib`, curl called directly,
+a function-local import, and a class body, a decorator, a default or an
+annotation. A library exemption keyed on 28 bare import names was a loophole
+too. Against an allowlist the spelling does not matter: anything that is not
+pure construction must sit behind a refusal.
 """
 import ast
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CLIENTS = {"moth", "probe", "client"}
-SCRIPTS = ("research", "tools")
 EVERYWHERE = ("research", "tools", "quantum_film")
-
-
-def _is_client(dotted):
-    return dotted.rsplit(".", 1)[-1] in CLIENTS
+BUILTINS = {"set", "frozenset", "dict", "list", "tuple", "sorted", "len", "str", "int", "range", "enumerate",
+            "zip", "max", "min", "sum", "abs", "bool", "isinstance"}
+DOTTED = {"pathlib.Path", "re.compile", "functools.lru_cache", "sys.path.insert", "os.environ.get"}
+PATH_METHODS = {"resolve", "with_name", "joinpath", "absolute"}
 
 
 def _names_main(test, op):
@@ -49,170 +51,153 @@ def _refusal(node):
         isinstance(b, ast.Raise) for b in node.body)
 
 
-def imports_a_client(tree):
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import) and any(_is_client(a.name) for a in node.names):
-            return True
-        if isinstance(node, ast.ImportFrom):
-            if _is_client(node.module or "") or any(a.name in CLIENTS for a in node.names):
-                return True
-    return False
-
-
-def script_problem(src):
-    """Rule 1: None, or why this script may run Atlas when imported."""
-    tree = ast.parse(src)
-    if not imports_a_client(tree):
-        return None
-    for i, node in enumerate(tree.body):
-        if _refusal(node):
-            return None
-        docstring = i == 0 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
-        if not (docstring or isinstance(node, (ast.Import, ast.ImportFrom))):
-            return f"line {node.lineno}: imports an Atlas client and runs code before refusing import"
-    return "imports an Atlas client and never refuses import"
-
-
-class _Bindings:
-    """What each name at module level means: a client module, or a callable from one."""
-
-    def __init__(self):
-        self.modules, self.callables, self.star = set(), set(), False
-
-    def learn(self, node):
-        if isinstance(node, ast.Import):
-            for a in node.names:
-                if _is_client(a.name):
-                    self.modules.add(a.asname or a.name)     # `import a.b.client` is called as a.b.client.x
-        elif isinstance(node, ast.ImportFrom):
-            if _is_client(node.module or ""):
+class _Module:
+    def __init__(self, tree):
+        self.imports = {}                  # a module-level name -> the dotted thing it was imported as
+        self.bound = set()                 # every other name bound at module level
+        for node in tree.body:
+            if isinstance(node, ast.Import):
                 for a in node.names:
-                    if a.name == "*":
-                        self.star = True
-                    else:
-                        self.callables.add(a.asname or a.name)
-            else:
-                self.modules |= {a.asname or a.name for a in node.names if a.name in CLIENTS}
+                    self.imports[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                for a in node.names:
+                    self.imports[a.asname or a.name] = f"{node.module}.{a.name}"
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                self.bound.add(node.name)
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Store):
+                    self.bound.add(sub.id)
+        defs = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        self.pure = set()
+        grew = True
+        while grew:                        # a function of this module is pure if all it calls is allowed
+            grew = False
+            for name, fn in defs.items():
+                if name not in self.pure and all(self.allowed(c) for c in _calls_in(fn.body)):
+                    self.pure.add(name)
+                    grew = True
 
-    def is_atlas(self, func):
+    def dotted(self, func):
         parts = []
         while isinstance(func, ast.Attribute):
             parts.append(func.attr)
             func = func.value
         if not isinstance(func, ast.Name):
-            return False
-        dotted = ".".join([func.id, *reversed(parts)])
-        if dotted in self.callables:
+            return None
+        head = self.imports.get(func.id)
+        return ".".join([head, *reversed(parts)]) if head else None
+
+    def _path_made(self, node):
+        """Is `node` a Path built from allowed calls, possibly through .parent, [i] and PATH_METHODS?"""
+        while isinstance(node, (ast.Attribute, ast.Subscript)) or (
+                isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in PATH_METHODS):
+            node = node.func.value if isinstance(node, ast.Call) else node.value
+        return isinstance(node, ast.Call) and self.dotted(node.func) == "pathlib.Path"
+
+    def allowed(self, call):
+        f = call.func
+        if isinstance(f, ast.Name) and f.id in BUILTINS and f.id not in self.bound and f.id not in self.imports:
             return True
-        return any(dotted.startswith(m + ".") for m in self.modules)
+        if isinstance(f, ast.Name) and f.id in self.pure:
+            return True
+        if self.dotted(f) in DOTTED:
+            return True
+        return isinstance(f, ast.Attribute) and f.attr in PATH_METHODS and self._path_made(f.value)
 
 
-def _calls(node, b):
-    for sub in ast.walk(node):
-        if isinstance(sub, ast.Call) and b.is_atlas(sub.func):
-            return sub.lineno
-    return None
+def _calls_in(nodes):
+    """Every call in these nodes that runs when they run: lambda bodies are not entered."""
+    stack = list(nodes)
+    while stack:
+        n = stack.pop()
+        if isinstance(n, ast.Lambda):
+            continue
+        if isinstance(n, ast.Call):
+            yield n
+        stack.extend(ast.iter_child_nodes(n))
 
 
-def _run_at_import(body, b):
-    """Yield the line of each Atlas call in code that runs when the module is imported."""
+def _at_import(body):
+    """The calls that run when these module- or class-level statements run."""
     for node in body:
         if _refusal(node):
             return
         if isinstance(node, (ast.Import, ast.ImportFrom)):
-            b.learn(node)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            for part in [*node.decorator_list, *node.args.defaults, *node.args.kw_defaults]:
-                if part is not None and (line := _calls(part, b)):
-                    yield line
-            if _calls(node, b):                    # a function that calls Atlas is Atlas, if called
-                b.callables.add(node.name)
+            continue
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            a = node.args
+            parts = [*node.decorator_list, *a.defaults, *(d for d in a.kw_defaults if d is not None),
+                     *(x.annotation for x in [*a.posonlyargs, *a.args, *a.kwonlyargs] if x.annotation)]
+            parts += [x.annotation for x in (a.vararg, a.kwarg) if x is not None and x.annotation]
+            parts += [node.returns] if node.returns else []
+            yield from _calls_in(parts)
         elif isinstance(node, ast.ClassDef):
-            for part in [*node.decorator_list, *node.bases, *(k.value for k in node.keywords)]:
-                if line := _calls(part, b):
-                    yield line
-            yield from _run_at_import(node.body, b)
+            yield from _calls_in([*node.decorator_list, *node.bases, *(k.value for k in node.keywords)])
+            yield from _at_import(node.body)
         elif isinstance(node, ast.If) and _names_main(node.test, ast.Eq):
             continue
         elif isinstance(node, (ast.If, ast.For, ast.AsyncFor, ast.While, ast.With, ast.AsyncWith, ast.Try)):
+            heads = [getattr(node, "test", None), getattr(node, "iter", None),
+                     *(i.context_expr for i in getattr(node, "items", []))]
+            yield from _calls_in([h for h in heads if h is not None])
             for field in ("body", "orelse", "finalbody"):
-                yield from _run_at_import(getattr(node, field, []), b)
+                yield from _at_import(getattr(node, field, []))
             for h in getattr(node, "handlers", []):
-                yield from _run_at_import(h.body, b)
-            for part in [getattr(node, "test", None), getattr(node, "iter", None),
-                         *(i.context_expr for i in getattr(node, "items", []))]:
-                if part is not None and (line := _calls(part, b)):
-                    yield line
-        elif line := _calls(node, b):
-            yield line
+                yield from _at_import(h.body)
+        else:
+            yield from _calls_in([node])
 
 
-def import_problem(src):
-    """Rule 2: None, or where this module calls Atlas when it is imported."""
+def problems(src):
+    """The calls this module runs at import that are not pure construction, as 'line: call'."""
     tree = ast.parse(src)
-    b = _Bindings()
-    lines = list(_run_at_import(tree.body, b))
-    if b.star:
-        return "a star import of an Atlas client: what it calls cannot be read"
-    return f"line {lines[0]}: calls an Atlas client when imported" if lines else None
+    m = _Module(tree)
+    out = []
+    for call in _at_import(tree.body):
+        if not m.allowed(call):
+            out.append(f"line {call.lineno}: {ast.unparse(call.func)}(...)")
+    return out
 
 
-def imported_by_a_script(files):
-    """The stems of modules that some script imports by a plain name (research's sibling imports)."""
-    names = set()
-    for f in files:
-        for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.Import):
-                names |= {a.name.split(".")[0] for a in node.names}
-            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-                names.add(node.module.split(".")[0])
-    return names
-
-
-def test_every_script_that_imports_an_atlas_client_refuses_import():
-    files = [f for d in SCRIPTS for f in sorted((ROOT / d).rglob("*.py"))]
-    libraries = imported_by_a_script(files)
-    bad = [f"{f.relative_to(ROOT).as_posix()}: {p}" for f in files
-           if f.stem not in libraries and (p := script_problem(f.read_text(encoding="utf-8")))]
-    assert bad == []
-    assert {"probe", "fermion_tile"} <= libraries          # the exemption covers what it says, and no less
-
-
-def test_no_module_calls_atlas_when_imported():
+def test_importing_any_module_runs_only_pure_construction_or_is_refused():
     bad = [f"{f.relative_to(ROOT).as_posix()}: {p}" for d in EVERYWHERE for f in sorted((ROOT / d).rglob("*.py"))
-           if (p := import_problem(f.read_text(encoding="utf-8")))]
+           for p in problems(f.read_text(encoding="utf-8"))]
     assert bad == []
 
 
-# verifier-P0's seven shapes, each of which passed the first version of this gate.
-SEVEN = {
+# Shapes that passed an earlier version of this gate (the P0 verifier, 2026-09-25), each a negative control.
+CAUGHT = {
     "dotted import": "import quantum_film.atlas.client\nquantum_film.atlas.client.call('GET', '/')\n",
     "star import": "from quantum_film.atlas.client import *\ncall('GET', '/')\n",
     "relative import": "from . import client\nclient.call('GET', '/')\n",
     "import inside try": "try:\n    from moth import call\nexcept ImportError:\n    call = None\ncall('GET', '/')\n",
     "class body": "from moth import call\n\n\nclass A:\n    x = call('GET', '/')\n",
-    "decorator": ("from moth import call\n\n\ndef deco(x):\n    return lambda f: f\n\n\n"
-                  "@deco(call('GET', '/'))\ndef f():\n    pass\n"),
+    "decorator": "from moth import call\n\n\n@call('GET', '/')\ndef f():\n    pass\n",
     "default argument": "from moth import call\n\n\ndef f(x=call('GET', '/')):\n    pass\n",
+    "annotation": "from moth import call\n\n\ndef f(x: call('GET', '/')):\n    pass\n",
+    "wrapper module": "from quantum_film.atlas.jobs import submit\nsubmit('pauli-4x4')\n",
+    "alias": "from quantum_film.atlas import client\nfetch = client.call\nENGINES = fetch('GET', '/')\n",
+    "getattr": "from quantum_film.atlas import client\ngetattr(client, 'call')('GET', '/')\n",
+    "importlib": "import importlib\nimportlib.import_module('probe').run('x')\n",
+    "curl directly": "import subprocess\nsubprocess.run(['curl', 'https://api.mothquantum.com'])\n",
+    "function-local import": "def main():\n    from moth import call\n    call('GET', '/')\n\n\nmain()\n",
+    "rebound builtin": "from moth import call\nlen = call\nlen('GET')\n",
+    "a Path that is not one": "from moth import call as Path\nPath('x').resolve()\n",
 }
 
 
-def test_each_of_the_seven_shapes_is_caught_by_both_rules():
-    for name, src in SEVEN.items():
-        assert import_problem(src), name
-        assert script_problem(src), name
+def test_each_shape_that_once_passed_is_caught():
+    for name, src in CAUGHT.items():
+        assert problems(src), name
 
 
-def test_the_forms_that_are_safe_pass_and_the_old_controls_still_fail():
-    guarded = ('"""doc"""\nimport sys\nif __name__ != "__main__":\n    raise ImportError("no")\n'
-               'from probe import run\nrun("x")\n')
-    main_only = ("from moth import call\n\n\ndef main():\n    call('GET', '/')\n\n\n"
-                 "if __name__ == '__main__':\n    main()\n")
-    library = "from . import client\n\n\ndef fetch(job):\n    return client.call('GET', job)\n"
-    assert script_problem(guarded) is None and import_problem(guarded) is None
-    assert import_problem(main_only) is None and script_problem(main_only)      # a script still must refuse
-    assert import_problem(library) is None
-    assert import_problem("from probe import run\nrun('x')\n") == "line 2: calls an Atlas client when imported"
-    assert import_problem("from moth import call\n\n\ndef main():\n    call('GET', '/')\n\n\nmain()\n")
-    assert script_problem('"""doc"""\nimport sys\nsys.path.insert(0, ".")\nif __name__ != "__main__":\n'
-                          '    raise ImportError("no")\nfrom moth import call\n')
+def test_pure_modules_and_guarded_scripts_pass():
+    library = ('"""doc"""\nimport pathlib\nimport re\nimport sys\nfrom functools import lru_cache\n\n'
+               "ROOT = pathlib.Path(__file__).resolve().parents[2]\nsys.path.insert(0, str(ROOT))\n"
+               "LINK = re.compile(r'x')\nN = len([1, 2])\n\n\ndef _op(v):\n    return {'v': v}\n\n\n"
+               "TABLE = {'a': _op(1)}\n\n\n@lru_cache(maxsize=4)\ndef f(x):\n    return x\n\n\n"
+               "if __name__ == '__main__':\n    print(f(1))\n")
+    guarded = ('"""doc"""\nimport sys\nif __name__ != "__main__":\n    raise ImportError("run it")\n'
+               "from probe import run\nrun('x')\n")
+    assert problems(library) == [] and problems(guarded) == []
+    assert problems("def main():\n    print('x')\n\n\nmain()\n")      # a script's work belongs behind a refusal

@@ -32,8 +32,7 @@ L = 64
 M = L * L
 N = 512                       # 12.5 % of sites
 REPS = 6
-OUT = pathlib.Path(__file__).with_name("proto")
-OUT.mkdir(exist_ok=True)
+OUT = pathlib.Path(__file__).with_name("proto")    # made by main(), not by an import
 
 
 def digest(sites):
@@ -215,6 +214,7 @@ def summarise(name, layouts):
 
 # ------------------------------------------------------------------- the run
 def main():
+    OUT.mkdir(exist_ok=True)
     t0 = time.time()
     rng = np.random.default_rng(np.random.SeedSequence(20260925))
     seeds = rng.integers(0, 2 ** 63, size=(4, REPS))

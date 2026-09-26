@@ -1,5 +1,8 @@
 """Draw the prototype's three emulsions: crystals, then the same fields at print
 scale, then their statistics. Reads proto/layouts.npz and proto/stats.json."""
+
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 import json
 import pathlib
 

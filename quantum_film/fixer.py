@@ -37,6 +37,7 @@ The constructors refuse what `check` refuses: `fix` seals nothing that
 """
 import hashlib
 import json
+import re
 import sys
 from itertools import pairwise
 
@@ -59,21 +60,33 @@ _HEX64 = set("0123456789abcdef")
 # `stream` is golden.uniform's encoding: each field length-prefixed and
 # type-tagged, so no field can absorb its neighbour. (v1 joined the fields with
 # a bare "|", and an engine and a job could be re-attributed together with the
-# commitment intact; no v1 device roll was ever fixed.) `check` recomputes it,
-# so a record cannot be moved to another stock, circuit, engine, job, shot
-# count or decode rule without the refusal naming it.
+# commitment intact; no v1 device roll was ever fixed.)
+#
+# `check` recomputes the commitment, so a record whose fields do not match its
+# own commitment is refused. That is all the record can do alone: the salt is
+# in the record, so whoever changes a field can recompute the commitment too
+# (verifier-P3, 2026-09-26). What binds a device roll is its ANCHOR: the
+# commitment published, in a git commit, before the job's first status call
+# (a completed job's status already carries its result). A reader holds each
+# roll to that published line, as P3's records test does for its run's rolls
+# against its committed commitments.jsonl.
 #
 # What the record alone CANNOT prove:
-#   - that the commitment was formed before the result existed. That is
-#     evidenced only if the commitment was published (committed to git, say)
-#     before the result was fetched, and the device-roll runner does that;
+#   - that the commitment was formed before the result existed; only the
+#     anchor evidences that, and today only by the local clock and the code;
 #   - which law the circuit lays. The commitment binds circuit_sha256, and a
 #     reader must check that hash against the stock's circuit;
+#   - `kind`, `fixed_at` and `occurrences`, which no commitment binds (kind is
+#     known at submission and a later version should bind it; fixed_at comes
+#     after the result by design). The anchor's run holds them;
 #   - that the layout is one the law allows. A device records what it laid,
-#     noise included, so a layout the law forbids is kept, not refused.
+#     noise included: a layout the law forbids, or a crystal count it never
+#     lays, is kept, not refused.
 DEVICE_FIELDS = {"fixed_at": str, "engine": str, "job_id": str, "circuit_sha256": str,
                  "shots": int, "decode": str, "salt": str, "commitment": str}
+DEVICE_OPTIONAL = {"occurrences": int}      # how many shots laid this layout, when a run fixes one per layout
 COMMITTED = ("circuit_sha256", "engine", "job_id", "shots", "decode", "salt")
+_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z")
 
 
 def commitment(*, stock, circuit_sha256, engine, job_id, shots, decode, salt):
@@ -123,7 +136,8 @@ def _layout_problems(rec, law):
         out.append("crystals: not strictly increasing (sorted, no site twice)")
     if cs and (cs[0] < 0 or cs[-1] >= law["M"]):
         out.append(f"crystals: a site outside 0..{law['M'] - 1}")
-    if law["family"] in ("determinantal", "binomial") and len(cs) != law["N"]:
+    laid_by_a_device = isinstance(rec.get("source"), dict) and rec["source"].get("kind") in DEVICE
+    if law["family"] in ("determinantal", "binomial") and len(cs) != law["N"] and not laid_by_a_device:
         out.append(f"count: {len(cs)} crystals where the {law['family']} law lays exactly {law['N']}")
     return out
 
@@ -205,6 +219,9 @@ def _device_problems(src, sid):
         v = src.get(field)
         if not isinstance(v, kind) or isinstance(v, bool):
             out.append(f"source: a {src['kind']} roll must carry {field} ({kind.__name__})")
+    unknown = sorted(set(src) - {"kind"} - set(DEVICE_FIELDS) - set(DEVICE_OPTIONAL))
+    if unknown:
+        out.append(f"source: {unknown} are fields the fixer does not know; they would ride unchecked")
     if out:
         return out
     for field in ("circuit_sha256", "salt", "commitment"):
@@ -212,6 +229,10 @@ def _device_problems(src, sid):
             out.append(f"source: {field} must be 64 lowercase hex digits")
     if src["shots"] < 1:
         out.append("source: shots must be positive")
+    if not _UTC.fullmatch(src["fixed_at"]):
+        out.append("source: fixed_at must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
+    if "occurrences" in src and not (_is_int(src["occurrences"]) and 1 <= src["occurrences"] <= src["shots"]):
+        out.append("source: occurrences must be a whole number of shots, from 1 to shots")
     if not out and src["commitment"] != commitment(stock=sid, **{k: src[k] for k in COMMITTED}):
         out.append("source: the commitment does not bind this stock, circuit, engine, job, shots, decode and salt")
     return out
@@ -299,7 +320,12 @@ def main(argv):
         except ValueError:
             print(f"REFUSED: a seed is an integer, not {argv[2]!r}")
             return 2
-        sys.stdout.write(text(lay(argv[1], seed)))
+        try:
+            record = lay(argv[1], seed)
+        except LookupError as e:                   # an unknown stock (KeyError) or one not on the shelf
+            print(f"REFUSED: {e.args[0] if e.args else e}")
+            return 2
+        sys.stdout.write(text(record))
         return 0
     print(__doc__.split("\n\n")[-1])
     return 2

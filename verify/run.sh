@@ -154,11 +154,17 @@ mkdir -p "$STATEROOT"
 # resumed run once reported cft passed for a DLL that failed a fresh run,
 # because QF_CFT_ROOT had changed between the two (verifier-P0's re-check).
 fingerprint () {
-  local dll="${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" h=absent
-  [ -f "$dll" ] && h=$(sha256sum "$dll" | cut -c1-64)
+  local cft="${QF_CFT_ROOT:-vendor/cft-fp256}" h=absent b=absent
+  [ -f "$cft/host/cft.dll" ] && h=$(sha256sum "$cft/host/cft.dll" | cut -c1-64)
+  # The cft stage imports the binding from the same root: a binding broken by
+  # one ulp once resumed as PASSED while the DLL's hash held (the P0 verifier).
+  [ -d "$cft/bindings/python" ] && b=$(cd "$cft/bindings/python" && find . -name '*.py' -type f | LC_ALL=C sort |
+                                       xargs sha256sum | sha256sum | cut -c1-64)
   echo "QF_CFT_ROOT=${QF_CFT_ROOT:-}"
   echo "cft.dll=$h"
+  echo "cftmpfr=$b"
   echo "python=$(python -c 'import sys, mpmath, numpy; print(sys.version.split()[0], mpmath.__version__, numpy.__version__)' 2>&1)"
+  echo "tools=$(python -m ruff --version 2>&1) / $(python -m pytest --version 2>&1 | head -1)"
   echo "QF_ATLAS_AUTH=$([ -n "${QF_ATLAS_AUTH:-}" ] && echo set || echo unset)"
 }
 if [ -z "$RESUME" ]; then

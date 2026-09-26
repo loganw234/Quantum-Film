@@ -12,13 +12,22 @@ with the working precision is invisible to it: one binary64 `math.fsum` in the
 basis norm put every boundary 2^-51.5 off, and the gate reported 2^-249 (the
 P0 verifier, 2026-09-25). So both references here are separate code:
 
-  - pauli-4x4, EXACTLY. On a 4x4 tile, cos(2 pi m / 4) is 1, 0, -1 or 0, so the
-    kernel is rational (entries k/16), and every chain-rule weight
-    c_i = K_ii - K_iS K_SS^-1 K_Si is an exact Fraction. So is every boundary,
-    and every target u * (N - j).
+  - EXACTLY, wherever the kernel is rational. cos(2 pi m / L) is rational for
+    every m only when L is 1, 2, 3, 4 or 6 (Niven's theorem). There every
+    chain-rule weight c_i = K_ii - K_iS K_SS^-1 K_Si is an exact Fraction, and
+    so is every boundary and every target u * (N - j). Two tiles:
+      pauli-4x4 (L = 4), the shelf's own;
+      L = 6, r2 = 1, which is on no shelf. It is here because its arithmetic is
+      not accidentally exact: N/M = 5/36 is not dyadic. On L = 4 and 16,
+      several binary64 slips (int/int division, a binary64 sum of the initial
+      weights or of each draw's total) round to the exact value and change
+      nothing, so no output gate there can see them. On L = 6 each one moves
+      the boundaries by about 2^-52 (the P0 verifier's third pass).
   - pauli (16x16), an INDEPENDENT chain rule at 512 bits: the closed-form kernel
     (1/M) sum_k cos(2 pi k.d / L), and Schur complements grown one Cholesky
     column per draw. It shares neither orbitals() nor sample()'s projections.
+    It is kept beside L = 6: a cosine table rounded to binary64 is invisible
+    on L = 6, whose cosines are dyadic, and shows at 2^-51 here.
 
 The shared parts are the definitions, not the arithmetic: the stock's mode set
 (stocks.fermi_disc) and the exact uniforms (golden.uniform).
@@ -34,19 +43,21 @@ from quantum_film.stocks import fermi_disc
 
 HEADROOM = 2 ** 16          # the gate: the worst error times this stays below the margin
 EXACT_SEEDS = range(1, 21)  # pauli-4x4
+L6_SEEDS = range(1, 11)     # L = 6, r2 = 1: on no shelf; its arithmetic is not accidentally exact
 REF_SEEDS = (1, 2)          # pauli, 16x16
+COS_DEGREES = {0: Fraction(1), 60: Fraction(1, 2), 90: Fraction(0), 120: Fraction(-1, 2), 180: Fraction(-1),
+               240: Fraction(-1, 2), 270: Fraction(0), 300: Fraction(1, 2)}
 
 
 def exact_kernel(L, r2):
-    """K as Fractions. Only L = 4 has rational cosines at every angle 2 pi m / L."""
-    if L != 4:
-        raise ValueError("the exact kernel needs L = 4")
-    cos = {0: 1, 1: 0, 2: -1, 3: 0}
+    """K as Fractions, for the L whose cosines 2 pi m / L are all rational: 1, 2, 3, 4, 6."""
+    if L not in (1, 2, 3, 4, 6):
+        raise ValueError(f"L = {L} has an irrational cosine (Niven's theorem): no exact kernel")
     ks = fermi_disc(L, r2)
     sites = [(x, y) for x in range(L) for y in range(L)]          # site index x * L + y
 
     def k(dx, dy):
-        return Fraction(sum(cos[(kx * dx + ky * dy) % L] for kx, ky in ks), L * L)
+        return sum((COS_DEGREES[360 * ((kx * dx + ky * dy) % L) // L] for kx, ky in ks), Fraction(0)) / (L * L)
 
     return [[k(xi - xj, yi - yj) for xj, yj in sites] for xi, yi in sites]
 
@@ -164,6 +175,17 @@ def test_the_exact_rolls_are_the_authoritys_and_its_error_is_far_inside_the_marg
         s = stream("roll", "pauli-4x4", seed)
         roll, draws = traced(s, 4, 1)
         exact, reference = exact_draws(s)
+        assert roll == exact, seed
+        worst = max(worst, worst_error(draws, reference))
+    assert worst * HEADROOM < fermi.margin(), f"error 2^{log2(worst):.1f} against margin 2^-224"
+
+
+def test_on_a_tile_whose_arithmetic_is_not_accidentally_exact_the_error_is_still_far_inside_the_margin():
+    worst = mpf(0)
+    for seed in L6_SEEDS:
+        s = stream("premise", "L6", seed)
+        roll, draws = traced(s, 6, 1)
+        exact, reference = exact_draws(s, L=6, r2=1)
         assert roll == exact, seed
         worst = max(worst, worst_error(draws, reference))
     assert worst * HEADROOM < fermi.margin(), f"error 2^{log2(worst):.1f} against margin 2^-224"

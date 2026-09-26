@@ -7,6 +7,9 @@ from it - features: [] - is stated in the ledger), and nothing else. The
 bearer key was never in a response, and a scan below refuses the export if a
 moth_ token or an X-Amz-Security-Token turns up anyway.
 """
+
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 import json
 import pathlib
 import re

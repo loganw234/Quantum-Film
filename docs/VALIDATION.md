@@ -651,3 +651,127 @@ round's ledger (`verifier-P0.md`, 22:59Z).
   explained by the verifier itself.
 
 `make verify` with `--require-all`: 12 passed, none skipped, 30.6 s.
+
+## 2026-09-26 - the P0 verifier's third pass and verifier-P3's fixer findings: an allowlist for imports, a tile that is not accidentally exact, and a commitment bound by its anchor
+
+Asked of the P0 verifier after `5fe9741`, and found on the way by verifier-P3.
+The lead's fixes held as far as they reached. Five new defects, and three of
+verifier-P3's in the fixer. Their entries are in the round's ledger
+(`verifier-P0.md` 00:25Z, `verifier-P3.md` 00:39Z).
+
+### The regression first: the runner refused every clone under %TEMP%
+
+- 5fe9741's toplevel check compared two spellings of the tree's path. Git
+  Bash mounts %TEMP% at /tmp, so every clone there, where the verifiers
+  work, stopped with "git cannot read the repository". Both verifiers hit it.
+  It was loud, not a false pass.
+- Fixed at 900b9e5, pushed ahead of the rest: `git rev-parse --show-cdup` is
+  empty exactly at the toplevel and needs no spelling.
+- Held from both spellings of a clone under %TEMP%. An export nested inside
+  another repository still runs as "nogit".
+
+### Binary64 spelled another way
+
+- **The finding.** Seven respellings passed all 46 golden tests:
+  - int/int division (`2 / M`, `m / L`);
+  - `len(r) / M`;
+  - `import math as _m`;
+  - mpmath's `fp` context;
+  - `__float__`;
+  - a binary64 total.
+
+  On the shelf's tiles (L = 4 and 16) each rounds to the exact value.
+- **The fix is an output gate on a tile whose arithmetic is not accidentally
+  exact.** cos(2 pi m / L) is rational for every m only when L is 1, 2, 3, 4
+  or 6 (Niven's theorem). L = 6 with r2 = 1 has N/M = 5/36, which is not
+  dyadic.
+  - An exact Fraction reference there gives the clean authority 2^-251.0
+    over 10 rolls.
+  - Each of the verifier's six respellings, planted in a scratch copy, fails
+    it: `2 / M`, `m / L`, `len(r) / M`, the weights via an alias, via
+    `__float__`, and the total via an alias.
+  - The 16x16 independent reference stays. A cosine table rounded to binary64
+    is exact on L = 6, whose cosines are dyadic, and shows at 2^-51 on 16x16.
+- **The source rule** also refuses a `math` alias, mpmath's `fp`,
+  `__float__`, `importlib` and `__import__`. Its docstring now says it reads
+  spellings and cannot see int/int division, which the L = 6 gate does.
+
+### A refusal on one side of a boundary
+
+- Checking the margin after the choice decided a target 2^-240 below a
+  boundary, and passed every gate: the planted near-ties were all at or
+  above one.
+- The mirror plant, 2^-240 below the boundary after site 0, must now be
+  refused. Planted (the reordering), it fails.
+
+### Import: an allowlist, not a list of spellings
+
+- **The finding.** The two-rule guards gate was walked past by:
+  - a wrapper module;
+  - an alias (`fetch = client.call`);
+  - `getattr`, `importlib`, curl called directly;
+  - a function-local import, and an annotation.
+
+  Its library exemption was keyed on 28 bare import names, stdlib included,
+  and exempted any file with such a stem.
+- **Now.** Every module under research/, tools/ and quantum_film/ either
+  refuses import, or runs at import only an allowlist:
+  - pathlib.Path and its resolve/with_name/joinpath/absolute;
+  - re.compile, functools.lru_cache, sys.path.insert, os.environ.get;
+  - a few builtins the module does not rebind;
+  - its own functions that call only these.
+- **No exemptions.** Class bodies, decorators, defaults, annotations and
+  module-level blocks are read; lambda bodies and main guards are not.
+- **Every shape that once passed is a negative control in the gate** (16 of
+  them). The verifier's three real planted files each fail the docs stage.
+  The wrapper library itself passes, correctly: it only defines a function.
+- **The tree held to it.** Six research scripts that do their work at import
+  now refuse import:
+  - compare2.py and export_records.py, which rewrote records when imported;
+  - atlas_tile_compare.py, precision_proto.py, render_proto.py and
+    selwyn_dpp.py.
+
+  So does tools/cft_smoke.py. grain_proto.py, which precision_proto imports,
+  makes its output directory in main(), not at import.
+
+### The resume fingerprint, and the cached basis
+
+- **The fingerprint.** It now records the cftmpfr binding's hash and the
+  ruff and pytest versions. A binding changed after a run fails the resume
+  by name. Before, a one-ulp break there resumed as PASSED.
+- **The cached basis.** A transient precision drop, one that comes and goes
+  between two checks, cached a corrupted basis 26 times in 40. The basis now
+  checks its content before it is cached: every row's squared norm must be
+  N/M to 2^-(prec - 16). Planted with a binary64 square root: refused, and
+  the cache stays empty. Removing the check fails that test.
+
+### The fixer (verifier-P3)
+
+- **The commitment claimed more than it binds.** The salt is in the record,
+  so a re-attributed roll with its commitment recomputed passes `check`
+  (verifier-P3's A11 and A12). The docstring's "cannot be re-attributed
+  without the refusal naming it" was false. It now says what binds is the
+  anchor: the commitment committed to git before the job's first status
+  call. A test pins that the record alone passes such a forgery.
+- **`kind`, `fixed_at` and `occurrences` are bound by no commitment.**
+  - An emulator roll re-sealed as `qpu` passed.
+  - `occurrences` is now a known field, a whole number of shots from 1 to
+    `shots`.
+  - An unknown source field is refused, since it would ride unchecked.
+  - `fixed_at` must be a UTC time.
+  - Binding `kind` needs a commitment v3, since P3's rolls are anchored in
+    v2. It is left for the next round, and the docstring says so.
+- **A device roll no longer has to lay the law's crystal count.** A QPU's
+  leaked layouts were unfixable, against "a device records what it laid".
+  A golden roll is still held to the count.
+- **`fixer lay` with an unknown stock** refuses by name.
+
+### Recorded, not fixed
+
+- The timing of P3's commitment rests on the code and the local clock. The
+  server records no completion time, and nothing third-party timestamps the
+  commit (verifier-P3's D2). Pushing the commitment before the first status
+  call, or putting its hash in the job request, would make the evidence
+  external.
+
+`make verify --require-all`: 12 passed, none skipped.

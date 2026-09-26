@@ -1,6 +1,9 @@
 """Compare the qdrive and graph pairs on CONTENT, not on the whole body (which
 carries fresh presigned URLs and job ids, so it can never match). Presigned
 URLs are never printed: they are bearer credentials for 15 minutes."""
+
+if __name__ != "__main__":
+    raise ImportError("this script does its work when it runs; run it, never import it (CLAUDE.md)")
 import hashlib
 import json
 import pathlib

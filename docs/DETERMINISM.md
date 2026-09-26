@@ -51,33 +51,49 @@ test_golden_fermi.py and test_independence.py):
 - **Its premise, measured against code the authority does not share.**
   Along real rolls, draw by draw, every 256-bit target and boundary is
   compared with two references:
-  - **pauli-4x4, exactly.** Its kernel is rational (entries k/16), so every
-    weight, boundary and target is an exact Fraction. Worst error 2^-252.4
-    over 20 rolls.
+  - **Exactly, where the kernel is rational.** cos(2 pi m / L) is rational
+    for every m only when L is 1, 2, 3, 4 or 6 (Niven's theorem), and there
+    every weight, boundary and target is an exact Fraction.
+    - pauli-4x4 (L = 4): worst error 2^-252.4 over 20 rolls.
+    - L = 6, r2 = 1, which is on no shelf: worst error 2^-251.0 over 10
+      rolls. It is there because its arithmetic is not accidentally exact:
+      N/M = 5/36 is not dyadic. On L = 4 and 16, several binary64 slips round
+      to the exact value, and no output there shows them: int/int division,
+      a binary64 sum of the initial weights, and one of each draw's total.
+      On L = 6 each moves the boundaries by about 2^-52 (the P0 verifier's
+      third pass).
   - **pauli (16x16), an independent chain rule at 512 bits**: Schur
     complements on the closed-form kernel, one Cholesky column per draw.
-    Worst error 2^-249.2.
+    Worst error 2^-249.2. It stays beside L = 6: a cosine table rounded to
+    binary64 is exact on L = 6, whose cosines are dyadic, and shows here.
 
   The gate demands 2^16 of headroom below the 2^-224 margin, and at least
   2^25 was measured. The first premise gate compared the authority with
   itself at 512 bits. That cannot see an error that does not scale with the
   precision: a binary64 `math.fsum` in one norm put every boundary 2^-51.5
   off, and that gate reported 2^-249 (the P0 verifier, 2026-09-25).
-- **No binary64 in the authority**, read from its source: no float literal,
-  no `float()`, and from `math` only what is exact on Fractions. Two binary64
-  slips change no output on today's shelf, because K_ii = N/M is dyadic and
-  each total is the integer N - j. No output gate can see those two; the
-  source rule does.
-- **The refusal, planted.** A target 2^-240 past a boundary must be refused:
-  that is inside the margin, and too far from the boundary for rounding to
-  move. So the gate fails if the margin shrinks below the arithmetic's own
-  error, or if the refusal goes. A target 2^-200 past must be decided, and
-  go past the boundary.
+- **No binary64 in the authority**, read from its source as a cheap first
+  line. It checks for float literals, `float()`, `__float__`, `math` beyond
+  what is exact on Fractions (an alias included), mpmath's `fp` context, and
+  `importlib`. It reads spellings, so it cannot see int/int division. The
+  L = 6 reference catches that in the outputs.
+- **The refusal, planted on both sides.** A target 2^-240 past a boundary,
+  and one 2^-240 short of it, must each be refused. Both are inside the
+  margin, and too far from the boundary for rounding to move them. So the
+  gate fails if the margin shrinks below the arithmetic's own error, if the
+  refusal goes, or if it is checked only on one side or after the choice. A
+  reordering of the last kind passed every other gate. A target 2^-200 past
+  must be decided, and go past the boundary.
 - **Its precision, held.** mpmath's working precision is process-global, so
   another thread could turn the authority into binary64 arithmetic behind
-  the same margin. Every draw checks its precision, and so does the basis
-  before it is cached. Each refuses by name (`PrecisionChanged`). The
-  authority is not to be called from threads.
+  the same margin.
+  - Every draw checks its precision.
+  - The basis checks its precision, and its content: every row's squared
+    norm must be N/M to 2^-(prec - 16) before the basis is cached. A brief
+    drop can come and go between two checks. The verifier cached a
+    corrupted basis 26 times in 40 that way before the content check.
+  - Each refuses by name (`PrecisionChanged`). The authority is not to be
+    called from threads.
 
 The first check on the argument laid the same rolls at 256 and 320 bits. It
 could not fail: random seeds come no closer than about 2^-15 to a boundary,
@@ -104,7 +120,7 @@ arithmetic's own error (the P0 verifier, 2026-09-25).
 | claim | evidence | gap |
 |---|---|---|
 | an emulated roll is f(stock, seed) | `fixer.reproduce`; tests/vectors regenerate byte for byte on every run; the margin's premise measured against exact Fractions and an independent 512-bit chain rule | **one CPU so far.** Windows 11 (Python 3.12.9, mpmath 1.3.0), and WSL2 Ubuntu 22.04 on the same desktop (Python 3.10.12, mpmath 1.4.1), where the P0 verifier regenerated the vectors byte for byte. Running `make verify-quick` on another machine is the next evidence, and costs one command. |
-| records are permanent | `fixer.check` on every rule; a file is exactly its canonical text; the runner's control, a moved crystal the fixer's command line must refuse by its digest, and its twin, which the command line must accept | a device roll's commitment proves what it binds, not when it was made, and not which law its circuit lays (quantum_film/fixer.py) |
+| records are permanent | `fixer.check` on every rule; a file is exactly its canonical text; the runner's control, a moved crystal the fixer's command line must refuse by its digest, and its twin, which the command line must accept | **a device roll's commitment binds by its anchor, not by its value.** The salt is in the record, so a changed field can be re-sealed with a recomputed commitment; what binds is the line committed to git before the job's first status call. That timing rests on the code and the local clock, with nothing third-party (verifier-P3). The commitment does not bind `kind`, `fixed_at` or `occurrences`, nor which law the circuit lays (quantum_film/fixer.py) |
 | the circuit lays the Pauli law | local statevector against the golden kernel to 1e-12; three sabotages fail it | **not yet run on Atlas or a device.** The tile Atlas ran on 2026-09-25 was a research prototype with another law (docs/VALIDATION.md). The circuit is not yet hardware-shaped (docs/ROADMAP.md). |
 | mpmath is accurate enough | the premise gate above: exact on pauli-4x4, independent at 512 bits on the 16x16 stock | a different mpmath version is a claim to test, not assume (1.4.1 in WSL matched) |
 
