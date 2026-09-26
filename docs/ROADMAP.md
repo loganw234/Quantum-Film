@@ -100,14 +100,18 @@ What round 1's verifiers left open, each stated where it lives:
 ## Carried from round 2
 
 What round 2 left open, each stated where it lives:
-- **The S(k) references.** Two figures the docs quote were computed by
-  verifier-P0's own scripts, and nothing in the tree reproduces them:
-  - the laws' expected S(k) on a sheet (README: 0.30-0.64 for Pauli);
-  - the bunched-tiling control (docs/STOCKS.md: 1.6 to 11.7).
+- **Figures only the verifier's scripts reproduce.** Four figures the docs
+  quote were computed by verifier-P0's own scripts, and nothing in the tree
+  reproduces them:
+  - the laws' expected S(k) on a sheet (README: 0.30-0.64 for Pauli, and
+    about 0.4 of the twin's below the tile scale);
+  - the bunched-tiling control (docs/STOCKS.md: 1.6 to 11.7);
+  - the density identity at every allowed layer count up to 1,000
+    (docs/DETERMINISM.md: within 2 x 2^-52).
 
-  P4 needs both, because Speckle's twin must be measured, not assumed
-  (docs/STOCKS.md). The scripts are archived with round 2's ledger, as
-  ParcelRound's `archive/round4-second-ledger.zip`.
+  P4 needs the first two, because Speckle's twin must be measured, not
+  assumed (docs/STOCKS.md). The scripts are archived with round 2's
+  ledger, as ParcelRound's `archive/round4-second-ledger.zip`.
 - **The prints' re-development.** `tools/first_prints.py --check`
   re-develops all five prints, and no stage runs it. Only the Atlas print's
   sheet is a gate (tests/develop). A slow stage in `make verify` would hold
