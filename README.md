@@ -236,10 +236,11 @@ vendor/atlas-film          the medium, a submodule at d4007b2 (its pinned branch
 ## Moth Hack 2026
 
 Entered for the Expert challenge #9: a repository of a quantum application that
-runs a process on media through the Atlas API. **By its owner's intent this entry is not a candidate for cash prizes.** It was
-built by Logan W. together with AI collaborators (Claude Opus 5.5 and the
-agents it directed), who are credited here as contributors equal to the human
-one; every commit carries its co-author line.
+runs a process on media through the Atlas API. **By its owner's intent this
+entry is not a candidate for cash prizes.** It was built by Logan W. together
+with AI collaborators (Claude Opus 5.5 and the agents it directed), who are
+credited here as contributors equal to the human one; every commit carries its
+co-author line.
 
 ## Neighbours
 
