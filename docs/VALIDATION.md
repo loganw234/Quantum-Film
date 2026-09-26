@@ -1274,3 +1274,19 @@ are prose. The code, the records, the gates and the prints held. The lead re-rea
   with verifier-P0's scripts. The entries above that cite the round-2 ledger resolve there. The working copy is
   deleted.
 - What round 2 left open is in docs/ROADMAP.md, "Carried from round 2".
+
+## 2026-09-26 - the link preview: the site's Open Graph tags show the poster
+
+At the owner's request, a link to the site previews with the poster, in Discord and elsewhere.
+- site/index.html carries Open Graph tags: the page's own title and description, and the poster, img/poster.png, as a
+  large image (`twitter:card` is `summary_large_image`).
+- tests/docs/test_site.py holds the tags to what the site serves:
+  - og:url is the live link the README gives, and og:image is a file under it, byte for byte docs/prints/poster.png;
+  - the stated width and height are the PNG's own, 2400 x 3200;
+  - the preview's title and description equal the page's;
+  - a tag given twice fails.
+- Six faults were planted one at a time, and every one failed the test: the image renamed, the width wrong, the
+  description drifted, the URL's case wrong, the image given twice, and the small card. The page was restored byte
+  for byte.
+- Not held: how each service draws a preview, which nothing here can check. The poster is portrait, 3:4, so a service
+  that crops previews to a wide card will crop it. A service may also keep a preview it fetched before these tags.

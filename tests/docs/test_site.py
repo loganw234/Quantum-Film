@@ -1,7 +1,9 @@
 """The web demo shows the records, not a copy that drifted from them (site/, made by tools/site_data.py)."""
 import base64
+import html.parser
 import json
 import pathlib
+import struct
 
 from quantum_film import develop
 from quantum_film.golden import binomial, fermi
@@ -49,3 +51,38 @@ def test_the_sites_prints_and_structure_are_the_records_own():
                 (ROOT / "docs" / "prints" / f"{name}-{suffix}.png").read_bytes()
     for f in ("gallery.png", "structure.png", "poster.png"):
         assert (SITE / "img" / f).read_bytes() == (ROOT / "docs" / "prints" / f).read_bytes()
+
+
+class Head(html.parser.HTMLParser):
+    """A page's <title> and its meta tags by name or property; a tag given twice keeps both values."""
+
+    def __init__(self, text):
+        super().__init__()
+        self.tags, self.title, self.in_title = {}, "", False
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        self.in_title = tag == "title"
+        if tag == "meta" and "content" in a:
+            self.tags.setdefault(a.get("property") or a.get("name"), []).append(a["content"])
+
+    def handle_endtag(self, tag):
+        self.in_title = False
+
+    def handle_data(self, text):
+        self.title += text if self.in_title else ""
+
+
+def test_the_link_preview_shows_the_poster_the_page_serves():
+    """Discord and other link previews read the Open Graph tags: they must name a file the site serves."""
+    head = Head((SITE / "index.html").read_text(encoding="utf-8"))
+    one = {k: v[0] for k, v in head.tags.items() if len(v) == 1}
+    base, image = one["og:url"], one["og:image"]
+    assert base in (ROOT / "README.md").read_text(encoding="utf-8")        # the live link the README gives
+    assert image.startswith(base)
+    png = (SITE / image[len(base):]).read_bytes()
+    assert png == (ROOT / "docs" / "prints" / "poster.png").read_bytes()
+    assert (int(one["og:image:width"]), int(one["og:image:height"])) == struct.unpack(">II", png[16:24])
+    assert one["og:title"] == head.title and one["og:description"] == one["description"]
+    assert one["twitter:card"] == "summary_large_image"
