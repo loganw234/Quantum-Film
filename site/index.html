@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantum Film</title>
+<meta name="description" content="Film grain laid by a quantum computer on Moth's Atlas, developed through a film model on pinned arithmetic, and fixed bit for bit.">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).has("solo")) document.body.classList.add("solo");</script>
+<header class="top">
+  <div class="wrap">
+    <h1>Quantum Film</h1>
+    <p class="lede">Film grain laid by a quantum computer on Moth's Atlas, developed through a film model on pinned
+      arithmetic, and fixed so every print is the same bits on every machine.</p>
+    <nav>
+      <a href="#watch">Watch</a><a href="#compare">Compare</a><a href="#roll">Roll a tile</a><a href="#how">How it works</a>
+      <a href="img/poster.png">Poster</a><a href="https://github.com/loganw234/Quantum-Film">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section id="watch" class="wrap">
+  <h2>Watch: from silver halide to Pauli exclusion</h2>
+  <div class="stage" id="stage">
+    <canvas id="story" width="1920" height="1080" aria-label="An animated story of how film grain forms, classically and on a quantum computer"></canvas>
+    <div class="stage-msg" id="stage-msg">Loading…</div>
+  </div>
+  <div class="controls" id="controls">
+    <button id="play" type="button">Play</button>
+    <button id="restart" type="button">Restart</button>
+    <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the story">
+    <span id="clock" class="mono">0:00 / 0:00</span>
+    <button id="full" type="button">Full screen</button>
+    <button id="record" type="button" title="Plays the story from the start and saves the canvas as a video">Record video</button>
+  </div>
+  <p class="note" id="record-note">Record plays the story once from the start and saves exactly what the canvas draws,
+    captions included, as a video file.</p>
+</section>
+
+<section id="compare" class="wrap">
+  <h2>Compare: classical and quantum, side by side</h2>
+  <p>Drag the divider. Each pair is drawn at the same density, from the project's own records.</p>
+  <div class="tabs" role="tablist" id="ab-tabs">
+    <button role="tab" data-pair="crystals" aria-selected="true">Crystals</button>
+    <button role="tab" data-pair="prints">Prints</button>
+    <button role="tab" data-pair="atlas">Atlas vs the exact law</button>
+  </div>
+  <div class="ab" id="ab">
+    <canvas id="ab-left" width="768" height="768"></canvas>
+    <canvas id="ab-right" width="768" height="768"></canvas>
+    <div class="ab-bar" id="ab-bar"><span></span></div>
+    <div class="ab-label left" id="ab-label-left"></div>
+    <div class="ab-label right" id="ab-label-right"></div>
+  </div>
+  <p class="caption" id="ab-caption"></p>
+</section>
+
+<section id="roll" class="wrap">
+  <h2>Roll a tile: watch the exclusion hole open</h2>
+  <div class="roll">
+    <canvas id="tile" width="640" height="640" aria-label="A tile of crystal sites, coloured by the chance of the next crystal"></canvas>
+    <div class="roll-side">
+      <div class="tabs" id="tile-law">
+        <button data-law="pauli" aria-selected="true">Pauli (quantum)</button>
+        <button data-law="random">Random (classical)</button>
+        <button data-law="atlas">Atlas shots</button>
+      </div>
+      <div class="buttons">
+        <button id="tile-next" type="button">Next crystal</button>
+        <button id="tile-fill" type="button">Fill the tile</button>
+        <button id="tile-new" type="button">New tile</button>
+      </div>
+      <p id="tile-status" class="mono"></p>
+      <p id="tile-help"></p>
+      <p class="note">Pauli and Random are sampled here, in your browser, in ordinary floating point: an
+        illustration. The project's own rolls come from a 256-bit exact sampler, and "Atlas shots" replays the
+        24,576 measured on Moth's Atlas.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="wrap">
+  <h2>How it works</h2>
+  <div class="cols">
+    <div>
+      <h3>Film, classically</h3>
+      <p>A sheet of film is gelatin holding silver halide crystals scattered at random. Light makes some developable;
+        the developer turns them to silver; the fixer washes the rest away. Where crystals happened to clump, you see
+        grain.</p>
+    </div>
+    <div>
+      <h3>Film, quantum</h3>
+      <p>Here a 16-qubit circuit (51 Givens rotations, 102 CNOTs) prepares five free fermions on a 4 &times; 4 tile.
+        Measuring every qubit lays five crystals. Fermions obey Pauli exclusion, so the crystals repel. The circuit ran
+        on Moth Atlas's <span class="mono">tomography-api-v2</span> engine: six jobs, 24,576 shots.</p>
+    </div>
+    <div>
+      <h3>Fixed, bit for bit</h3>
+      <p>Stacked 29 layers deep, the shots coat a sheet at Tri-X's density, developed with
+        <a href="https://github.com/loganw234/atlas-film">atlas-film</a> on
+        <a href="https://github.com/loganw234/cft-fp256">cft-fp256</a>'s pinned arithmetic. Each print is a record:
+        its rolls, its recipe and the digest of every bit.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <p>Quantum Film, for Moth Hack 2026. MIT. Built by Logan W. with AI collaborators (Claude, by Anthropic, and the
+    agents it directed). <a href="https://github.com/loganw234/Quantum-Film">github.com/loganw234/Quantum-Film</a></p>
+</footer>
+
+<script type="module" src="story.js"></script>
+<script type="module" src="widgets.js"></script>
+</body>
+</html>

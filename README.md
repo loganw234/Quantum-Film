@@ -65,6 +65,18 @@ each print is a fraction of a millimetre of film seen crystal by crystal.
 
 `python tools/first_prints.py --check` re-develops each print bit for bit.
 
+## The web demo, the video and the poster
+
+- **The web demo** is a static page in site/: an animated story of how film grain
+  forms, classically and on Atlas; A|B sliders over classical and quantum
+  crystals and prints; and a tile you roll crystal by crystal to watch the
+  Pauli exclusion hole open. Serve it with `python -m http.server -d site`.
+- **The video** is that story, recorded. Its Record button saves the canvas,
+  captions included. For a screen recorder, open it as `?solo&play`: the stage
+  alone, filling the window, playing on its own.
+- **The poster** is [docs/prints/poster.png](docs/prints/poster.png): three real
+  prints on a strip of film (tools/poster.py).
+
 ## What has been measured
 
 Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md).
