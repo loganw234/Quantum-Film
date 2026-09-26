@@ -1256,3 +1256,7 @@ are prose. The code, the records, the gates and the prints held. The lead re-rea
   - tests/develop now rebuilds the Atlas print's sheet from the committed device rolls. It holds the sheet's K
     and threshold digests to the print's record, in about 3 s.
   - The Sattolo plant fails it, and 15 tests pass.
+- Correction to the line above, from verifier-P0's confirming pass (13:37Z): TRI-X's lowest bin does not hold two
+  modes. It holds eight, four of them independent: every wave vector whose length rounds to 1, the diagonals
+  included. A reading of 0.238 there has a 1.6% chance in law, and 10 of 600 coating seeds gave one. "About 1 at
+  every k" still holds in law. The error came first from verifier-P0's own earlier entry.

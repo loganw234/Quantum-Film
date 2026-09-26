@@ -55,9 +55,10 @@ so each print is a fraction of a millimetre of film seen crystal by crystal.
 - The Poisson twin averages 0.89 there, and TRI-X 1.00.
 - Every Pauli bin in that band lies below every twin bin.
 - The exact law expects 0.30-0.64 for Pauli.
-- Below the tile scale both are suppressed, the Poisson twin included. That
-  comes from the fixed count per tile, not from the quantum law. A bunched law
-  could instead be enhanced there (docs/STOCKS.md).
+- Below the tile scale both are suppressed, the Poisson twin included: the
+  fixed count per tile does that. Pauli still sits below its twin there, at
+  about 0.4 of it in law. A bunched law could instead be enhanced there
+  (docs/STOCKS.md).
 - The Atlas-laid sheet and its exact twin trace the same curve.
 
 **Each print is a function of its record.** Each one's record in
