@@ -86,6 +86,11 @@ so each print is a fraction of a millimetre of film seen crystal by crystal.
   alone, filling the window, playing on its own.
 - **The poster** is [docs/prints/poster.png](docs/prints/poster.png): three real
   prints on a strip of film (tools/poster.py).
+- **The paper**, *Chance, made permanent*, is
+  [docs/chance-made-permanent.pdf](docs/chance-made-permanent.pdf): the law, the
+  circuit on Atlas, the fixer, the prints and what comes next (a whole frame,
+  colour, a quantum hand on the response). It was built with storydocs, which
+  recomputes every number it states from this repository.
 
 ## What has been measured
 
