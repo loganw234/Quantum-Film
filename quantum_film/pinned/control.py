@@ -16,23 +16,23 @@ exact chain rule, and asks two samplers about that same stream:
 HOW A PLANT IS MADE. At draw j of a base stream, boundary p's exact value B
 comes from the authority's trace (256 bits; its error, about 2^-249, is far
 below every distance here), so the exact chain passes boundary p exactly when
-u > u* = B / (N - j): the untaken weights sum to N - j exactly. The binary64
-chain passes it exactly when RN(RN(u) * total) >= its own boundary b, which
-holds for u above one midpoint m between two neighbouring binary64 numbers,
-found with libcft. Every u strictly between u* and m is decided one way by
-the exact chain and the other way by binary64, and the plant takes their
-midpoint, an exact Fraction. Planting at the LAST draw makes the two rolls
-differ in a crystal, not only in an order, and keeps every earlier draw
-certified, so the hand-off is the planted draw's alone.
+u > u* = B / (N - j): the untaken weights sum to N - j exactly. The plain
+chain in a format passes it exactly when RN(RN(u) * total) >= its own
+boundary b, which holds for u above one midpoint m between two neighbouring
+numbers of the format, found with libcft's nextUp and nextDown. Every u
+strictly between u* and m is decided one way by the exact chain and the other
+way by that format, and the plant takes their midpoint, an exact Fraction.
+Planting at the LAST draw makes the two rolls differ in a crystal, not only in
+an order, and keeps every earlier draw certified, so the hand-off is the
+planted draw's alone.
 
-`ladder` plants targets at fixed relative distances from a boundary instead,
-to show at which distance each format starts to decide wrongly and where the
-certificate starts handing off.
+`cascade` plants at an EARLY draw, in each format, to show what one parted
+draw does to the rest of the roll. `ladder` plants targets at fixed relative
+distances from a boundary instead, to show at which distance each format
+starts to decide wrongly and where the certificate starts handing off.
 """
 from dataclasses import dataclass
 from fractions import Fraction
-
-import numpy as np
 
 from ..golden import fermi as golden
 from ..golden.uniform import uniform as golden_uniform
@@ -85,57 +85,58 @@ class Plant:
     u: Fraction
     distance: Fraction       # |exact target - exact boundary| at the planted draw
     boundary_value: Fraction
-    float_error: Fraction    # |binary64 boundary - exact boundary| there
+    format_error: Fraction   # |the format's boundary - exact boundary| there
+    fmt: str = "fp64"
 
 
-def _boundary(bounds, chain_bounds):
+def _boundary(bounds, chain_bounds, code=FP64):
     """The boundary the authority's target fell below, or the nearest earlier one, between two sites of
-    positive weight: the site before it by the authority's exact boundaries, the site after it by the binary64
+    positive weight: the site before it by the authority's exact boundaries, the site after it by the plain
     chain's (the authority's trace stops at its chosen site). A site of exact weight zero is a forbidden
     crystal, and a plant beside one would test that site rather than the boundary."""
     for p in range(len(bounds) - 1, -1, -1):
-        after = (to_fraction(FP64, chain_bounds[p + 1]) - to_fraction(FP64, chain_bounds[p])
+        after = (to_fraction(code, chain_bounds[p + 1:p + 2]) - to_fraction(code, chain_bounds[p:p + 1])
                  if p + 1 < len(chain_bounds) else 0)
         if bounds[p] > (bounds[p - 1] if p else 0) and after > Fraction(1, 2 ** 20):
             return p
     raise ValueError("no boundary to plant at on this draw")
 
 
-def _switch(bound, total):
-    """The smallest binary64 v with RN(v * total) >= bound, both binary64 (one-element arrays)."""
-    v = cft.div(FP64, RNE, bound, total)
+def _switch(bound, total, code):
+    """The least v of the format with RN(v * total) >= bound (one-element arrays of the format)."""
+    v = cft.div(code, RNE, bound, total)
 
     def reaches(x):
-        return not cft.less(FP64, cft.mul(FP64, RNE, x, total), bound)[0]
+        return not cft.less(code, cft.mul(code, RNE, x, total), bound)[0]
 
     while not reaches(v):
-        v = np.nextafter(v, np.inf)
-    while reaches(np.nextafter(v, -np.inf)):
-        v = np.nextafter(v, -np.inf)
+        v = cft.next_up(code, v)
+    while reaches(cft.next_down(code, v)):
+        v = cft.next_down(code, v)
     return v
 
 
-def plant(L, r2, stream_bytes, j=None):
+def plant(L, r2, stream_bytes, j=None, fmt="fp64"):
     """A uniform function equal to the stream's except at draw j (default: the last), where the exact chain
-    rule and the plain binary64 chain decide boundary p differently."""
+    rule and the plain chain in `fmt` decide boundary p differently."""
     N = len(fermi_disc(L, r2))
     j = N - 1 if j is None else j
+    code = sampler.FORMATS[fmt]
     _crystals, order, seen = golden_draws(L, r2, stream_bytes)
-    chain, info = chain_trace(L, r2, stream_bytes)
+    chain, info = chain_trace(L, r2, stream_bytes, fmt=fmt)
     if chain.draws[:j] != order[:j]:
-        raise ValueError(f"the binary64 chain parted from the authority before draw {j}; plant on another stream")
+        raise ValueError(f"the {fmt} chain parted from the authority before draw {j}; plant on another stream")
     bounds_exact = seen[j][1]
-    p = _boundary(bounds_exact, info[j]["bounds"])
+    p = _boundary(bounds_exact, info[j]["bounds"], code)
     B = bounds_exact[p]
     u_star = B / (N - j)
     b = info[j]["bounds"][p:p + 1]
-    v = _switch(b, info[j]["total"])
-    m = (to_fraction(FP64, np.nextafter(v, -np.inf)) + to_fraction(FP64, v)) / 2
+    v = _switch(b, info[j]["total"], code)
+    m = (to_fraction(code, cft.next_down(code, v)) + to_fraction(code, v)) / 2
     u = (u_star + m) / 2
     if not 0 < u < 1 or u == m:
         raise ValueError("no plant at this boundary")
-    return Plant(planted(j, u), j, p, u, abs(u - u_star) * (N - j), B,
-                 abs(to_fraction(FP64, b) - B))
+    return Plant(planted(j, u), j, p, u, abs(u - u_star) * (N - j), B, abs(to_fraction(code, b) - B), fmt)
 
 
 def control(L, r2, stream_bytes):
@@ -159,6 +160,24 @@ def control(L, r2, stream_bytes):
             "with_handoff_agrees": shipped.crystals == authority}
 
 
+def _first_parting(a, b):
+    return next((j for j, (x, y) in enumerate(zip(a, b, strict=True)) if x != y), None)
+
+
+def cascade(L, r2, stream_bytes, j, fmt):
+    """A plant at draw j inside `fmt`'s own error: every format's roll against the authority's (the draw it
+    parts at, and the crystals it holds that the authority's roll does not), and the certified roll."""
+    pl = plant(L, r2, stream_bytes, j=j, fmt=fmt)
+    _c, order, _seen = golden_draws(L, r2, stream_bytes, uniform_fn=pl.uniform_fn)
+    row = {"plant": pl, "authority": sorted(order)}
+    for f in sampler.FORMATS:
+        r = sampler.roll(L, r2, stream_bytes, uniform_fn=pl.uniform_fn, certify=False, fmt=f)
+        row[f] = (_first_parting(r.draws, order), len(set(r.crystals) - set(order)), r.crystals)
+    shipped = sampler.roll(L, r2, stream_bytes, uniform_fn=pl.uniform_fn)
+    row["certified"] = (shipped.crystals == sorted(order), shipped.handed_off, shipped.draw)
+    return row
+
+
 def ladder(L, r2, stream_bytes, distances, j=None):
     """Targets planted at each relative distance d (both sides) of draw j's boundary: how each format and the
     certified sampler decide them, against the authority. Returns rows of dicts."""
@@ -166,7 +185,7 @@ def ladder(L, r2, stream_bytes, distances, j=None):
     j = N - 1 if j is None else j
     _c, order, seen = golden_draws(L, r2, stream_bytes)
     bounds_exact = seen[j][1]
-    p = _boundary(bounds_exact, chain_trace(L, r2, stream_bytes)[1][j]["bounds"])
+    p = _boundary(bounds_exact, chain_trace(L, r2, stream_bytes)[1][j]["bounds"])            # binary64's
     B = bounds_exact[p]
     rows = []
     for d in distances:
@@ -190,4 +209,4 @@ def ladder(L, r2, stream_bytes, distances, j=None):
     return rows
 
 
-__all__ = ["control", "ladder", "plant", "golden_draws", "chain_trace", "mpf_fraction"]
+__all__ = ["control", "cascade", "ladder", "plant", "golden_draws", "chain_trace", "mpf_fraction"]

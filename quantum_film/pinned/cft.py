@@ -110,6 +110,8 @@ def _bind(lib):
         "cft_cospi": ([vp, i, i, vp, vp, sz, u32p], i),
         "cft_sinpi": ([vp, i, i, vp, vp, sz, u32p], i),
         "cft_convert": ([vp, i, i, i, vp, vp, sz, u32p], i),
+        "cft_next_up": ([vp, i, vp, vp, sz, u32p], i),
+        "cft_next_down": ([vp, i, vp, vp, sz, u32p], i),
         "cft_sha256": ([vp, sz, vp], i),
     }
     for name, (args, res) in protos.items():
@@ -325,6 +327,25 @@ def convert(sfmt, dfmt, rnd, a):
     _status(lib().cft_convert(dev, sfmt, dfmt, rnd, _ptr(a), _ptr(d), len(a), ctypes.byref(fl)), "cft_convert")
     _flags(fl.value, "cft_convert")
     return d
+
+
+def _step(name, fmt, a):
+    dev = device()
+    a = arr(a, fmt)
+    d = np.empty(len(a), dtype(fmt))
+    fl = ctypes.c_uint32(0)
+    _status(getattr(lib(), name)(dev, fmt, _ptr(a), _ptr(d), len(a), ctypes.byref(fl)), name)
+    _flags(fl.value, name)
+    return d
+
+
+def next_up(fmt, a):
+    """nextUp (754-2019 5.3.1): the least encoding above each element. Exact; no rounding attribute."""
+    return _step("cft_next_up", fmt, a)
+
+
+def next_down(fmt, a):
+    return _step("cft_next_down", fmt, a)
 
 
 def sha256(data):

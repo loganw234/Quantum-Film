@@ -27,14 +27,16 @@ bounds, bounds its target (`target`). `locate` certifies a draw only when the
 target's enclosure clears every boundary it is compared with by TAU.
 
 EVERY ROUNDING HERE GOES THROUGH quantum_film.pinned.bounds, which names the
-two attributes once. This module names none and calls libcft only through
-that module (tests/pinned/test_bounds.py holds that mechanically), and each
-step above is a small function whose claim is held to exact rational
-arithmetic on wide synthetic boxes, where every term of it matters, with a
-planted fault per step (tests/pinned/test_certificate.py). The end-to-end
-gates cannot see such a fault: the enclosures have slack, and faults in their
-composition passed both the equality gate and the planted control when tried
-(2026-09-25).
+two attributes once. What this module may do is an ALLOWLIST read from its
+source (tests/pinned/test_source_rule.py): its imports, the calls it makes, the
+names of bounds and numpy it touches, and arithmetic only between integers.
+Whatever the list does not name is refused, so a rounding slip spelled some
+new way is refused too. Each step above is a small function whose claim is
+held to exact rational arithmetic on wide synthetic boxes, where every term of
+it matters, with a planted fault per step (tests/pinned/test_certificate.py).
+The end-to-end gates cannot see such a fault: the enclosures have slack, and
+faults in their composition passed both the equality gate and the planted
+control when tried (2026-09-25).
 """
 from dataclasses import dataclass
 from fractions import Fraction
@@ -43,7 +45,7 @@ from functools import lru_cache
 import numpy as np
 
 from . import bounds as bd
-from .basis import angles, assemble, basis, modes
+from .basis import angles, assemble, modes
 from .cft import FP64
 from .encode import exact, to_fraction
 
@@ -69,9 +71,11 @@ class Enclosure:
 
 
 def magnitudes(lo, hi):
-    """(the least, the greatest) |x| over x in [lo, hi]; exact (selects and sign flips)."""
+    """(the least, the greatest) |x| over x in [lo, hi]; exact (selects and sign flips). A select, never
+    np.maximum, whose choice between -0.0 and +0.0 is the build's (P2, 2026-09-25)."""
     small = np.where(lo > 0, lo, np.where(hi < 0, -hi, 0.0))
-    return small, np.maximum(np.abs(lo), np.abs(hi))
+    a, b = np.abs(lo), np.abs(hi)
+    return small, np.where(a >= b, a, b)
 
 
 def times_positive(a_lo, a_hi, t_lo, t_hi):
@@ -128,7 +132,7 @@ def gram_terms(q_prev, q_lo, q_hi):
     |G0|_F^2, |Q_lo|_F^2 and |D|_F^2, with Q_lo the columns' lower bounds, G0 = Q_lo^T Q_lo - I and
     D = Q - Q_lo (entrywise in [0, q_hi - q_lo]). G0 gains a row and a column: its diagonal entry once,
     each off-diagonal entry twice."""
-    Q = np.vstack(q_prev + [q_lo])
+    Q = np.vstack([*q_prev, q_lo])
     k, N = Q.shape
     rep = np.tile(q_lo, k)
     g_lo, g_hi = bd.dot_lo(Q.ravel(), rep, N), bd.dot_hi(Q.ravel(), rep, N)
@@ -170,7 +174,7 @@ def locate(t_lo, t_hi, b_lo, b_hi):
     passes it by more than TAU, and its own boundary lies above t_hi, so the exact target falls short of it by
     more than TAU. (None, why) when no position is."""
     passed = b_hi < t_lo
-    p = len(passed) if passed.all() else int(np.argmin(passed))
+    p = len(passed) if passed.all() else np.argmin(passed)
     if p == len(passed):
         return None, "the target is not certifiably below the last cumulative weight"
     if not t_hi < b_lo[p]:
@@ -185,7 +189,8 @@ def locate(t_lo, t_hi, b_lo, b_hi):
 @lru_cache(maxsize=16)
 def enclosure(L, r2):
     """The exact basis enclosed at binary64: cospi and sinpi of the exact angles rounded down and up, times
-    sqrt(2/M) rounded down and up, and the constant 1/L exactly."""
+    sqrt(2/M) rounded down and up, and the constant 1/L exactly. tests/pinned/test_sampler.py holds it to the
+    authority's own orbitals, entry by entry."""
     M = L * L
     N = modes(L, r2)[0].size
     ang = angles(L, FP64)
@@ -196,9 +201,6 @@ def enclosure(L, r2):
     one = exact(Fraction(1, L), FP64)
     lo = assemble(L, r2, one, {1: cos[0], 2: sin[0]}, np.float64)
     hi = assemble(L, r2, one, {1: cos[1], 2: sin[1]}, np.float64)
-    near = basis(L, r2, FP64)
-    if not ((lo <= near) & (near <= hi)).all():
-        raise EnclosureBroken("the basis enclosure does not contain its own round-to-nearest basis")
     e = rows(lo, hi)
     diag = Fraction(N, M)                      # K_ii = N/M exactly, for an orthonormal basis of N columns
     if not all(to_fraction(FP64, a) <= diag <= to_fraction(FP64, b) for a, b in zip(e.n_lo, e.n_hi, strict=True)):
@@ -238,10 +240,11 @@ class Certificate:
             trace(j, {"target": (t_lo, t_hi), "bounds": (b_lo, b_hi), "untaken": idx, "position": p})
         if p is None:
             return None, f"draw {j}: {why}", None
-        # Diagnostics only (plain numpy, never a decision): how far the target cleared, against how wide.
-        clear = min(b_lo[p] - t_hi, t_lo - b_hi[p - 1] if p else np.inf)
-        width = max(t_hi - t_lo, b_hi[p] - b_lo[p], b_hi[p - 1] - b_lo[p - 1] if p else 0.0)
-        return p, None, (float(clear), float(width))
+        # Diagnostics, never a decision: how far the target cleared (at least), against how wide (at most).
+        clear = min(bd.sub_lo(b_lo[p], t_hi), bd.sub_lo(t_lo, b_hi[p - 1]) if p else np.inf)
+        width = max(bd.sub_hi(t_hi, t_lo), bd.sub_hi(b_hi[p], b_lo[p]),
+                    bd.sub_hi(b_hi[p - 1], b_lo[p - 1]) if p else 0.0)
+        return p, None, (clear, width)
 
     def extend(self, drawn, t):
         """Join Q's column q = A^T t: A the drawn rows (site indices, in draw order), t binary64 coefficients."""

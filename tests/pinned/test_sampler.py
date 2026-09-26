@@ -65,16 +65,21 @@ def near(delta):
     return fn
 
 
-def test_a_target_inside_the_authoritys_margin_is_refused_not_answered():
+@pytest.mark.parametrize("side", [1, -1])
+def test_a_target_inside_the_authoritys_margin_is_refused_on_either_side_of_the_boundary(side):
+    """2^-240 above AND below: a refusal checked on one side only passed every golden gate (verifier-P0's third
+    pass, defect 3), so the mirror is planted too."""
     with pytest.raises(fermi.TieRefusal, match="refuses"):
-        sampler.roll(4, 1, b"near-tie", uniform_fn=near(Fraction(1, 2 ** 240)))
+        sampler.roll(4, 1, b"near-tie", uniform_fn=near(side * Fraction(1, 2 ** 240)))
 
 
-def test_a_target_the_authority_decides_but_binary64_cannot_see_is_handed_off_and_answered_as_the_authority():
-    fn = near(Fraction(1, 2 ** 200))
+@pytest.mark.parametrize("side,laid", [(1, 1), (-1, 0)])
+def test_a_target_the_authority_decides_but_binary64_cannot_see_is_handed_off_and_answered_as_the_authority(
+        side, laid):
+    fn = near(side * Fraction(1, 2 ** 200))
     r = sampler.roll(4, 1, b"clear", uniform_fn=fn)
     assert r.handed_off and r.draw == 0 and "draw 0" in r.reason
-    assert r.crystals == fermi.sample(4, 1, b"clear", uniform_fn=fn) and 1 in r.crystals
+    assert r.crystals == fermi.sample(4, 1, b"clear", uniform_fn=fn) and laid in r.crystals
 
 
 def lying(real, at):

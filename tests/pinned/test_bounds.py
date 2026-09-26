@@ -6,18 +6,22 @@ at most, so an end-to-end comparison with the authority essentially never
 sees it. So each bound is held BIT FOR BIT to the exact floor or ceiling of
 its operation (for a reduction or a scan, to the same tree rounded down or up
 node by node in rational arithmetic), where round-to-nearest differs in about
-half of the inexact cases. The last test swaps LO for round-to-nearest and
-shows the same check failing.
+half of the inexact cases. cospi and sinpi are held the same way, to their
+floor and ceiling from mpmath at 256 bits (the angles are irrational multiples
+of pi's cosines, so no value is within 2^-200 of a binary64 number). The
+planted tests swap LO, then HI, for round-to-nearest and show the check failing.
+
+What may call these functions, and how, is tests/pinned/test_source_rule.py's.
 """
-import ast
-import inspect
 import random
 from fractions import Fraction
 
+import mpmath
 import numpy as np
 import pytest
+from mpmath import mp
 
-from quantum_film.pinned import bounds, certificate, cft
+from quantum_film.pinned import bounds, cft
 from quantum_film.pinned.cft import FP64, RDN, RUP
 from quantum_film.pinned.encode import round_fraction, to_fraction
 
@@ -92,12 +96,20 @@ def problems():
             got = [Fraction(float(v)) for v in fn(a)]
             if got != want:
                 out.append(f"scan {n} {rnd}")
-    ang = np.array([m / 8 for m in range(16)])
-    for lo, hi, name in ((bounds.cospi_lo(ang), bounds.cospi_hi(ang), "cospi"),
-                         (bounds.sinpi_lo(ang), bounds.sinpi_hi(ang), "sinpi")):
-        for i in range(16):
-            if not lo[i] <= hi[i] or (lo[i] == hi[i] and float(ang[i] * 2) != int(ang[i] * 2)):
-                out.append(f"{name}[{i}]")                       # exact only at the half-integers (Niven)
+    for L in (4, 8, 16, 32, 64):
+        ang = np.array([2 * m / L for m in range(L)])            # dyadic, so exact in binary64
+        for lo_fn, hi_fn, fn, name in ((bounds.cospi_lo, bounds.cospi_hi, mpmath.cospi, "cospi"),
+                                       (bounds.sinpi_lo, bounds.sinpi_hi, mpmath.sinpi, "sinpi")):
+            lo, hi = lo_fn(ang), hi_fn(ang)
+            for i, x in enumerate(ang):
+                with mp.workprec(256):
+                    v = fn(mpmath.mpf(float(x)))
+                    sign, man, exp, _bc = v._mpf_
+                    e = (-1) ** sign * Fraction(man) * Fraction(2) ** exp if man else Fraction(0)
+                if Fraction(float(lo[i])) != floor64(e):
+                    out.append(f"{name}_lo L={L} m={i}")
+                if Fraction(float(hi[i])) != ceil64(e):
+                    out.append(f"{name}_hi L={L} m={i}")
     return out
 
 
@@ -112,12 +124,14 @@ def test_the_check_sees_a_lower_bound_rounded_to_nearest(monkeypatch):
     found = problems()
     assert any(p.startswith(("add_lo", "mul_lo", "div_lo")) for p in found)
     assert any(p.startswith("dot") for p in found) and any(p.startswith("scan") for p in found)
+    assert any(p.startswith("cospi_lo") for p in found) and any(p.startswith("sinpi_lo") for p in found)
 
 
 def test_the_check_sees_an_upper_bound_rounded_to_nearest(monkeypatch):
     monkeypatch.setattr(bounds, "HI", cft.RNE)
     found = problems()
     assert any(p.startswith(("add_hi", "mul_hi", "div_hi")) for p in found)
+    assert any(p.startswith("cospi_hi") for p in found) and any(p.startswith("sinpi_hi") for p in found)
 
 
 def test_bounds_refuse_an_operand_numpy_would_have_to_convert():
@@ -125,43 +139,3 @@ def test_bounds_refuse_an_operand_numpy_would_have_to_convert():
         bounds.add_lo(np.float32(1.0), 1.0)
     with pytest.raises(TypeError, match="binary64"):
         bounds.mul_hi(2, 1.0)
-
-
-def names_rounding(node):
-    """Rounding attributes or direct libcft calls anywhere inside an AST node."""
-    found = []
-    for sub in ast.walk(node):
-        if isinstance(sub, ast.Name) and sub.id in ("RNE", "RDN", "RUP", "RTZ", "RMM", "LO", "HI"):
-            found.append(sub.id)
-        if isinstance(sub, ast.Attribute) and sub.attr in ("RNE", "RDN", "RUP", "RTZ", "RMM"):
-            found.append(sub.attr)
-        if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id == "cft":
-            found.append(f"cft.{sub.attr}")
-    return found
-
-
-def cft_imports(node):
-    """What a module imports from quantum_film.pinned.cft, or the module itself."""
-    out = []
-    for sub in ast.walk(node):
-        if isinstance(sub, ast.ImportFrom) and (sub.module or "").split(".")[-1] == "cft":
-            out += [a.name for a in sub.names]
-        if isinstance(sub, ast.ImportFrom) and any(a.name == "cft" for a in sub.names):
-            out.append("cft")
-        if isinstance(sub, ast.Import) and any(a.name.split(".")[-1] == "cft" for a in sub.names):
-            out.append("cft")
-    return out
-
-
-def test_the_certificate_names_no_rounding_attribute_and_calls_libcft_only_through_bounds():
-    """Mechanically: quantum_film.pinned.certificate rounds only through quantum_film.pinned.bounds, where LO
-    and HI are named once. From cft it may take the format constant FP64 and nothing else."""
-    module = ast.parse(inspect.getsource(certificate))
-    assert names_rounding(module) == []
-    assert cft_imports(module) == ["FP64"]
-
-
-def test_the_structural_check_sees_a_planted_attribute_and_a_planted_import():
-    planted = ast.parse("class Certificate:\n    def f(self):\n        return cft.mul(FP64, RNE, 1.0, 2.0)\n")
-    assert set(names_rounding(planted)) == {"cft.mul", "RNE"}
-    assert cft_imports(ast.parse("from .cft import FP64, mul\nfrom . import cft\n")) == ["FP64", "mul", "cft"]

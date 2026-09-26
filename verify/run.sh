@@ -263,7 +263,7 @@ stage fixer "negative records: fixed, checked from the record alone, reproduced,
   bash verify/pytest-stage.sh tests/fixer
 
 need_file "${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" "libcft is not built at ${QF_CFT_ROOT:-vendor/cft-fp256} (CLAUDE.md has the build line)"
-stage pinned "libcft binary64 rolls equal the authority's; each certificate step held exactly; hand-off removed, a planted near-tie disagrees" -- \
+stage pinned "libcft binary64 rolls equal the authority's; exact values inside the enclosures; the certificate held to an allowlist; hand-off removed, a near-tie disagrees" -- \
   bash verify/pytest-stage.sh tests/pinned
 
 # §3: the control and its twin. The twin runs the fixer's own command line,
