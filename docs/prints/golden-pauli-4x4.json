@@ -1,0 +1,112 @@
+{
+ "format": "quantum-film/print/v1",
+ "name": "golden-pauli-4x4",
+ "stock": "pauli-4x4",
+ "borrows": "trix",
+ "rolls": {
+  "kind": "golden",
+  "stock": "pauli-4x4",
+  "stream": [
+   "roll",
+   "pauli-4x4",
+   "seed"
+  ],
+  "seeds": [
+   1,
+   24389
+  ]
+ },
+ "tiles": [
+  29,
+  29
+ ],
+ "layers": 29,
+ "print_stream": [
+  "print",
+  "golden-pauli-4x4"
+ ],
+ "cells": [
+  116,
+  116
+ ],
+ "pitch_um": "0x1.40acf37ad0a1fp+0",
+ "pitch_um_decimal": 1.252639,
+ "mean_K": 9.0625,
+ "scene": {
+  "name": "log ramp with a bright disc (tools/first_prints.py: scene)",
+  "sha256": "34705ff4eb3f104b1bae7c18dddfbc4b99854864599561d1bafbbd000ac002f0"
+ },
+ "E": "0x1.3a7550d6f4737p-3",
+ "E_print": "0x1.0000000000000p+0",
+ "paper": "silver, ungrained",
+ "atlas_film": "d4007b27b63cbe407ccb8e308f1c593e3e7df989",
+ "digests": {
+  "K": "1616cf05717f8e13b55828cd2f6e59220b7035657f48399f591445e04cbbcf6f",
+  "thresholds": "85235a781e96c141e22c7d2d1f833a9a4d1113811a6639614a1f3ccb6ba92873",
+  "negative": "ca35f62e9a3c727b1d2390c1162f9256e3506a32562383ebfeee7f40bc42a5e4",
+  "print": "971a5446da0594a1dc8a1c328df5c87891af91ddd6c236149ef74e75d74a7248"
+ },
+ "structure_factor": {
+  "of": "the sheet's count field K, per crystal, radially averaged",
+  "k_units": "2 pi / side",
+  "S": [
+   0.0031,
+   0.0133,
+   0.015,
+   0.028,
+   0.0545,
+   0.0676,
+   0.0668,
+   0.1126,
+   0.2038,
+   0.2068,
+   0.2141,
+   0.2861,
+   0.2986,
+   0.2632,
+   0.2849,
+   0.4007,
+   0.3416,
+   0.4248,
+   0.4856,
+   0.3766,
+   0.5584,
+   0.499,
+   0.572,
+   0.5228,
+   0.5379,
+   0.6804,
+   0.6305,
+   0.6416,
+   0.5243,
+   0.6711,
+   0.6238,
+   0.628,
+   0.6604,
+   0.6139,
+   0.5342,
+   0.5593,
+   0.578,
+   0.6864,
+   0.5906,
+   0.5826,
+   0.6053,
+   0.6117,
+   0.6369,
+   0.6541,
+   0.6689,
+   0.7047,
+   0.713,
+   0.627,
+   0.6798,
+   0.7112,
+   0.724,
+   0.6848,
+   0.7639,
+   0.6783,
+   0.7562,
+   0.8823,
+   0.8172
+  ]
+ }
+}

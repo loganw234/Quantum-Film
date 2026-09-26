@@ -1095,3 +1095,88 @@ expires (about 17:25Z).
   - The check now asks that the record name the commit of a run that wrote
     that file. A planted record naming another commit fails it for all five.
 - All six of the Atlas account's jobs are now used.
+
+## 2026-09-26 - the first prints: rolls laid as sheets of film, developed through atlas-film's pinned mode
+
+The owner's word: the lead builds round 2's seam and the first prints alone, and
+one verifier pass follows. atlas-film is vendored as a submodule at d4007b2, its
+pushed pinned branch.
+
+**A spike first**, in scratch.
+- Pauli tiles were stacked in layers, and the sheet went through atlas-film's
+  pinned `sheet=` path beside a Poisson twin: 11,776 rolls in 233 s on ten
+  workers, for 128 x 128 cells.
+- It found what shapes the design:
+  - atlas-film coats about 9 crystals in each column even at TRI-X's honesty
+    floor, so a site cannot be a cell's only crystal, and the depth needs
+    layers;
+  - a sheet of independent fixed-count tiles suppresses S(k) above the tile's
+    scale for ANY law. The Poisson twin measured 0.024 at the lowest k,
+    against Pauli's 0.016.
+
+**The seam** (quantum_film/develop.py).
+- A cell is one site. Each layer of the emulsion's depth is one roll of every
+  tile.
+- Every layer's grid is offset, and every crystal gets a 16-bit threshold,
+  both from the golden uniform on the print's stream.
+- The pitch is derived from the layer count, so the borrowed stock's lambda_K
+  equals the sheet's mean K. The test's bound is 4 x 2^-52 relative; one ulp
+  was measured, 9.0625 against 9.062500000000002.
+- The honesty floor and pinned mode's exact regime are refused by name. Pauli
+  needs 91 layers at least, pauli-4x4 29.
+- atlas_film is imported from vendor/atlas-film only. Any other copy is
+  refused by name. The refusal fired on the lead's own smoke test, which had
+  imported the editable checkout first.
+
+**The gates** (tests/develop, stage `develop`, in the quick budget).
+- 14 tests:
+  - a small print frozen, as the digests of its sheet, negative and print;
+  - atlas-film's files frozen, as a digest;
+  - the density identity for three stocks at three layer counts;
+  - the refusals;
+  - one moved crystal moves the negative;
+  - a broken pad is refused by atlas-film's contract;
+  - the shuffle is a permutation.
+- The frozen values were watched to fail before they were set. Eight faults
+  were then planted in develop.py, one at a time, and every one failed a gate:
+  - the thresholds' bits shifted;
+  - the pitch without its square root;
+  - no honesty floor;
+  - no shadow check;
+  - a pad of 0;
+  - no per-layer offset;
+  - the exact regime unchecked;
+  - sites unchecked.
+
+**The prints** (tools/first_prints.py, docs/prints/). All are on silver paper,
+ungrained, at E = 0x1.3a7550d6f4737p-3 (0.1535), metered once on atlas-film's
+default path and kept.
+
+| print | cells | layers | pitch, um | mean K | rolls | print digest |
+|---|---|---|---|---|---|---|
+| atlas-pauli-4x4 | 116 x 116 | 29 | 1.252639 | 9.0625 | 24,389 Atlas shots of 24,576, shuffled; 187 unused | 78c70404809c0da3 |
+| golden-pauli-4x4 | 116 x 116 | 29 | 1.252639 | 9.0625 | 24,389 golden rolls | 971a5446da0594a1 |
+| pauli | 256 x 256 | 91 | 1.240431 | 8.88672 | 23,296 golden rolls (pinned sampler), 741 s on 11 workers | 96415fe7964c0a6c |
+| poisson | 256 x 256 | 91 | 1.240431 | 8.88672 | 23,296 golden rolls | bd468d75946b56b9 |
+| trix | 256 x 256 | - | 1.240431 | 8.87343 | atlas-film's own pinned coat, seed 1 | e6b6d9292142dd31 |
+
+**The grain, by its structure factor** (each record's `structure_factor`, k in
+units of 2 pi / side).
+
+| k | 8 | 16 | 24 | 32 | 48 | 64 |
+|---|---|---|---|---|---|---|
+| pauli | 0.223 | 0.292 | 0.367 | 0.496 | 0.708 | 0.720 |
+| poisson (the twin) | 0.415 | 0.800 | 0.851 | 0.921 | 0.963 | 0.931 |
+| trix (atlas-film's coating) | 0.936 | 0.907 | 1.137 | 0.858 | 1.101 | 0.942 |
+
+- Between the tile's scale (k = 16) and about twice Pauli's Fermi scale
+  (k = 90), Pauli's count carries 0.29-0.72 of random placement's noise power.
+- Below k = 16, the twin is suppressed too, down to 0.019 at k = 1. That is the
+  tiling, not the law.
+- The Atlas-laid sheet and its golden twin trace one curve: at k = 8, 16 and
+  32, 0.122, 0.307 and 0.592 against 0.113, 0.401 and 0.628.
+- **A print is a function of its record.** `python tools/first_prints.py --check`
+  re-develops all five from their records alone. The golden rolls were
+  re-laid, and the Atlas shots re-read and re-shuffled, with the recorded
+  exposure. Every sheet, negative, print and scene digest matched. Pauli's
+  23,296 rolls took 798 s on eleven workers.

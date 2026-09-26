@@ -24,4 +24,5 @@ answer is not in here: it is `make verify-quick`.
 |---|---|
 | [VALIDATION.md](VALIDATION.md) | The append-only ledger: every run that established something, dated, with its commands and its failures. |
 | [records/](records/) | The raw evidence the ledger cites, sanitised: no key, no presigned URL, no email. |
+| [prints/](prints/) | The first prints: each one's record (what it is a function of, and its digests) and its negative and print as images, one crystal column per pixel. |
 | [../research/2026-09-25/](../research/2026-09-25/) | The day of exploration the project began from, kept as it was run, with the four research notes in `notes/`. |

@@ -6,7 +6,7 @@ README says what this project is; this file says what will bite you.
 ## Start here: one command answers "does it still hold?"
 
 ```
-make verify-quick          # ~55 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, the control and its twin
+make verify-quick          # ~65 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, develop, the control and its twin
 make verify                # adds cft and the live Atlas smoke; any stage that cannot run skips BY NAME
 bash verify/run.sh --list  # every stage, with * on what a budget selects
 ```
@@ -103,13 +103,17 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
   control. Hold each step exactly on tight inputs, and hold the value a
   function returns, not the trace it writes (verifier-P1's D10).
 
-## cft-fp256 (the pinned-arithmetic path)
+## The submodules: cft-fp256 and atlas-film
 
 - **Build only in `vendor/cft-fp256`** (the submodule at 7d7285d), never in
   `../cft-fp256`: that checkout is shared with other sessions. Building only
-  `cft.dll` (not `all`) took 8 s with 0 warnings on 2026-09-25. A git
-  worktree has the submodule uninitialised: point `QF_CFT_ROOT` at a built
-  one, and the `cft` stage checks that DLL (it prints its path and SHA-256).
+  `cft.dll` (not `all`) took 8 s with 0 warnings on 2026-09-25. A worktree has
+  both submodules uninitialised: point `QF_CFT_ROOT` at a built cft-fp256 (the
+  `cft` stage prints its DLL's path and SHA-256), and init vendor/atlas-film.
+- **atlas-film is imported from `vendor/atlas-film` (d4007b2) and nowhere
+  else.** The owner's editable install of a working checkout answers `import
+  atlas_film` otherwise: quantum_film.develop puts the submodule first and
+  refuses any other copy by name; tests/develop freezes its files' digest.
 - **`pinned`, in the quick budget, needs that DLL too.** Without it pinned and
   cft skip BY NAME, and `--require-all` fails them. In ctypes pass
   `ndarray.ctypes.data`, not `.ctypes.data_as`: P1 measured 5 us an operand.
@@ -119,23 +123,19 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
     exports nothing) and stale ELF objects each read as a source bug: check
     `objdump -p .../cft.dll | grep -c ' cft_'` (about 120) before Python.
   - Never pipe a long make through `| grep | head`: it hangs at 0% CPU.
-  - Two builds of one source differ in three fields: the COFF and export
-    TimeDateStamps and the PE CheckSum. A hash with those zeroed would pin a
-    build; today a DLL is identified by its path and full hash in the log.
-- **libcft's transcendentals cost about 1,000x an fma**: cos 0.24 ms and exp
-  0.12 ms per element natively at binary64 (2026-09-25; 0.4 ms was WASM).
-  Build tables of cos, sin and exp once per stock, never per pixel or draw.
+  - Two builds of one source differ only in the COFF and export TimeDateStamps
+    and the PE CheckSum; today a DLL is identified by its path and full hash.
+- **libcft's transcendentals cost about 1,000x an fma** (cos 0.24 ms, exp 0.12
+  ms an element): build tables of cos, sin and exp once per stock, not per draw.
 
 ## Housekeeping that has bitten
 
 - **Importing any module does nothing outside the process, or is refused**
-  (tests/docs/test_atlas_guards.py). An import re-ran nine probe jobs on
-  2026-09-25. It is checked by behaviour: every module under research/,
-  tools/ and quantum_film/ is imported under a PEP 578 audit hook, which
-  stops and names any subprocess, socket, browser, native load or file
-  write. Two gates that read the source were walked past. The hook sees only
-  the branch an import takes on this machine. A script that does work starts
-  with `if __name__ != "__main__": raise ImportError(...)`.
+  (tests/docs/test_atlas_guards.py): an import re-ran nine probe jobs on
+  2026-09-25. Every module under research/, tools/ and quantum_film/ is imported
+  under a PEP 578 audit hook that stops and names any subprocess, socket, native
+  load or file write, on the branch an import takes here. A script that does
+  work starts with `if __name__ != "__main__": raise ImportError(...)`.
 - **Never compare two spellings of a path.** Git Bash mounts %TEMP% at /tmp,
   and a check that did refused every verifier's clone; the runner asks git
   `--show-cdup`.

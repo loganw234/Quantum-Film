@@ -21,10 +21,10 @@ around the shot:
    text. Its digest is re-derived from its content. A changed byte, a
    duplicated key, a changed law or a missing provenance field is refused by
    name.
-3. **A print will be a function of its record.** (Planned.) Development will
-   borrow atlas-film's sourced organs, with every rounding operation pinned
-   (libcft) and every transcendental built into a table once. Nothing is
-   claimed for this layer until it exists.
+3. **A black-and-white print is a function of its record** (since 2026-09-26;
+   below, "From rolls to a print"). Development borrows atlas-film's sourced
+   organs through its pinned mode. Nothing is claimed for what that mode
+   refuses: colour, the MTF, halation, and a grained paper.
 
 ## Why arithmetic cannot decide an emulated roll
 
@@ -152,6 +152,45 @@ Measured: 2,300 pauli-4x4 and 740 pauli rolls equal the authority's, and
 none was handed off. From the enclosure widths, P1 believes a random 16x16
 roll hands off about once in 10^6.
 
+## From rolls to a print
+
+`quantum_film/develop.py` lays rolls as a sheet of film. It develops the sheet
+through atlas-film's pinned mode, from the vendor/atlas-film submodule at
+d4007b2 (its pinned branch).
+- **The sheet is integers.** A cell is one site. Each layer of the emulsion's
+  depth is one roll of every tile, and a cell's K is its column's count. The
+  per-layer offsets and every crystal's 16-bit threshold come from the golden
+  uniform on the print's stream. So the sheet is laid by integer arithmetic
+  and SHA-256 alone.
+- **The density is the borrowed stock's own, by construction.** Every roll
+  holds N crystals, so the mean K is layers * N / L^2 exactly. The pitch is
+  derived so that the borrowed stock's lambda_K equals that mean, to one
+  rounding in a correctly rounded square root. atlas-film's `sheet=` path
+  does not check the mean of K; this one does.
+- **The honesty floor and the exact regime are refused by name.** At TRI-X's
+  density, pauli needs at least 91 layers and pauli-4x4 at least 29.
+- **The negative and the print are atlas-film's pinned mode.** They are the
+  same bits on every IEEE 754 binary64 machine, under the gates and stated
+  limits of atlas-film's docs/PINNED.md.
+- **A print record** (docs/prints/*.json) names what the print is a function
+  of:
+  - the rolls and the mapping;
+  - the pitch and both exposures, as hex floats;
+  - the scene's digest and atlas-film's commit;
+  - the digests of the sheet, the negative and the print.
+
+  `python tools/first_prints.py --check` re-develops each print and compares
+  its bits.
+
+**The checks** (tests/develop, the `develop` stage):
+- a small print, frozen: its sheet, negative and print digests;
+- the density identity;
+- the floor and regime refusals;
+- one moved crystal moves the negative;
+- a broken pad is refused by atlas-film's contract;
+- atlas-film is imported only from the submodule, with its files' digest
+  frozen.
+
 ## What is NOT promised
 
 - **A device roll is not reproducible.** That covers Atlas's emulator and any
@@ -182,6 +221,7 @@ roll hands off about once in 10^6.
 | the circuit lays the Pauli law | local statevector against the golden kernel to 1e-12, for `givens.py` and `givens_line.py`; every rotation dropped fails it. On Atlas (job 8586f1cc), `givens_line`'s layouts matched the exact law: 1.48 and 2.52 standard errors, no forbidden layout | **not yet on a device.** Atlas's emulator is noiseless. A device's fraction of forbidden layouts will be its first witness of noise. |
 | mpmath is accurate enough | the premise gate above: exact on pauli-4x4, independent at 512 bits on the 16x16 stock | a different mpmath version is a claim to test, not assume (1.4.1 in WSL matched) |
 | the pinned path lays the authority's roll | tests/pinned: every directed operation exact; every certificate step exact on tight inputs, each directed call flipped failing; the decision returned held to the exact chain rule with planted targets; the named control. 2,300 pauli-4x4 and 740 pauli rolls equal | **its source rule reads spellings**, a limit stated in certificate.py. In the orchestration a respelling passes if it moves none of the end-to-end check's claims on that check's inputs. **One libcft build**, identified by its path and hash; no hash with the PE timestamps zeroed pins it yet |
+| a black-and-white print is a function of its record | tests/develop's frozen print; `tools/first_prints.py --check` re-develops the five first prints and compares their digests | **one machine so far.** The paper is ungrained. A scene's exposure is metered once on atlas-film's default path and kept as a hex float, never re-metered |
 
 ## Versioning
 

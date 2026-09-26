@@ -21,9 +21,49 @@ of the crystals is new.
 
 | stock | what lays the crystals | how its grain differs from real film | status |
 |---|---|---|---|
-| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler; a binary64 sampler on libcft that lays golden's roll; a hardware-shaped circuit whose law ran on Atlas and holds |
+| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler; a binary64 sampler on libcft that lays golden's roll; a hardware-shaped circuit whose law ran on Atlas and holds; printed, with one print laid entirely by Atlas |
 | **Poisson** | uniform placement at the same density | none: the classical reference every other stock is measured against | on the shelf |
 | **Speckle** | Born-rule shots of a random pupil through a 2D quantum Fourier transform | crystals bunch; the grain's contrast equals the fidelity of the machine that exposed it | planned |
+
+## The first prints
+
+![The first prints: two Pauli 4x4 prints on top, one laid by Atlas; Pauli, its Poisson twin and TRI-X below](docs/prints/gallery.png)
+
+**Top left: every crystal in this print was laid by a quantum circuit on Moth's
+Atlas** (2026-09-26).
+- It holds 24,389 shots of pauli-4x4's hardware-shaped circuit, from six Atlas
+  jobs, stacked 29 layers deep in 29 x 29 tiles.
+- It was developed at the density of TRI-X, as atlas-film models it, in
+  atlas-film's pinned mode, then printed on silver paper.
+- Beside it is the same law from its exact sampler.
+
+The bottom row shows three stocks at the same density and pitch, 256 x 256
+columns each:
+- **Pauli**, whose crystals repel;
+- **its Poisson twin**, the same count per tile placed at random;
+- **TRI-X** as atlas-film coats it.
+
+Each pixel is one column of crystals through the emulsion, 1.24 um across, so
+each print is a fraction of a millimetre of film seen crystal by crystal.
+
+![The structure factor of each print's crystal count](docs/prints/structure.png)
+
+**The grain differs where the eye cannot see it.**
+- Between a Pauli tile's scale and its Fermi scale, Pauli's crystal count
+  carries 0.29-0.71 of the noise power of random placement. The Poisson twin
+  carries 0.80-0.96 there, and TRI-X about 1.
+- Below the tile scale every tiled stock is suppressed, the Poisson twin
+  included. That part comes from the tiling, not from the quantum law
+  (docs/STOCKS.md).
+- The Atlas-laid sheet and its exact twin trace the same curve.
+
+**Each print is a function of its record.** Each one's record in
+[docs/prints/](docs/prints/) names:
+- its rolls, the mapping and the pitch;
+- the scene and both exposures;
+- the digests of the sheet, the negative and the print.
+
+`python tools/first_prints.py --check` re-develops each print bit for bit.
 
 ## What has been measured
 
@@ -45,6 +85,11 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   - **The records:** 1,995 device rolls, each bound to a commitment committed
     to git before the job's first status call. That ordering rests on the
     code and the local clock.
+  - **Five more jobs** ran on 2026-09-26, for the Atlas print. Pooled with
+    the first, that is 24,576 shots:
+    - one-site max |z| 2.15 and pairs 2.64 against the exact law;
+    - 3,004 of the law's 3,008 allowed layouts seen, and no forbidden one;
+    - 12,071 device rolls, each with its commitment.
 - **A fermion tile of this project's own ran on Moth's Atlas emulator**
   (2026-09-25). It had 16 qubits, 5 fermions and 256 CNOTs, and returned
   4,096 whole crystal layouts:
@@ -116,7 +161,7 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
 One command, in two sizes:
 
 ```bash
-make verify-quick   # ~55 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, the control and its twin
+make verify-quick   # ~65 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, develop, the control and its twin
 make verify         # adds the cft and live-Atlas stages; pinned and cft skip BY NAME without libcft, Atlas without a key
 bash verify/run.sh --list
 ```
@@ -153,15 +198,17 @@ What is promised, and what is not, is written down once, in
 quantum_film/stocks.py     the shelf: every stock's parameters, in one table
 quantum_film/golden/       the authority: exact uniforms, the Pauli and Poisson laws
 quantum_film/pinned/       the Pauli law in binary64 on libcft: the authority's roll, certified or handed off whole
+quantum_film/develop.py    rolls laid as a sheet of film, developed and printed through atlas-film's pinned mode
 quantum_film/circuits/     the Pauli law as a Givens circuit (float64, independent of golden)
 quantum_film/atlas/        the Atlas client (key kept outside the tree) and the count-order rule
 quantum_film/fixer.py      negative records: fix, check from the record alone, reproduce
 verify/                    the runner: make verify-quick / make verify
-tools/                     the vector generator and the cft and Atlas smoke checks
+tools/                     the vector generator, the Atlas run, the first prints and their figures, the smoke checks
 tests/, tests/vectors/     the gates, and the frozen vectors they replay
-docs/                      one file per subject; docs/README.md is the index
+docs/                      one file per subject; docs/README.md is the index; docs/prints/ holds the first prints
 research/2026-09-25/       the day of exploration the project started from, kept as run
 vendor/cft-fp256           the pinned-arithmetic library, a submodule at 7d7285d
+vendor/atlas-film          the medium, a submodule at d4007b2 (its pinned branch)
 ```
 
 ## Moth Hack 2026

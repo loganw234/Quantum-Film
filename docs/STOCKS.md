@@ -32,6 +32,14 @@ A single RMS granularity reading at 48 um cannot tell them apart, because it
 mixes density, grain size and correlation into one number
 (research/2026-09-25/notes/quantum-film-physics.md).
 
+**Where to read S(k) on a print.** A sheet is laid from tiles of fixed crystal
+count (quantum_film/develop.py). That alone suppresses S(k) above the tile's
+scale for ANY law: the Poisson twin measured 0.02 at the lowest k of a 256-cell
+sheet (2026-09-26, docs/VALIDATION.md). So a stock's uniqueness is read
+between the tile's scale and its own correlation length. The classical
+reference there is atlas-film's own coating, a Poisson count per cell, whose
+S(k) is about 1 at every k.
+
 ## On the shelf
 
 ### Pauli

@@ -32,9 +32,17 @@ gaps its survey found are that step not yet taken.
   rounded primitives, coated with counter-based uniforms, with cft-fp256 as
   its authority. docs/ROUND1.md has the scope and the controls.
 - Its gates, and what no gate sees, are in atlas-film's docs/PINNED.md.
-- Quantum-Film's side of development waits for it, in round 2: turning a
-  layout into atlas-film's `(K, thr)` sheet, the honesty floor and mean-K
-  check, the first prints, and the film-science statistics.
+- Done (2026-09-26): Quantum-Film's side of development.
+  - quantum_film/develop.py turns rolls into atlas-film's `(K, thr)` sheet,
+    at the borrowed stock's own density by construction, with the honesty
+    floor refused by name.
+  - The first prints are in docs/prints/, one of them laid entirely by Atlas.
+- Still to come:
+  - the film-science statistics on prints (Selwyn, g(r)) between the tile's
+    scale and the stock's correlation length;
+  - a faster certified sampler, since a square millimetre of TRI-X holds
+    about 5.8 million crystals, or 230,000 pauli rolls;
+  - colour.
 
 **P3: circuits for hardware.** (Merged, round 1; docs/VALIDATION.md.)
 - Done: the (M - N) * N Givens layout with 2-CNOT rotations,
