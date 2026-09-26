@@ -7,12 +7,13 @@ Gram-Schmidt fails: each basis vector's enclosure widens the next, and on the
 16x16 stock the widths grew 2.5-3x a draw, to 1e-4 by draw 24 (measured
 2026-09-25). So nothing here is enclosed as a recurrence:
 
-  - Q = A^T T EXACTLY, where A holds the drawn rows and T is any binary64
-    upper-triangular matrix with a nonzero diagonal. Q spans what A^T spans,
-    whatever T is, so T can come from plain round-to-nearest Gram-Schmidt
-    (quantum_film.pinned.sampler.Chain): it need only make Q nearly
-    orthonormal, and an error in it costs tightness, never soundness. Each
-    column of Q is enclosed directly from A's enclosure and T (`column`).
+  - Q = A^T T EXACTLY, where A holds the k drawn rows and T is any binary64
+    k x k matrix. Q's columns lie in the drawn rows' span whatever T is, and
+    once Q^T Q is certified within F < 1 of I (below) they are k independent
+    vectors, so they span it. So T can come from plain round-to-nearest
+    Gram-Schmidt (quantum_film.pinned.sampler.Chain): it need only make Q
+    nearly orthonormal, and an error in it costs tightness, never soundness.
+    Each column of Q is enclosed directly from A's enclosure and T (`column`).
   - E = Q^T Q - I is bounded rigorously: |E|_2 <= |E|_F <= F (`gram_terms`,
     `gram_bound`, `gram_factors`). If F is not below 1 the draw is not certified.
   - |P phi|^2 = y^T (Q^T Q)^-1 y with y = Q^T phi, and the eigenvalues of
@@ -34,9 +35,10 @@ Whatever the list does not name is refused, so a rounding slip spelled some
 new way is refused too. Each step above is a small function whose claim is
 held to exact rational arithmetic on wide synthetic boxes, where every term of
 it matters, with a planted fault per step (tests/pinned/test_pinned_certificate.py).
-The end-to-end gates cannot see such a fault: the enclosures have slack, and
-faults in their composition passed both the equality gate and the planted
-control when tried (2026-09-25).
+The end-to-end gates cannot see such a fault, because the enclosures have
+slack: of eleven faults planted in these steps and in bounds, ten passed
+equality with the authority on 32 rolls, its values and the exact Fractions
+inside the enclosures, and the planted control streams (2026-09-26).
 """
 from dataclasses import dataclass
 from fractions import Fraction
