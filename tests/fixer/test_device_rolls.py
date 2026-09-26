@@ -146,3 +146,20 @@ def test_a_recomputed_commitment_passes_the_record_alone_which_is_why_the_anchor
     r["source"]["job_id"] = "another-job"
     r["source"]["commitment"] = fixer.commitment(stock="pauli-4x4", **{k: r["source"][k] for k in fixer.COMMITTED})
     assert resealed(r) == []
+
+
+def test_fixed_at_is_a_real_time_in_ascii_digits(roll):
+    """The P0 verifier's fourth pass: the first check read a shape, and passed these."""
+    for bad in ("2026-13-45T99:99:99Z", "٢٠٢٦-09-25T18:00:00Z", "2026-02-30T12:00:00Z", 5):
+        r = copy.deepcopy(roll)
+        r["source"]["fixed_at"] = bad
+        assert any("fixed_at" in p for p in resealed(r)), bad       # 5 is refused by type, before the time
+
+
+def test_a_local_emulator_roll_is_held_like_a_device_roll():
+    good = {"kind": "local-emu", "fixed_at": "2026-09-25T18:00:00Z", "backend": "statevector"}
+    assert fixer.check(fixer.fix("pauli-4x4", [0, 1, 4, 11, 13], good)) == []
+    for bad, why in (({**good, "fixed_at": 5}, "fixed_at must be a UTC time"),
+                     ({**good, "shots": 7}, "fields the fixer does not know")):
+        with pytest.raises(ValueError, match=why):
+            fixer.fix("pauli-4x4", [0, 1, 4, 11, 13], bad)

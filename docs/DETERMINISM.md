@@ -88,10 +88,14 @@ test_golden_fermi.py and test_independence.py):
   another thread could turn the authority into binary64 arithmetic behind
   the same margin.
   - Every draw checks its precision.
-  - The basis checks its precision, and its content: every row's squared
-    norm must be N/M to 2^-(prec - 16) before the basis is cached. A brief
-    drop can come and go between two checks. The verifier cached a
-    corrupted basis 26 times in 40 that way before the content check.
+  - The basis checks its precision, and its content, before it is cached.
+    Every row's squared norm must be N/M, and three entries of K = Phi Phi^T
+    must match the closed form from cosines computed afresh, each to
+    2^-(prec - 16). A brief drop can come and go between two checks. Before
+    the norm check, the verifier cached a corrupted basis 26 times in 40.
+    Norms alone missed a drop confined to the angles, since cos^2 + sin^2
+    stays 1; that basis was cached with K 2^-56 off. The closed-form
+    entries catch it.
   - Each refuses by name (`PrecisionChanged`). The authority is not to be
     called from threads.
 

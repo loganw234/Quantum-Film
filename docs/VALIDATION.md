@@ -814,3 +814,55 @@ branches are checked:
     its control.
   - main and both parcel branches have none.
   - One session over tests/ on main: 127 passed.
+
+## 2026-09-26 - the P0 verifier's fourth pass: imports checked by behaviour, the kernel held to its closed form, and times read as times
+
+Asked of the P0 verifier after 73a79af. Every fault it had planted before
+fails now. Its entry is `verifier-P0.md`, 04:12Z. Five defects:
+
+- **The import allowlist did not hold.** Five lint-clean modules passed
+  the whole front door and, imported, wrote a file or ran a subprocess:
+  - a bare decorator, and `__init_subclass__`;
+  - `operator.call(subprocess.run, ...)` and `itertools.starmap(...)`;
+  - a rebound `math`.
+
+  Seventeen more shapes carried an Atlas call past it, among them
+  `import antigravity`, which opens a browser. A reading of the source
+  cannot close calls with no call expression, impure callables handed to
+  pure modules, rebinding by assignment, or import statements.
+
+  **Now the rule is checked by behaviour.** tests/docs/import_audit.py
+  imports every module under research/, tools/ and quantum_film/ in a child
+  process under a PEP 578 audit hook. The hook stops, before it happens, and
+  names any subprocess, socket, browser, native load, or file or directory
+  write.
+  - The tree: 19 modules import cleanly, and 15 scripts refuse import.
+    There are no effects and no errors.
+  - The negative controls are nine planted effects: the verifier's five
+    executed shapes, antigravity, a socket, a mkdir, and curl. Each is
+    stopped and named, and nothing is written. A tools/ module running a
+    subprocess through `operator.call`, planted in a scratch copy, fails
+    the docs stage.
+  - P1's and P3's new modules pass it. P1's libcft shim loads its DLL
+    lazily, not at import.
+  - Its limit is stated in the gate: it sees the branch an import takes on
+    this machine.
+- **The basis content check saw norms only.** A drop confined to the angles
+  keeps cos^2 + sin^2 = 1. The verifier cached such a basis with its kernel
+  2^-56 off. The basis now also holds three kernel entries to the closed
+  form, from cosines computed afresh. Planted (the first L cosines and sines
+  of the build taken at an angle off by 2^-53): refused, and not cached.
+  With the check removed, that test fails.
+- **The resume fingerprint left out the import path.** With
+  `PYTHONSAFEPATH=1` a fresh run fails golden, and a resume passed it. The
+  fingerprint now records PYTHONPATH, PYTHONSAFEPATH and PYTHONHOME, a hash
+  of every installed distribution's version, and the machine. Planted: a
+  resume with PYTHONSAFEPATH set after the run is refused.
+- **`fixed_at` was a shape.** Month 13 and Arabic-Indic digits passed. It is
+  now ASCII digits that parse as a real time (2026-02-30 is refused), and a
+  local-emulator roll is held like a device's: fixed_at a real time, and no
+  unknown field. With the parse removed, the test fails.
+- **CLAUDE.md's import paragraph** named the old function allowlist. It now
+  names the audit hook and its limit.
+
+verifier-P3 re-checked P3's fixes (961b385) the same hour: READY TO MERGE.

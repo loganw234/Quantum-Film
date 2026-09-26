@@ -35,6 +35,7 @@ The constructors refuse what `check` refuses: `fix` seals nothing that
     python -m quantum_film.fixer check FILE...    # 0 = every record intact, 1 = refused
     python -m quantum_film.fixer lay STOCK SEED   # print a golden roll's record
 """
+import datetime
 import hashlib
 import json
 import re
@@ -86,7 +87,20 @@ DEVICE_FIELDS = {"fixed_at": str, "engine": str, "job_id": str, "circuit_sha256"
                  "shots": int, "decode": str, "salt": str, "commitment": str}
 DEVICE_OPTIONAL = {"occurrences": int}      # how many shots laid this layout, when a run fixes one per layout
 COMMITTED = ("circuit_sha256", "engine", "job_id", "shots", "decode", "salt")
-_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z")
+_UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z", re.ASCII)
+LOCAL_FIELDS = ("backend", "fixed_at", "kind")
+
+
+def _is_utc(s):
+    """A real UTC time in ASCII digits. The first check read only a shape, and passed
+    month 13 and Arabic-Indic digits (the P0 verifier's fourth pass)."""
+    if not (isinstance(s, str) and _UTC.fullmatch(s)):
+        return False
+    try:
+        datetime.datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return False
+    return True
 
 
 def commitment(*, stock, circuit_sha256, engine, job_id, shots, decode, salt):
@@ -176,8 +190,14 @@ def check(record):
         out.append("source: a roll from a device must carry fixed_at")
     elif src["kind"] in DEVICE:
         out += _device_problems(src, sid)
-    elif not isinstance(src.get("backend"), str):
-        out.append("source: a local-emu roll must name its backend")
+    else:                                  # a local emulator: the same rules on its fields as a device's
+        if not isinstance(src.get("backend"), str):
+            out.append("source: a local-emu roll must name its backend")
+        if not _is_utc(src.get("fixed_at")):
+            out.append("source: fixed_at must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
+        unknown = sorted(set(src) - set(LOCAL_FIELDS))
+        if unknown:
+            out.append(f"source: {unknown} are fields the fixer does not know; they would ride unchecked")
     code = record.get("code")
     if not (isinstance(code, dict) and list(code) == ["quantum_film"] and isinstance(code["quantum_film"], str)):
         out.append('code: exactly {"quantum_film": <the version that fixed it>}')
@@ -229,7 +249,7 @@ def _device_problems(src, sid):
             out.append(f"source: {field} must be 64 lowercase hex digits")
     if src["shots"] < 1:
         out.append("source: shots must be positive")
-    if not _UTC.fullmatch(src["fixed_at"]):
+    if not _is_utc(src["fixed_at"]):
         out.append("source: fixed_at must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
     if "occurrences" in src and not (_is_int(src["occurrences"]) and 1 <= src["occurrences"] <= src["shots"]):
         out.append("source: occurrences must be a whole number of shots, from 1 to shots")

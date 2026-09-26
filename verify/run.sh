@@ -165,6 +165,11 @@ fingerprint () {
   echo "cftmpfr=$b"
   echo "python=$(python -c 'import sys, mpmath, numpy; print(sys.version.split()[0], mpmath.__version__, numpy.__version__)' 2>&1)"
   echo "tools=$(python -m ruff --version 2>&1) / $(python -m pytest --version 2>&1 | head -1)"
+  # Every installed distribution's version, and the variables that decide what an import finds: with
+  # PYTHONSAFEPATH=1 a fresh run fails golden, and a resume once passed it (the P0 verifier's fourth pass).
+  echo "packages=$(python -c 'import importlib.metadata as m; print(sorted(f"{d.metadata["Name"]}=={d.version}" for d in m.distributions()))' 2>&1 | sha256sum | cut -c1-16)"
+  echo "import-path=PYTHONPATH:${PYTHONPATH:-} PYTHONSAFEPATH:${PYTHONSAFEPATH:-} PYTHONHOME:${PYTHONHOME:-}"
+  echo "machine=$(python -c 'import platform; print(platform.node(), platform.platform(), platform.machine())' 2>&1)"
   echo "QF_ATLAS_AUTH=$([ -n "${QF_ATLAS_AUTH:-}" ] && echo set || echo unset)"
 }
 if [ -z "$RESUME" ]; then

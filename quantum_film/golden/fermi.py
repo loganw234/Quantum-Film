@@ -99,6 +99,17 @@ def orbitals(L, r2, prec=PREC):
         if any(abs(mpmath.fsum(v * v for v in r) - want) > tol for r in rows):
             raise PrecisionChanged(f"the basis: its rows' squared norms are not N/M to 2^-{prec - 16}; "
                                    "it was built at a lower precision than asked, so the authority refuses")
+        # Norms alone miss a drop confined to the angles: cos^2 + sin^2 stays 1 while K moves (the P0
+        # verifier's fourth pass, 2^-56 off). So three entries of K = Phi Phi^T are also held to the
+        # closed form (1/M) sum_k cos(2 pi k.d / L), from cosines computed afresh here.
+        for j in (1, L, L + 1):
+            if j >= M:
+                continue
+            x, y = divmod(j, L)
+            closed = mpmath.fsum(mpmath.cos(2 * mpmath.pi * ((kx * x + ky * y) % L) / L) for kx, ky in ks) / M
+            if abs(mpmath.fsum(a * b for a, b in zip(rows[0], rows[j], strict=True)) - closed) > tol:
+                raise PrecisionChanged(f"the basis: K(0, {j}) is not its closed form to 2^-{prec - 16}; its "
+                                       "angles were built at a lower precision than asked, so the authority refuses")
     return rows
 
 

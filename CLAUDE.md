@@ -44,8 +44,8 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 
 - **mpmath's working precision is process-global.** Never call the authority
   from threads. It refuses (`PrecisionChanged`) a draw whose precision moved,
-  and a basis whose rows' squared norms miss N/M, before it is cached: a
-  brief drop in another thread can come and go between two checks.
+  and a basis whose row norms miss N/M or whose kernel misses its closed
+  form, before it is cached: a brief drop can come and go between checks.
 - **Measure the authority against code it does not share, on a tile whose
   arithmetic is not accidentally exact.** The first premise gate compared it
   with itself, and passed a binary64 `math.fsum` 2^-51.5 off. On the shelf's
@@ -127,13 +127,14 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 
 ## Housekeeping that has bitten
 
-- **An import runs nothing but pure construction, or is refused**
+- **Importing any module does nothing outside the process, or is refused**
   (tests/docs/test_atlas_guards.py). An import re-ran nine probe jobs on
-  2026-09-25. Every module under research/, tools/ and quantum_film/ either
-  starts with `if __name__ != "__main__": raise ImportError(...)` or calls
-  only an allowlist at import (Path, re.compile, lru_cache, sys.path.insert,
-  a few builtins, its own pure helpers). Two versions that named Atlas
-  spellings instead were each walked past by the verifier.
+  2026-09-25. It is checked by behaviour: every module under research/,
+  tools/ and quantum_film/ is imported under a PEP 578 audit hook, which
+  stops and names any subprocess, socket, browser, native load or file
+  write. Two gates that read the source were walked past. The hook sees only
+  the branch an import takes on this machine. A script that does work starts
+  with `if __name__ != "__main__": raise ImportError(...)`.
 - **Never compare two spellings of a path.** Git Bash mounts %TEMP% at /tmp,
   and a check that did refused every verifier's clone; the runner asks git
   `--show-cdup`.

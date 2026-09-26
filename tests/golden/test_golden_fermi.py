@@ -156,3 +156,26 @@ def test_a_basis_whose_rows_are_not_n_over_m_is_refused_before_it_is_cached(monk
         fermi.orbitals(6, 1, 192)
     monkeypatch.undo()
     assert fermi.orbitals.cache_info().currsize == 0
+
+
+def test_a_basis_whose_angles_were_built_coarse_is_refused_though_its_norms_hold(monkeypatch):
+    """The P0 verifier's fourth pass: a drop confined to the angles keeps every
+    row's norm (cos^2 + sin^2 = 1) and moved K 2^-56. This stands in for such a
+    drop during the build only: the first L cosines and sines take an angle off
+    by one part in 2^53, then the precision is back for the check's own cosines."""
+    real_cos, real_sin, n = mpmath.cos, mpmath.sin, {"cos": 0, "sin": 0}
+    L = 6
+
+    def coarse(real, name):
+        def f(x):
+            n[name] += 1
+            return real(x * (1 + mpmath.mpf(2) ** -53)) if n[name] <= L else real(x)
+        return f
+
+    fermi.orbitals.cache_clear()
+    monkeypatch.setattr(mpmath, "cos", coarse(real_cos, "cos"))
+    monkeypatch.setattr(mpmath, "sin", coarse(real_sin, "sin"))
+    with pytest.raises(fermi.PrecisionChanged, match=r"the basis: K\(0, 1\) is not its closed form"):
+        fermi.orbitals(L, 1, 176)
+    monkeypatch.undo()
+    assert fermi.orbitals.cache_info().currsize == 0
