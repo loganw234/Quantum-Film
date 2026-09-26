@@ -1,0 +1,36 @@
+{
+ "code": {
+  "quantum_film": "0.1.0"
+ },
+ "crystals": [
+  6,
+  7,
+  9,
+  13,
+  14
+ ],
+ "digest": "448d845cc3520b7c0b1d681254adb929b4cb5714900ab3eb9a5efd93eca8b162",
+ "format": "quantum-film/negative/v1",
+ "law": {
+  "L": 4,
+  "M": 16,
+  "N": 5,
+  "borrows": "trix",
+  "family": "determinantal",
+  "fermi_r2": 1,
+  "id": "pauli-4x4"
+ },
+ "source": {
+  "circuit_sha256": "ed767c01bd4b851d08993da80f715676e345fc95a10f3bda05400f738e400b36",
+  "commitment": "394300991b272221b4ca3a2ff4c5fa63cd8ea10bf66eec459dae3cd9a22a93f4",
+  "decode": "quantum_film.atlas.decode/v1",
+  "engine": "tomography-api-v2",
+  "fixed_at": "2026-09-25T22:53:12Z",
+  "job_id": "8586f1cc-a312-4ad4-8f4b-2ff2524676ae",
+  "kind": "atlas-emu",
+  "occurrences": 1,
+  "salt": "e30eadf492fd67136f8becfda00004c5c8a5df08b5fcc946987e05ea599853e9",
+  "shots": 4096
+ },
+ "stock": "pauli-4x4"
+}

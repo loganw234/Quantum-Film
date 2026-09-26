@@ -1,0 +1,14 @@
+{
+ "$schema": "https://api.mothquantum.com/schemas/JobStatusOutputBody.json",
+ "engine_id": "tomography-api-v2",
+ "job_id": "8586f1cc-a312-4ad4-8f4b-2ff2524676ae",
+ "progress": {
+  "detail": "Measuring 57 Pauli observable(s)",
+  "step": "executing"
+ },
+ "result_in_status": "equal to /result",
+ "status": "completed",
+ "submitted_at": "2026-09-25T22:52:49Z",
+ "updated_at": "2026-09-25T22:52:51Z",
+ "warnings": []
+}

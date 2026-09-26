@@ -1,0 +1,71 @@
+{
+ "atan2_calls": 51,
+ "basis": {
+  "exact": true,
+  "magnitudes_after_snapping": [
+   "0.0",
+   "0.25",
+   "0.3535533905932738"
+  ]
+ },
+ "checked": {
+  "code (git blob ids)": {
+   "quantum_film/circuits/givens.py": "a17a9f23872eee7d251d8ba7390acab0971609ec",
+   "quantum_film/circuits/givens_line.py": "825fd66297f52018e6f74743ab0c925a1f77f937",
+   "quantum_film/stocks.py": "d4bb3b8a3fa92d635382d1f8387c5b78a6d63166"
+  },
+  "head": "34c759e040433ceb89ae68851567b93e8e80cefe+dirty",
+  "what": "this machine's module writes exactly these bytes"
+ },
+ "circuit_sha256": "ed767c01bd4b851d08993da80f715676e345fc95a10f3bda05400f738e400b36",
+ "libm": {
+  "file_version": "10.0.22621.3593",
+  "library": "ucrtbase.dll (the Universal C Runtime)",
+  "math.atan2 equals its atan2 bit for bit": {
+   "on 10,000 random arguments": "10000 of 10000",
+   "on the plan's calls": "51 of 51"
+  },
+  "path": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+  "sha256": "d93ce42cd625510b2355de086bcd19e2c11307ccade7bad62b09c7f340a866ba"
+ },
+ "made_by": {
+  "code_commit": "6130b39e054125f5d7cb15c31d52b16de11d708c"
+ },
+ "note": "recorded after the run by --platform: what ties it to the text is the check that this machine's module writes exactly these bytes",
+ "numpy": {
+  "compilers": {
+   "c": "msvc 19.29.30159",
+   "c++": "msvc 19.29.30159"
+  },
+  "simd": {
+   "baseline": [
+    "SSE",
+    "SSE2",
+    "SSE3"
+   ],
+   "found": [
+    "SSSE3",
+    "SSE41",
+    "POPCNT",
+    "SSE42",
+    "AVX",
+    "F16C",
+    "FMA3",
+    "AVX2"
+   ]
+  },
+  "version": "2.2.6"
+ },
+ "platform": {
+  "machine": "AMD64",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "release": "11",
+  "system": "Windows",
+  "version": "10.0.22631"
+ },
+ "python": {
+  "implementation": "CPython",
+  "version": "3.12.9 | packaged by conda-forge | (main, Mar  4 2025, 22:37:18) [MSC v.1943 64 bit (AMD64)]"
+ },
+ "recorded_at": "2026-09-26T01:02:25Z"
+}
