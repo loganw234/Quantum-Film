@@ -37,7 +37,7 @@ export PYTHONIOENCODING=utf-8
 ONLY=""; SKIP=""; REQUIRE_ALL=0; LIST=0; RESUME=""; FRESH=0; BUDGET=""
 
 # Named cuts, checked against the derived stage list below.
-BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,pinned,fixer-cli,controls
+BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,pinned,develop,fixer-cli,controls
 
 die () { echo "FATAL: $*" >&2; exit 2; }
 
@@ -299,6 +299,10 @@ stage fixer "negative records: fixed, checked from the record alone, reproduced,
 need_file "${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" "libcft is not built at ${QF_CFT_ROOT:-vendor/cft-fp256} (CLAUDE.md has the build line)"
 stage pinned "libcft binary64 rolls equal the authority's; every certificate step exact on tight inputs, each directed call flipped fails; hand-off removed, a near-tie disagrees" -- \
   bash verify/pytest-stage.sh tests/pinned
+
+need_file "vendor/atlas-film/atlas_film/__init__.py" "atlas-film is not checked out (git submodule update --init vendor/atlas-film)"
+stage develop "rolls lay a sheet at the borrowed stock's own density; atlas-film's pinned negative and print, frozen bit for bit; a moved crystal moves the negative" -- \
+  bash verify/pytest-stage.sh tests/develop
 
 # §3: the control and its twin. The twin runs the fixer's own command line,
 # the one a user runs, on the generated records, and must pass: a command line

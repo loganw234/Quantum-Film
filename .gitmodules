@@ -1,3 +1,6 @@
 [submodule "vendor/cft-fp256"]
 	path = vendor/cft-fp256
 	url = https://github.com/loganw234/cft-fp256
+[submodule "vendor/atlas-film"]
+	path = vendor/atlas-film
+	url = https://github.com/loganw234/atlas-film
