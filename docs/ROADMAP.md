@@ -64,9 +64,9 @@ gaps its survey found are that step not yet taken.
   build, and show the digest match.
 - It would also serve challenge #8 if it calls the Atlas API.
 
-**P6: the notebook and the gallery.**
-- Challenge #10's notebook walks one roll from Atlas to a fixed record to a
-  print.
+**P6: the notebook and the gallery.** (The gallery is done: docs/prints/ and
+the web demo. The entry is for challenge #9 alone.)
+- A notebook walking one roll from Atlas to a fixed record to a print.
 - A gallery of prints, each captioned with its record's digest.
 
 **P7: hardware.**
