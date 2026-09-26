@@ -54,12 +54,17 @@ mixes density, grain size and correlation into one number
 - **The authority** is `quantum_film/golden/fermi.py`. It is checked by
   normalisation (all layouts of the 4x4 tile sum to 1), orthonormality, and
   precision independence.
-- **The circuit** is `quantum_film/circuits/givens.py`, held to the
-  authority's kernel to 1e-12 on a local statevector. For the 16-qubit tile
-  it has 59 rotations and 236 CNOTs.
-  - **It has not run on Atlas yet.** The tile Atlas ran on 2026-09-25 was a
-    research prototype with a different law: an open box's standing waves,
-    in snake order (docs/VALIDATION.md).
+- **The circuits.** Each is held to the authority's kernel to 1e-12 on a
+  local statevector.
+  - `quantum_film/circuits/givens.py` is the reference: 59 rotations and 236
+    CNOTs for the 16-qubit tile.
+  - `quantum_film/circuits/givens_line.py` is hardware-shaped: 51 rotations
+    and 102 CNOTs on the qubit line.
+  - **The law ran on Atlas through givens_line** (job 8586f1cc, 2026-09-25):
+    one-site 1.48 and pairs 2.52 standard errors, and no forbidden layout in
+    4,096 shots (docs/VALIDATION.md). An earlier tile Atlas ran that day was
+    a research prototype with a different law: an open box's standing waves,
+    in snake order.
 
 ### Pauli, 16-qubit tile
 

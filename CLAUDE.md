@@ -82,11 +82,11 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
    it, don't re-run it.
 7. **The account has `features: []`**: no QPU, no engine publishing
    (2026-09-25).
-8. **Know which circuit ran.** The tile Atlas ran on 2026-09-25 was
-   research/2026-09-25/emulsions/fermion_tile.py, an open box's standing waves
-   in snake order, not the shelf's Pauli law. Five documents said otherwise
-   until the P0 verifier checked the QASM hashes. A score is against one
-   law; name the circuit's SHA-256 beside it.
+8. **Know which circuit ran.** The first tile Atlas ran was research's open
+   box, not the shelf's law, and five documents said otherwise until the P0
+   verifier checked the QASM hashes. The shelf's law ran as job 8586f1cc
+   (givens_line, `ed767c01...`). A score is against one law; name the
+   circuit's SHA-256 beside it.
 
 ## Controls that cannot fail (every one happened, 2026-09-25/26)
 

@@ -47,7 +47,7 @@ from . import decode
 STOCK = "pauli-4x4"
 ENGINE = "tomography-api-v2"
 KIND = "atlas-emu"
-DECODE = "quantum_film.atlas.decode/v1"      # decode.layouts, as at b0e9ed1; committed before submission
+DECODE = decode.DECODE      # the rule's one name (decode.py); committed before submission
 SHOTS = 4096
 FORBIDDEN_BELOW = 1e-9     # as tests/golden/test_golden_law.py: allowed det >= 2.4e-4, forbidden |det| <= 6.5e-19
 ENGINE_Z = 4.5             # an emulator's own observables, within this many standard errors of the circuit's state

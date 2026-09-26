@@ -13,17 +13,18 @@ transposes. On qubits (a, b), U(G^T) maps |10> to c|10> + s|01> and |01> to
 that in gates every QASM 2 reader knows: cx a,b; a controlled-ry from b onto a
 written as ry, cx, ry, cx; then cx a,b.
 
-KNOWN COST, not yet paid down: this elimination uses at most N*M - N(N+1)/2
-rotations of 4 CNOTs each; an entry that is already exactly zero is skipped.
-For pauli-4x4 that is 59 rotations and 236 CNOTs (at most 65). The (M - N)*N
-layout with 2-CNOT rotations (Jiang et al. 2018; Kivlichan et al. 2018)
-needs 55 rotations and 110 CNOTs there, which is what hardware needs;
-docs/ROADMAP.md holds it as a parcel.
+KNOWN COST: this elimination uses at most N*M - N(N+1)/2 rotations of 4 CNOTs
+each; an entry that is already exactly zero is skipped. For pauli-4x4 that is
+59 rotations and 236 CNOTs (at most 65). The hardware-shaped layout is
+givens_line.py, the (M - N)*N places with 2-CNOT rotations (Jiang et al. 2018;
+Kivlichan et al. 2018): 51 rotations and 102 CNOTs for pauli-4x4, since four
+of its 55 places are structural zeros (P3, round 1).
 
-NOT YET RUN ON ATLAS. The 16-qubit tile Atlas ran on 2026-09-25 was
-research/2026-09-25/emulsions/fermion_tile.py, with another law (an open
-box's standing waves, in snake order). This circuit has been checked only
-on a local statevector.
+THIS CIRCUIT HAS NOT RUN ON ATLAS; it is the reference the kernel check holds
+on a local statevector. The shelf's law ran on Atlas through givens_line.py
+(job 8586f1cc, 2026-09-25). The 16-qubit tile Atlas ran earlier that day was
+research/2026-09-25/emulsions/fermion_tile.py, with another law (an open box's
+standing waves, in snake order).
 
 GAUGE: negating every rotation angle conjugates the kernel by diag(+-1), which
 leaves every occupation probability unchanged. It is the same film, so such a

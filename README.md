@@ -21,7 +21,7 @@ of the crystals is new.
 
 | stock | what lays the crystals | how its grain differs from real film | status |
 |---|---|---|---|
-| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler, and a circuit checked on a local statevector; not yet run on Atlas |
+| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler, and a hardware-shaped circuit whose law ran on Atlas and holds |
 | **Poisson** | uniform placement at the same density | none: the classical reference every other stock is measured against | on the shelf |
 | **Speckle** | Born-rule shots of a random pupil through a 2D quantum Fourier transform | crystals bunch; the grain's contrast equals the fidelity of the machine that exposed it | planned |
 
@@ -29,6 +29,22 @@ of the crystals is new.
 
 Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md).
 
+- **The shelf's Pauli law ran on Moth's Atlas emulator, and holds**
+  (2026-09-25, job 8586f1cc).
+  - **The circuit:** `givens_line.py`, 51 Givens rotations in 15 layers on
+    the qubit line, 102 CNOTs. Its QASM has SHA-256 `ed767c01bd4b851d...`.
+  - **The layouts:** 4,096 whole crystal layouts, every one of 5 crystals.
+  - **Against the exact law:**
+    - one-site frequencies within 1.48 standard errors, and all 120 pair
+      frequencies within 2.52 (chi^2 112.3 over 120);
+    - the whole distribution over the tile's symmetry orbits, chi^2 33.7 on
+      33 degrees of freedom;
+    - none of the 1,360 layouts the law forbids appeared.
+  - **Coherence:** the engine's own <XX> and <YY> on two sites, 0.3755 and
+    0.3687, match the exact 0.375.
+  - **The records:** 1,995 device rolls, each bound to a commitment committed
+    to git before the job's first status call. That ordering rests on the
+    code and the local clock.
 - **A fermion tile of this project's own ran on Moth's Atlas emulator**
   (2026-09-25). It had 16 qubits, 5 fermions and 256 CNOTs, and returned
   4,096 whole crystal layouts:
@@ -40,8 +56,7 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   it was decoded against known answers.
   - **That tile was a research prototype, not the shelf's Pauli law.** It
     filled the standing waves of an open box, not the Fermi disc of a
-    periodic tile. The shelf's circuit (`givens.py`, 236 CNOTs for
-    `pauli-4x4`) has so far been checked only on a local statevector.
+    periodic tile. The shelf's law ran later the same day (above).
   - This README first said otherwise, and so did four other documents.
     The P0 verifier caught it. Against the shelf's law, the same data
     score 20 standard errors off.

@@ -31,12 +31,13 @@ found are that step not yet taken.
   layout into atlas-film's `(K, thr)` sheet, the honesty floor and mean-K
   check, the first prints, and the film-science statistics.
 
-**P3: circuits for hardware.**
-- The (M - N) * N Givens layout with 2-CNOT rotations: 55 rotations and 110
-  CNOTs for the `pauli-4x4` tile, against 59 rotations and 236 CNOTs in
-  `givens.py` today.
-- The first run of the shelf's Pauli law on Atlas. The 2026-09-25 tile was a
-  research prototype with another law.
+**P3: circuits for hardware.** (Merged, round 1; docs/VALIDATION.md.)
+- Done: the (M - N) * N Givens layout with 2-CNOT rotations,
+  `quantum_film/circuits/givens_line.py`. It lays 51 rotations and 102 CNOTs
+  for `pauli-4x4`, since four of its 55 places are structural zeros, against
+  59 rotations and 236 CNOTs in `givens.py`.
+- Done: the first run of the shelf's Pauli law on Atlas, job 8586f1cc. The
+  2026-09-25 tile before it was a research prototype with another law.
 - Tile batches through Atlas, read through `decode`, fixed as device rolls
   with `fixed_at` and a commitment made before the results are read.
 - Negative control: the optimised circuit with one rotation dropped fails

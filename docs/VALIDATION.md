@@ -866,3 +866,63 @@ fails now. Its entry is `verifier-P0.md`, 04:12Z. Five defects:
   names the audit hook and its limit.
 
 verifier-P3 re-checked P3's fixes (961b385) the same hour: READY TO MERGE.
+
+## 2026-09-26 - P3 merged: the shelf's Pauli law ran on Atlas as a hardware-shaped circuit, and holds
+
+P3's branch (6130b39 to 961b385) is merged at 63a831e, after verifier-P3's
+re-check (READY TO MERGE, `verifier-P3.md` 04:18Z). Every figure below was
+re-run by verifier-P3, sharing no code with P3.
+
+- **The circuit.** `quantum_film/circuits/givens_line.py` is the (M - N)N
+  layout on the Jordan-Wigner line.
+  - pauli-4x4: 51 Givens rotations in 15 layers. Four of the 55 places are
+    structural zeros: every entry examined is at most 6.5e-17 or at least
+    0.25.
+  - 102 CNOTs, all between neighbours; depth 62, and 30 counting CNOTs only.
+  - Against golden's kernel on a local statevector: 4.8e-15. Over all 4,368
+    layouts, 3.6e-17.
+  - Every rotation dropped in turn fails the kernel check; the smallest
+    error is 0.1875.
+- **The run.** tomography-api-v2 job 8586f1cc, 4,096 shots, circuit
+  `ed767c01bd4b851d...`. Read only through `decode.layouts`:
+  - every layout held 5 crystals;
+  - one-site max |z| 1.48 (chi^2 9.8 over 16), and pairs max |z| 2.52 (chi^2
+    112.3 over 120);
+  - the whole distribution over the tile's 53 symmetry orbits: chi^2 33.7
+    on 33 degrees of freedom (verifier-P3);
+  - 0 of 4,096 shots on the 1,360 layouts the law forbids.
+
+  The engine's own <XX> and <YY> on sites 0 and 1 (0.3755 and 0.3687
+  against 0.375, the sign pinned) show a coherent state. A mixture with the
+  same layouts would give 0. The engine's <ZZ> equals decode's reading of
+  the same strings exactly (verifier-P3).
+- **The records.**
+  - 1,995 device rolls, one per distinct layout, with `occurrences` summing
+    to 4,096. Each passes the fixer, main's included.
+  - The commitment (434c705) was committed after the POST and before the
+    first status call. That ordering is shown by the code, with only the
+    local clock to date it: the server records no completion time, and
+    nothing third-party timestamps the commit.
+  - A completed job's status response carries the whole result, so the
+    ordering has to be before the first status call, not merely before the
+    result fetch.
+  - The QASM is committed beside the commitment, since its text depends on
+    atan2. The platform that wrote it (Python 3.12.9, numpy 2.2.6, ucrtbase)
+    is recorded beside it.
+- **At the merge, the lead also landed:**
+  - `pauli_tile.DECODE` taken from `decode.DECODE`, so the rule's name has
+    one home;
+  - 51 and 102 in ROADMAP.md, givens.py's docstring and STOCKS.md, where
+    this ledger's earlier entry said 55 and 110 (the generic bound);
+  - the Atlas result in README.md, STOCKS.md and DETERMINISM.md;
+  - circuits/__init__.py naming both circuits' tests.
+- **Left open (verifier-P3's minor items):**
+  - no test holds `--score`'s exit code, and its audit ignores the platform
+    record;
+  - `fixed_at` has no upper bound;
+  - a forgery that keeps every committed file consistent passes by design:
+    git history is the anchor.
+- One Atlas job of the six allowed was used.
+
+The merged tree: `run.sh --require-all` 12 passed, none skipped. All 1,995
+rolls pass the fixer. One pytest session over tests/: 180 passed.
