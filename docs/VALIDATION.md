@@ -1260,3 +1260,17 @@ are prose. The code, the records, the gates and the prints held. The lead re-rea
   modes. It holds eight, four of them independent: every wave vector whose length rounds to 1, the diagonals
   included. A reading of 0.238 there has a 1.6% chance in law, and 10 of 600 coating seeds gave one. "About 1 at
   every k" still holds in law. The error came first from verifier-P0's own earlier entry.
+
+## 2026-09-26 - round 2 closed: the paper, and the ledger archived
+
+- **The paper**, docs/chance-made-permanent.pdf (15 pages), is StoryDocs' build of its projects/quantum-film at
+  673148c there, byte for byte.
+  - Its build recomputes the numbers of 21 of its sentences from this repository's records, re-checks five
+    conditions its sentences rest on, and finds 20 cited figures in the documents they are attributed to. A
+    planted wrong number fails its build. A number outside those lists is held by nothing.
+  - No verifier read it. The demo and the poster were read only where verifier-P0's D1 reached them, in the S(k)
+    captions (round-2 ledger, lead.md 13:38Z).
+- **Round 2's ledger** is archived beside ParcelRound's fourth case study, as its `archive/round4-second-ledger.zip`,
+  with verifier-P0's scripts. The entries above that cite the round-2 ledger resolve there. The working copy is
+  deleted.
+- What round 2 left open is in docs/ROADMAP.md, "Carried from round 2".

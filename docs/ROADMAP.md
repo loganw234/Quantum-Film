@@ -97,6 +97,30 @@ What round 1's verifiers left open, each stated where it lives:
     (sys.gettrace and the rest);
   - operand types in the integer and primitive layers (INT1, CAST1b).
 
+## Carried from round 2
+
+What round 2 left open, each stated where it lives:
+- **The S(k) references.** Two figures the docs quote were computed by
+  verifier-P0's own scripts, and nothing in the tree reproduces them:
+  - the laws' expected S(k) on a sheet (README: 0.30-0.64 for Pauli);
+  - the bunched-tiling control (docs/STOCKS.md: 1.6 to 11.7).
+
+  P4 needs both, because Speckle's twin must be measured, not assumed
+  (docs/STOCKS.md). The scripts are archived with round 2's ledger, as
+  ParcelRound's `archive/round4-second-ledger.zip`.
+- **The prints' re-development.** `tools/first_prints.py --check`
+  re-develops all five prints, and no stage runs it. Only the Atlas print's
+  sheet is a gate (tests/develop). A slow stage in `make verify` would hold
+  the other four.
+- **The notices.** Nothing holds THIRD_PARTY_NOTICES.md against .gitmodules,
+  pyproject.toml and the site's import map. Before the submission one entry
+  was stale and three were missing (339e2ca).
+- **The demo, the poster and the paper.** No verifier read them, beyond the
+  S(k) captions verifier-P0's D1 reached. tests/docs/test_site.py holds the
+  demo's data to the records, and the paper's build holds the numbers it
+  lists (docs/VALIDATION.md, 2026-09-26). Nothing holds the rest of their
+  prose.
+
 ## After the week
 
 - **Colour:** the Pauli tripack (docs/STOCKS.md), through atlas-film's colour
