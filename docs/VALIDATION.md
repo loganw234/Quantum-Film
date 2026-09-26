@@ -926,3 +926,106 @@ re-run by verifier-P3, sharing no code with P3.
 
 The merged tree: `run.sh --require-all` 12 passed, none skipped. All 1,995
 rolls pass the fixer. One pytest session over tests/: 180 passed.
+
+## 2026-09-26 - P1 merged: the Pauli law in binary64 on libcft, the authority's roll by construction
+
+P1's branch (e65e98c to b7cb207) is merged at a389653, after verifier-P1's
+fourth pass (READY TO MERGE, `verifier-P1.md` 06:50Z). The lead's
+integration is 04fe2fe. Figures marked (v) were re-run by verifier-P1 with
+scripts of its own.
+
+- **What it is.** `quantum_film/pinned` lays the Pauli law in binary64 on
+  libcft, cft-fp256's C library, through a ctypes shim. Every operation that
+  rounds is a libcft call.
+  - The certificate encloses the EXACT chain rule by directed rounding. A
+    draw is decided only when the target's enclosure clears every boundary
+    by TAU = 2^-200, which is 2^24 times the authority's margin.
+  - A roll with any draw it cannot certify goes whole to golden, whose
+    refusals propagate. golden's first draws must be the certified ones, or
+    the path raises `EnclosureBroken`.
+  - The projections are bounded through Q = A^T T and a certified F < 1 on
+    Q^T Q - I. An interval Gram-Schmidt widened 2.5-3x a draw on the 16x16
+    stock, to 1.3e-4 by draw 24, and would have handed off nearly every roll.
+  - The tile edge must be a power of two, so the angles are dyadic; another
+    edge is refused by name.
+- **Equality.** 2,300 pauli-4x4 rolls (seeds 1-2,000 and 9,001-9,300) and
+  740 pauli rolls (seeds 1-700 and 9,001-9,040) equal the authority's, and
+  none was handed off.
+  - The tightest clearance was 2.0e8 enclosure widths on pauli-4x4 and 2.1e5
+    on pauli.
+  - verifier-P1 (v): 600 of 600 and 60 of 60 equal, and no exact value
+    outside the enclosures on 300 streams.
+- **The named control.** On 6 of 6 streams, a target was planted inside
+  binary64's own error, 2.8e-17 to 3.4e-16 from a boundary (relative). With
+  the hand-off removed each roll disagrees with the authority; as shipped,
+  each agrees, handed off at the planted draw. The brief's plant, about
+  1e-14 from a boundary, could not fail: binary64 decides it right (P1,
+  2026-09-25 23:17Z).
+- **Precision, plain round-to-nearest.** No random roll parted at any
+  format: binary32 on 5,800 rolls, binary64 and binary128 on 2,300.
+  - The worst error in (boundary - target), in units of u: binary32 4.6e-7,
+    binary64 1.7e-15, binary128 1.3e-33.
+  - Random targets came no closer than 1.2e-6 to a boundary.
+  - Planted on a ladder of distances, each format parts inside its own error,
+    on the side its error points to.
+  - The 2 of 40 binary32 films of 2026-09-25 above were a 32x32 research tile
+    with 128 crystals. P1's report called it the 64x64 prototype; the entry
+    above says 32x32.
+- **Timings.** They were taken on a throttled desktop, where processes got
+  0.22-0.61 of a core, so the ratios are the figures. The certified roll
+  takes 0.62x the authority's wall time on pauli (0.69x CPU), and 3.5x on
+  pauli-4x4. There its 302 libcft calls a roll make call overhead dominate.
+- **What sees a faulty certificate.** Equality did not. 10 of 11 faults
+  planted in the certificate passed equality, exact containment and the
+  control, and each fails a step test. Each step is held to exact rationals
+  on tight inputs, where only its own roundings separate its bound from the
+  exact value. Every directed call flipped to its other direction fails its
+  step (the mutation gate).
+- **verifier-P1's four passes.**
+  1. 04:32Z. Five defects:
+     - a refusal after a hand-off came back misnamed;
+     - six one-ulp faults in the wrong direction passed every gate, because
+       wide boxes hid the slack;
+     - six respellings passed the source rule;
+     - the caches were writable;
+     - a non-bytes stream was accepted.
+  2. 05:38Z: seven new faults passed every gate, and five respellings passed
+     the new allowlist.
+  3. 06:24Z: the end-to-end check read the position `decide` traced, not the
+     one it returned. A two-line fault, a decision certified without its Gram
+     factor and traced honestly, passed every gate and 300 of 300 equal rolls,
+     while certifying the wrong site on a tight input.
+  4. 06:50Z: READY TO MERGE. The check now holds the returned decision, with
+     targets planted either side of every boundary on family G's first three
+     plans. N3b gives 317 problems there, and so does its respelling past the
+     rule (v).
+- **Stated limit** (certificate.py). The source rule reads spellings. Inside
+  a step, the tight check sees any rounding on its inputs. In the
+  orchestration, a fault passes only if it is spelled past the rule AND moves
+  none of the end-to-end check's claims on that check's inputs.
+- **Left open** (verifier-P1's minor items):
+  - N3m. It returns the unsound decision only where the Gram bound F is below
+    2^-40, and passes every gate: family G's F is about 2^-36, so no planted
+    target reaches it. On a family off orthonormal by 2^-44 it certifies 2
+    wrong sites. It lies inside the stated limit. A laddered family with a
+    smaller F would narrow it (believed, not tried).
+  - A field added to Located passes the class-shape rule. It cannot pass
+    silently, since Located's construction would then fail on every roll.
+- **At the merge, the lead also landed:**
+  - `pinned` in the Makefile's help and in README's and CLAUDE.md's budget
+    lines;
+  - P1's duplicate basename check removed, since tests/docs/test_registry.py
+    holds it for every directory;
+  - ROUND1.md: a roll is handed off whole, not per draw;
+  - DETERMINISM.md: the pinned path, its checks and its gap;
+  - README: the pinned path, and the binary32 figure's tile;
+  - ROADMAP: P1 merged;
+  - CLAUDE.md: equality cannot see a faulty certificate.
+
+The merged tree at 04fe2fe:
+- `run.sh --require-all` (run 20260925-234943-9312-04fe2fe): 13 passed,
+  none skipped, 51 s;
+- the quick budget at a389653: 11 passed, 56 s, with a verifier running
+  beside it;
+- one pytest session over tests/: 537 passed. That is 539 less the two
+  duplicate basename tests.
