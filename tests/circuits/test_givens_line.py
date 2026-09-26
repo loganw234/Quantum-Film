@@ -117,6 +117,24 @@ def test_the_two_cnot_block_is_the_givens_rotation(b):
     assert np.max(np.abs(U - want)) < 1e-15
 
 
+def test_pauli_expectations_are_the_matrices_signs_included():
+    """Held to explicit Kronecker products on a random complex 3-qubit state, every
+    one- and two-qubit string: the sign of <XX> that the engine is held to rests
+    on this (qubit 0 is the first factor, as it is axis 0)."""
+    rng = np.random.default_rng(7)
+    psi = rng.standard_normal((2, 2, 2)) + 1j * rng.standard_normal((2, 2, 2))
+    psi /= np.linalg.norm(psi)
+    P = {"I": np.eye(2), "X": np.array([[0, 1], [1, 0]]), "Y": np.array([[0, -1j], [1j, 0]]),
+         "Z": np.diag([1, -1])}
+    for a, b in itertools.product("IXYZ", repeat=2):
+        ops = {q: s for q, s in ((0, a), (2, b)) if s != "I"}
+        op = np.kron(np.kron(P[a], P["I"]), P[b])
+        want = np.vdot(psi.reshape(-1), op @ psi.reshape(-1)).real
+        assert abs(givens_line.pauli_expectation(psi, ops) - want) < 1e-14, (a, b)
+    with pytest.raises(ValueError, match="not a Pauli"):
+        givens_line.pauli_expectation(psi, {0: "H"})
+
+
 def test_the_circuit_conserves_the_crystal_count(psi):
     n1, _ = givens_line.occupations(psi)
     assert abs(float(n1.sum()) - N) < 1e-12

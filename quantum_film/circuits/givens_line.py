@@ -26,6 +26,19 @@ above GAP (for pauli-4x4: at most 6.5e-17, or at least 0.25). A skipped entry
 is therefore a structural zero, never a judgement call, and the circuit has
 the same shape on every machine; only its angles' last bits may differ.
 
+THE CONVENTION at an empty place: no rotation is laid wherever the entry to
+be zeroed (b) is a structural zero, WHATEVER its neighbour a. At pauli-4x4's
+first empty place (layer 1, columns 11 and 12) a and b are both exactly 0.0,
+so any rotation laid there needs a rule for atan2(0, 0). Measured, with the
+rule named (P3 and verifier-P3, 2026-09-26), all exact:
+  - this module, b <= ZERO skipped:          51 rotations, kernel error 4.8e-15;
+  - only entries exactly 0.0 skipped:        53 rotations (b = 2.3e-17 noise is
+    rotated: -pi/2 on (9, 10), pi on (8, 9)), kernel error 4.8e-15;
+  - all 55 laid, the identity at the 0/0 place and atan2(b, a) on the raw
+    floats elsewhere (pi, pi/2 and pi, each set by entries of 2.3e-17):
+    55 rotations, 110 cx, kernel error 4.9e-15 (verifier-P3: 5.4e-15).
+Only the first lays no angle that rounding noise decides, and it is the cheapest.
+
 EACH ROTATION IN TWO CNOTS. On qubits p < q = p + 1 (states |n_p n_q>) the
 fermionic rotation maps |10> to cos(b)|10> + sin(b)|01> and |01> to
 -sin(b)|10> + cos(b)|01>, and leaves |00> and |11> alone: it is
@@ -78,10 +91,12 @@ class _Zeros:
         return False
 
 
-def plan(A, zeros=None):
+def plan(A, zeros=None, trace=None):
     """The layers of rotations (p, p + 1, b) that prepare the state whose orbitals
     are A's columns (M x N, orthonormal). Layer t is list t; an empty place in a
-    layer is an entry that was already exactly zero."""
+    layer is an entry that was already exactly zero. `trace`, a list if given,
+    receives (a, b) for every math.atan2(b, a) the plan takes: the one libm call
+    that decides the QASM text's bytes (pauli_tile.platform_record uses it)."""
     Q = np.array(A, dtype=float).T.copy()
     N, M = Q.shape
     if not 0 < N < M:
@@ -118,6 +133,8 @@ def plan(A, zeros=None):
             Q[:, c - 1], Q[:, c] = (a * Q[:, c - 1] + b * Q[:, c]) / r, (-b * Q[:, c - 1] + a * Q[:, c]) / r
             Q[i, c] = 0.0
             layer.append((c - 1, c, math.atan2(b, a)))
+            if trace is not None:
+                trace.append((float(a), float(b)))
         layers.append(layer)
     D = np.diag(Q[:, :N])
     if np.max(np.abs(Q[:, N:])) > 1e-12 or np.max(np.abs(Q[:, :N] - np.diag(D))) > 1e-12 \
@@ -252,6 +269,28 @@ def layout_law(psi, N):
     count = bits.sum(axis=0)
     law = {tuple(int(q) for q in np.flatnonzero(bits[:, n])): float(p[n]) for n in np.flatnonzero(count == N)}
     return law, float(p[count != N].sum())
+
+
+def pauli_expectation(psi, ops):
+    """<psi| P |psi> for a Pauli string, {qubit: "X" | "Y" | "Z"}, on a statevector
+    (qubit q = axis q, |1> = occupied). Signs included: this is what fixes the
+    sign of <X_p X_q> that the gauge leaves open until a circuit is chosen.
+    Z is the sign (-1)^n, X flips the axis, and Y = iXZ (Y|0> = i|1>)."""
+    psi = np.asarray(psi, dtype=complex)
+    phi = psi
+    for q, name in ops.items():
+        if name not in ("X", "Y", "Z"):
+            raise ValueError(f"{name!r} is not a Pauli")
+        if name in ("Z", "Y"):
+            phi = phi * np.array([1.0, -1.0]).reshape([2 if k == q else 1 for k in range(psi.ndim)])
+        if name in ("X", "Y"):
+            phi = np.flip(phi, axis=q)
+        if name == "Y":
+            phi = 1j * phi
+    value = np.vdot(psi, phi)
+    if abs(value.imag) > 1e-12:
+        raise ArithmeticError(f"<{ops}> has an imaginary part {value.imag:.1e}: not a Hermitian reading")
+    return float(value.real)
 
 
 def stats(gate_list, layers):

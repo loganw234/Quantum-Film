@@ -5,15 +5,20 @@ tomography-api-v2, scored against the authority and fixed as device rolls.
     python tools/pauli_atlas_run.py --dry-run     everything but the network; writes nothing
     python tools/pauli_atlas_run.py               ONE Atlas job (needs QF_ATLAS_AUTH), end to end
     python tools/pauli_atlas_run.py --fetch JOB   finish a run whose commitment is committed
-    python tools/pauli_atlas_run.py --score       re-read and re-score every committed P3 run, offline
+    python tools/pauli_atlas_run.py --score       audit and re-score every committed P3 run, offline;
+                                                  exits 1 if any check fails (pauli_tile.audit)
     python tools/pauli_atlas_run.py --controls    run both negative controls and print what they say
+    python tools/pauli_atlas_run.py --platform    record, beside each committed QASM without one, the
+                                                  platform that writes its bytes (refused if this one does not)
 
 A live run, in this order (quantum_film/atlas/pauli_tile.py says why):
   1. refuse a dirty tree, or main unless --on-main; build the circuit from the
      committed code and hold it to the authority's law on a local statevector;
-  2. submit; form the commitment; write it, and the exact QASM text, under
-     docs/records/<UTC date>/p3/ and git-commit them BEFORE any status or
-     result call (a completed job's status response carries the result);
+  2. submit; form the commitment; write it, the exact QASM text and the
+     platform that wrote that text under docs/records/<UTC date>/p3/, and
+     git-commit them BEFORE the first status call (a completed job's status
+     response carries the result). That order is this code's; the only
+     timestamps on it are local, and nothing third-party dates the commit;
   3. poll; fetch the result once; read it through decode.layouts; score it
      against the authority's kernel, the circuit's SHA-256 beside the score;
   4. fix one device roll per distinct layout; check every file with the
@@ -109,15 +114,37 @@ def engine_summary(rows):
     worst = max(rows, key=lambda r: abs(r[3]))
     return {"n": len(rows), "max_abs_z": abs(worst[3]), "worst": worst[0],
             "coherence": [{"observable": n, "measured": m, "exact": e, "z": z} for n, m, e, z in rows
-                          if n.startswith("|<")]}
+                          if n in ("<XX>_01", "<YY>_01")]}
 
 
 def print_engine(rows, sha):
     s = engine_summary(rows)
-    coh = "; ".join(f"{c['observable']} {c['measured']:.4f} against {c['exact']:.4f} (z {c['z']:+.2f})"
+    coh = "; ".join(f"{c['observable']} {c['measured']:+.4f} against {c['exact']:+.4f} (z {c['z']:+.2f})"
                     for c in s["coherence"])
-    print(f"  circuit {sha[:16]}  the engine's own {s['n']} observables (no decode): max |z| {s['max_abs_z']:.2f} "
-          f"({s['worst']}); {coh}")
+    print(f"  circuit {sha[:16]}  the engine's own {s['n']} observables (no decode), against the circuit's state, "
+          f"signs included: max |z| {s['max_abs_z']:.2f} ({s['worst']}); {coh}")
+
+
+def committed_state(out, line):
+    """The statevector of the committed QASM text: what the engine's observables are held to."""
+    gate_list, M = givens_line.from_qasm((out / line["qasm_file"]).read_bytes().decode("ascii"))
+    return givens_line.simulate(gate_list, M)
+
+
+def platform_file(qfile):
+    return qfile.with_name(qfile.name[:-len(".qasm")] + ".platform.json")
+
+
+def platform_text(qasm, code_commit, note):
+    """The record of the platform that writes this QASM text, or None if refused."""
+    head = git("rev-parse", "HEAD") + ("+dirty" if git("status", "--porcelain", "--", "quantum_film") else "")
+    try:
+        rec = pauli_tile.platform_record(qasm, {"code_commit": code_commit}, head)
+        rec.update(recorded_at=now(), note=note)
+        return pauli_tile.safe_json(rec)
+    except (AssertionError, OSError, PermissionError) as e:
+        print(f"no platform record: {e}")
+        return None
 
 
 def preflight(on_main, strict=True):
@@ -162,6 +189,11 @@ def dry_run(args):
                                       shots=args.shots, qasm_file=f"circuit-{sha[:16]}.qasm",
                                       submitted_at="<at submission>", code_commit=code_commit)
     print(f"would commit, before any result: {json.dumps(line, sort_keys=True)}")
+    made_on = platform_text(qasm, code_commit, "dry run")
+    if made_on:
+        rec = json.loads(made_on)
+        print(f"and beside the QASM, the platform that writes it: Python {rec['python']['version'].split()[0]}, "
+              f"numpy {rec['numpy']['version']}, libm {rec['libm'].get('library')} {rec['libm'].get('file_version')}")
     print(f"branch {branch}, HEAD {code_commit[:12]}{', DIRTY: a live run would refuse' if dirty else ''}")
 
 
@@ -169,6 +201,8 @@ def live(args):
     code_commit, branch, _ = preflight(args.on_main)
     gate_list, qasm, sha, _st = build()
     body = outgoing(qasm, sha, gate_list, args.shots)
+    # Everything that could fail is done before the POST: after it, a job exists and must get its commitment.
+    made_on = platform_text(qasm, code_commit, "recorded by the run itself, before submission")
     salt = os.urandom(32).hex()
     code, sub = call("POST", f"/api/v1/engines/{pauli_tile.ENGINE}/process", body)
     if code >= 300 or not isinstance(sub, dict) or not isinstance(sub.get("job_id"), str):
@@ -188,6 +222,9 @@ def live(args):
     with open(jsonl, "a", encoding="ascii", newline="\n") as f:
         f.write(json.dumps(line, sort_keys=True) + "\n")
     paths = [qfile, jsonl]
+    if made_on and not platform_file(qfile).exists():
+        platform_file(qfile).write_text(made_on, encoding="ascii", newline="\n")
+        paths.append(platform_file(qfile))
     try:                    # the submit exchange goes with it, unless the scan refuses it
         text = pauli_tile.safe_json({"method": "POST", "path": f"/api/v1/engines/{pauli_tile.ENGINE}/process",
                                      "body": body, "status": code, "response": sub})
@@ -240,7 +277,7 @@ def finish(args, out, line):
     K = pauli_tile.golden_kernel()
     forbidden, _ = pauli_tile.forbidden_layouts(K, pauli_tile.shape()[3])
     sc = pauli_tile.score(counts, K, forbidden, line["circuit_sha256"])
-    engine = pauli_tile.engine_observables(result, K)
+    engine = pauli_tile.engine_observables(result, committed_state(out, line))
     sc["engine_observables"] = engine_summary(engine)
     records, refused = pauli_tile.device_rolls(counts, line, now())
     rolls = out / f"rolls-{job[:8]}"
@@ -280,45 +317,59 @@ def finish(args, out, line):
 
 
 def rescore(_args):
-    """Offline: every committed run re-read from its committed result, re-scored,
-    and held to its committed QASM, commitment and records."""
-    K = pauli_tile.golden_kernel()
-    L, r2, M, N = pauli_tile.shape()
-    forbidden, _ = pauli_tile.forbidden_layouts(K, N)
-    runs = 0
+    """Offline: every committed run audited (pauli_tile.audit: the circuit, the
+    commitment, the records, the score, the engine's observables) and re-scored.
+    Exits 1 if any check fails, or if there is no committed run to check."""
+    K, forbidden, _dets = pauli_tile.law_of()
+    runs, problems = 0, []
     for jsonl in sorted(RECORDS.glob("*/p3/commitments.jsonl")):
         out = jsonl.parent
         for raw in jsonl.read_text(encoding="ascii").splitlines():
             line = json.loads(raw)
-            job = line["job_id"]
-            qasm = (out / line["qasm_file"]).read_bytes().decode("ascii")
-            held = pauli_tile.check_circuit(givens_line.from_qasm(qasm)[0], K, N)
-            ok_hash = pauli_tile.sha256_text(qasm) == line["circuit_sha256"]
-            ok_commit = line["commitment"] == fixer.commitment(
-                stock=line["stock"], **{k: line[k] for k in fixer.COMMITTED})
-            print(f"job {job}: committed QASM {rel(out / line['qasm_file'])} hashes to the commitment's circuit: "
-                  f"{ok_hash}; the commitment recomputes: {ok_commit}; the QASM against the authority: kernel "
-                  f"{held['kernel_error']:.1e}, law {held['law_error']:.1e}")
-            resf = out / f"atlas-{job[:8]}-result.json"
-            if not resf.exists():
-                print(f"job {job}: no committed result")
-                continue
-            result = json.loads(resf.read_text(encoding="ascii"))["response"]["result"]
-            counts = pauli_tile.layouts(result)
-            recs = {}
-            for f in sorted((out / f"rolls-{job[:8]}").glob("*.json")):
-                rec, problems = fixer.check_file(f)
-                if problems:
-                    print(f"   REFUSED {rel(f)}: {problems}")
-                recs[tuple(rec["crystals"])] = rec["source"]["occurrences"]
-            fits = {Y: c for Y, c in counts.items() if len(Y) == N}
-            print(f"job {job}: {len(recs)} committed records; they are the result's {N}-crystal layouts, "
-                  f"occurrences and all: {recs == fits}")
-            print_score(pauli_tile.score(counts, K, forbidden, line["circuit_sha256"]), f"re-scored job {job}")
-            print_engine(pauli_tile.engine_observables(result, K), line["circuit_sha256"])
+            job = str(line.get("job_id"))
+            run, found = pauli_tile.load_run(out, line)
+            found += pauli_tile.audit(run)
+            print(f"job {job}: {len(run['records'])} committed records under {rel(out)}; "
+                  f"{len(found)} problem(s) in the audit")
+            problems += [f"job {job[:8]}: {p}" for p in found]
             runs += 1
+            try:
+                result = run["result"]["response"]["result"]
+                print_score(pauli_tile.score(pauli_tile.layouts(result), K, forbidden, line.get("circuit_sha256")),
+                            f"re-scored job {job}")
+                print_engine(pauli_tile.engine_observables(result, committed_state(out, line)),
+                             line.get("circuit_sha256"))
+            except (KeyError, TypeError, ValueError, OSError) as e:
+                print(f"job {job}: not re-scored ({e.__class__.__name__}: {e})")
     if not runs:
-        raise SystemExit("no committed P3 run under docs/records/*/p3/")
+        problems.append("no committed P3 run under docs/records/*/p3/")
+    for p in problems[:40]:
+        print(f"PROBLEM {p}")
+    if len(problems) > 40:
+        print(f"PROBLEM ... and {len(problems) - 40} more")
+    print(f"{runs} committed run(s) audited: {'ALL CHECKS HOLD' if not problems else f'{len(problems)} PROBLEM(S)'}")
+    if problems:
+        raise SystemExit(1)
+
+
+def platform(_args):
+    """A platform record beside every committed QASM that has none. This one
+    writes it only if this machine's module writes exactly that QASM's bytes."""
+    written = 0
+    for jsonl in sorted(RECORDS.glob("*/p3/commitments.jsonl")):
+        for raw in jsonl.read_text(encoding="ascii").splitlines():
+            line = json.loads(raw)
+            qfile = jsonl.parent / line["qasm_file"]
+            if platform_file(qfile).exists():
+                continue
+            text = platform_text(qfile.read_bytes().decode("ascii"), line["code_commit"],
+                                 "recorded after the run by --platform: what ties it to the text is the check "
+                                 "that this machine's module writes exactly these bytes")
+            if text:
+                platform_file(qfile).write_text(text, encoding="ascii", newline="\n")
+                print(f"wrote {rel(platform_file(qfile))}")
+                written += 1
+    print(f"{written} platform record(s) written; commit them by hand")
 
 
 def controls(_args):
@@ -371,6 +422,7 @@ def main():
     mode.add_argument("--fetch", metavar="JOB")
     mode.add_argument("--score", action="store_true")
     mode.add_argument("--controls", action="store_true")
+    mode.add_argument("--platform", action="store_true")
     ap.add_argument("--shots", type=int, default=pauli_tile.SHOTS)
     ap.add_argument("--wait", type=int, default=900, help="seconds to poll before giving up (then --fetch)")
     ap.add_argument("--on-main", action="store_true", help="allow a live run to commit on main")
@@ -382,6 +434,8 @@ def main():
         rescore(args)
     elif args.controls:
         controls(args)
+    elif args.platform:
+        platform(args)
     elif args.fetch:
         preflight(args.on_main)
         out, line = find_line(args.fetch)
