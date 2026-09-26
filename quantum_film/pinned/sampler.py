@@ -1,7 +1,9 @@
 """The Pauli law on pinned binary64: libcft's chain rule, certified draw by draw.
 
 WHAT IT RETURNS: the authority's roll (quantum_film.golden.fermi), for every
-stock and stream, by construction.
+stream, by construction, on any Pauli stock whose tile edge L is a power of
+two (both shelf stocks are); another L is refused by name, because its angles
+2m/L are not dyadic and cospi and sinpi could not take them exactly.
 
 1. Every draw is decided from ENCLOSURES of the EXACT chain rule's cumulative
    weights and target, computed in binary64 by libcft under directed rounding
