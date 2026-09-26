@@ -111,9 +111,11 @@ fi
 # that git cannot read is refused rather than called "nogit".
 # A tree that is not its own git toplevel (an export copied inside another
 # repository) would otherwise be stamped with that repository's commit
-# (verifier-P0's re-check, FAILURE-MODES C2): it is "nogit".
-TOP=$(git rev-parse --show-toplevel 2>/dev/null) && TOP=$(cd "$TOP" 2>/dev/null && pwd)
-if [ "$TOP" = "$ROOT" ] && COMMIT=$(git rev-parse --short HEAD 2>/dev/null); then
+# (verifier-P0's re-check, FAILURE-MODES C2): it is "nogit". The test is
+# --show-cdup, which is empty exactly at the toplevel, and needs no path
+# spelling: comparing two spellings refused every clone under %TEMP%, which
+# Git Bash mounts at /tmp (verifier-P0's third pass).
+if CDUP=$(git rev-parse --show-cdup 2>/dev/null) && [ -z "$CDUP" ] && COMMIT=$(git rev-parse --short HEAD 2>/dev/null); then
   STATUS=$(git status --porcelain) || die "git status failed in $ROOT"
   DIRTY=$([ -n "$STATUS" ] && echo "+dirty" || echo "")
 elif [ -e "$ROOT/.git" ]; then
