@@ -28,12 +28,12 @@ target's enclosure clears every boundary it is compared with by TAU.
 
 EVERY ROUNDING HERE GOES THROUGH quantum_film.pinned.bounds, which names the
 two attributes once. What this module may do is an ALLOWLIST read from its
-source (tests/pinned/test_source_rule.py): its imports, the calls it makes, the
+source (tests/pinned/test_pinned_source_rule.py): its imports, the calls it makes, the
 names of bounds and numpy it touches, and arithmetic only between integers.
 Whatever the list does not name is refused, so a rounding slip spelled some
 new way is refused too. Each step above is a small function whose claim is
 held to exact rational arithmetic on wide synthetic boxes, where every term of
-it matters, with a planted fault per step (tests/pinned/test_certificate.py).
+it matters, with a planted fault per step (tests/pinned/test_pinned_certificate.py).
 The end-to-end gates cannot see such a fault: the enclosures have slack, and
 faults in their composition passed both the equality gate and the planted
 control when tried (2026-09-25).
@@ -189,7 +189,7 @@ def locate(t_lo, t_hi, b_lo, b_hi):
 @lru_cache(maxsize=16)
 def enclosure(L, r2):
     """The exact basis enclosed at binary64: cospi and sinpi of the exact angles rounded down and up, times
-    sqrt(2/M) rounded down and up, and the constant 1/L exactly. tests/pinned/test_sampler.py holds it to the
+    sqrt(2/M) rounded down and up, and the constant 1/L exactly. tests/pinned/test_pinned_exact.py holds it to the
     authority's own orbitals, entry by entry."""
     M = L * L
     N = modes(L, r2)[0].size

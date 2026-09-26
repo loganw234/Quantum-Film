@@ -8,7 +8,7 @@ sum, __mul__, np.float64('0.1'), bd.LO, __import__; P1.md). So the certificate i
 
 - IMPORTS: exactly the statements in IMPORTS.
 - CALLS: a function or class the module defines; a callable it imports from IMPORTS; bounds' directed functions
-  (DIRECTED, each held bit for bit by tests/pinned/test_bounds.py); the numpy functions in NP_CALLS, which only
+  (DIRECTED, each held bit for bit by tests/pinned/test_pinned_bounds.py); the numpy functions in NP_CALLS, which only
   move, select or index, with no keyword (a dtype= converts); the builtins in BUILTINS; the methods in METHODS;
   float.fromhex; and the `trace` observer. Fraction takes integers only.
 - NAMES of bd and np: only those, called or not (bd.cft, bd.LO and np.dot are refused even uncalled).
@@ -22,9 +22,9 @@ sum, __mul__, np.float64('0.1'), bd.LO, __import__; P1.md). So the certificate i
 - No lambda, walrus, global, nonlocal, with, try, match, async, yield or del.
 
 What the rule rests on, held elsewhere: bounds' directed functions are exact floors and ceilings
-(tests/pinned/test_bounds.py); encode.exact and to_fraction are exact (tests/pinned/test_encode.py); basis.angles,
-assemble and modes are integer and data-movement code, and the enclosure they build holds the authority's own
-orbitals (tests/pinned/test_sampler.py).
+(tests/pinned/test_pinned_bounds.py); encode.exact and to_fraction are exact
+(tests/pinned/test_pinned_encode.py); basis.angles, assemble and modes are integer and data-movement code, and the
+enclosure they build holds the authority's own orbitals (tests/pinned/test_pinned_exact.py).
 """
 import ast
 import inspect
@@ -180,11 +180,34 @@ def test_the_certificate_does_only_what_the_allowlist_names():
 def test_the_directed_functions_are_bounds_whole_set_and_each_is_held_bit_for_bit():
     """A directed function added to bounds must join the list here AND the exactness check."""
     assert {n for n in vars(bounds) if n.endswith(("_lo", "_hi")) and callable(vars(bounds)[n])} == DIRECTED
-    held = pathlib.Path(__file__).with_name("test_bounds.py").read_text(encoding="utf-8")
+    held = pathlib.Path(__file__).with_name("test_pinned_bounds.py").read_text(encoding="utf-8")
     problems = next(n for n in ast.parse(held).body if isinstance(n, ast.FunctionDef) and n.name == "problems")
     used = {n.attr for n in ast.walk(problems) if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
             and n.value.id == "bounds"}
     assert DIRECTED <= used, sorted(DIRECTED - used)
+
+
+def shared_basenames(tests_root):
+    """Test-file basenames used in two directories. `make test` collects every stage's directory in one pytest
+    session, and pytest's default import mode refuses a second module of the same name: this package's first
+    test_uniform.py, beside golden's, broke it (2026-09-26). Each runner stage runs one directory, so no stage saw."""
+    seen = {}
+    for f in sorted(tests_root.rglob("*.py")):
+        if f.name.startswith("test_") or f.name.endswith("_test.py"):
+            seen.setdefault(f.name, []).append(f.parent.name)
+    return {n: d for n, d in seen.items() if len(d) > 1}
+
+
+def test_no_test_file_here_shares_its_basename_with_another_directory():
+    clashes = shared_basenames(pathlib.Path(__file__).resolve().parents[1])
+    assert {n: d for n, d in clashes.items() if "pinned" in d} == {}
+
+
+def test_the_basename_check_sees_a_clash(tmp_path):
+    for d, n in (("golden", "test_uniform.py"), ("pinned", "test_uniform.py"), ("pinned", "test_pinned_ok.py")):
+        (tmp_path / d).mkdir(exist_ok=True)
+        (tmp_path / d / n).write_text("", encoding="utf-8")
+    assert shared_basenames(tmp_path) == {"test_uniform.py": ["golden", "pinned"]}
 
 
 PLANTED = {

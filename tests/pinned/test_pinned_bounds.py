@@ -11,7 +11,7 @@ floor and ceiling from mpmath at 256 bits (the angles are irrational multiples
 of pi's cosines, so no value is within 2^-200 of a binary64 number). The
 planted tests swap LO, then HI, for round-to-nearest and show the check failing.
 
-What may call these functions, and how, is tests/pinned/test_source_rule.py's.
+What may call these functions, and how, is tests/pinned/test_pinned_source_rule.py's.
 """
 import random
 from fractions import Fraction

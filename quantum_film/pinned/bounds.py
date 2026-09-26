@@ -17,7 +17,7 @@ or below the exact sum of the exact products; the same holds up, under HI.
 A scan is that argument applied to each prefix. No error analysis is needed,
 and none is used: a bound here is a bound because of the attribute it was
 rounded under, which is exactly why a wrong attribute is the fault to fear.
-tests/pinned/test_bounds.py holds every function to exact rational arithmetic,
+tests/pinned/test_pinned_bounds.py holds every function to exact rational arithmetic,
 bit for bit where the operation is a single rounding, and shows that the same
 check fails when LO is swapped for round-to-nearest.
 
