@@ -30,6 +30,17 @@ def test_without_the_hand_off_a_planted_near_tie_disagrees_and_with_it_the_roll_
     assert c["plain_fp64"].crystals == without.crystals          # with the hand-off removed it is plain binary64
 
 
+@pytest.mark.parametrize("fmt", ["fp32", "fp64", "fp128"])
+def test_a_plant_inside_each_formats_own_error_parts_that_format_and_the_certified_roll_is_the_authoritys(fmt):
+    """The precision demonstration's premise: a target planted at draw 1 between the exact switch and the format's
+    own switch makes that format lay another roll from draw 1 on, and never the certified sampler."""
+    row = control.cascade(4, 1, stream("roll", "pauli-4x4", 1), 1, fmt)
+    parted_at, extra, _crystals = row[fmt]
+    assert parted_at == 1 and extra >= 1
+    ok, handed_off, at = row["certified"]
+    assert ok and (handed_off and at == 1) == (fmt != "fp32")     # binary32's plant sits outside the enclosure
+
+
 @pytest.mark.parametrize("seed,j", [(1, None), (4, 2)])
 def test_planted_targets_either_side_of_a_boundary_are_the_authoritys_at_every_distance(seed, j):
     distances = [Fraction(1, 10 ** k) for k in (6, 9, 12, 13, 14, 15, 16, 17)]

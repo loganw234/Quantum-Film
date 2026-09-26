@@ -342,6 +342,14 @@ def test_the_target_bounds_every_product_and_clears_it_by_tau():
     assert problems_target(c.target) == []
 
 
+def test_tau_is_2_to_the_minus_200_and_2_to_the_24_times_the_authoritys_margin():
+    """The check above reads TAU from the module, so its value is pinned here: a certified draw clears its boundaries
+    by TAU, far past the margin inside which the authority refuses (quantum_film/pinned/sampler.py, point 2)."""
+    from quantum_film.golden import fermi
+    from quantum_film.pinned.control import mpf_fraction
+    assert Fraction(c.TAU) == Fraction(1, 2 ** 200) == 2 ** 24 * mpf_fraction(fermi.margin())
+
+
 def test_the_target_check_sees_the_uniform_taken_at_the_wrong_end():
     assert problems_target(lambda u_lo, u_hi, s_lo, s_hi: (bd.mul_lo(u_hi, s_lo), bd.mul_hi(u_lo, s_hi)))
 
