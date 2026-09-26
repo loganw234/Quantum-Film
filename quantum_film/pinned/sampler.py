@@ -230,9 +230,14 @@ def _hand_off(L, r2, stream_bytes, uniform_fn, decided, why):
     try:
         crystals = golden.sample(L, r2, stream_bytes, uniform_fn=uniform_fn or golden_uniform, trace=watch)
     except golden.TieRefusal as refusal:
-        if len(order) < j or order != decided[:len(order)]:
-            raise EnclosureBroken(f"the authority refused draw {len(order)}, after the certificate had decided "
-                                  f"draws {decided}; {why}") from refusal
+        # Only the first j draws are the certificate's. A refusal at draw j or later is the authority's own, and
+        # propagates as it is; a refusal of a draw the certificate decided, or other draws before it, is not.
+        if len(order) < j:
+            raise EnclosureBroken(f"the authority refused draw {len(order)}, which the certificate had decided "
+                                  f"(draws {decided}); {why}") from refusal
+        if order[:j] != decided:
+            raise EnclosureBroken(f"the certificate decided draws {decided}, and the authority drew "
+                                  f"{order[:j]} before refusing draw {len(order)}") from refusal
         raise
     if order[:j] != decided:
         raise EnclosureBroken(f"the certificate decided draws {decided}, and the authority drew {order[:j]}")
