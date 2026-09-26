@@ -67,10 +67,16 @@ each print is a fraction of a millimetre of film seen crystal by crystal.
 
 ## The web demo, the video and the poster
 
-- **The web demo** is a static page in site/: an animated story of how film grain
-  forms, classically and on Atlas; A|B sliders over classical and quantum
-  crystals and prints; and a tile you roll crystal by crystal to watch the
-  Pauli exclusion hole open. Serve it with `python -m http.server -d site`.
+- **The web demo**, live at
+  [loganw234.github.io/Quantum-Film](https://loganw234.github.io/Quantum-Film/),
+  is the static page in site/. It holds:
+  - an animated story of how film grain forms, classically and on Atlas;
+  - A|B sliders over classical and quantum crystals and prints;
+  - a tile you roll crystal by crystal, to watch the Pauli exclusion hole
+    open.
+
+  GitHub Actions deploys it on every push that changes it. Locally:
+  `python -m http.server -d site`.
 - **The video** is that story, recorded. Its Record button saves the canvas,
   captions included. For a screen recorder, open it as `?solo&play`: the stage
   alone, filling the window, playing on its own.

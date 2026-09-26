@@ -1180,3 +1180,31 @@ units of 2 pi / side).
   re-laid, and the Atlas shots re-read and re-shuffled, with the recorded
   exposure. Every sheet, negative, print and scene digest matched. Pauli's
   23,296 rolls took 798 s on eleven workers.
+
+## 2026-09-26 - the web demo and the poster, drawn from the records
+
+At the owner's request, for the submission's web demo, video and poster.
+- **site/** is a static page, deployed to GitHub Pages by
+  .github/workflows/pages.yml. Its first deploy was run 36244571651 at 7e6f60d,
+  and it succeeded.
+  - The story is a pure function of its clock, 2:40 long, drawn in three.js
+    with its captions in the canvas. It records itself as a video.
+  - The A|B sliders compare classical and quantum crystals and prints.
+  - The tile toy samples in the browser in float64, and the page says so.
+- **Its data come from the records.** tools/site_data.py exports three things:
+  - every Atlas shot, as 24,576 16-bit masks;
+  - one golden layer each of Pauli and its Poisson twin;
+  - the first prints' structure factors and images.
+
+  tests/docs/test_site.py holds them to docs/records and docs/prints: the
+  shots in the canonical order, two named golden tiles per stock, and the
+  images byte for byte. A planted moved crystal fails it.
+- **The poster** (tools/poster.py, docs/prints/poster.png, 2400 x 3200) puts
+  three real prints on a strip of film: Atlas's, Pauli's and TRI-X's. The dots
+  behind them are the golden Pauli layer.
+- The story's figures are this ledger's:
+  - 51 rotations;
+  - 24,576 shots in six jobs;
+  - 29 layers;
+  - "about 30 to 70 percent" for Pauli's 0.29-0.72;
+  - the Atlas print's digest.
