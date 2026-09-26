@@ -47,7 +47,14 @@ exploration. The measurements themselves are in
   qubits, ascending] + [the rest, ascending], while the label is in circuit
   order. `quantum_film/atlas/decode.py` implements it, and
   tests/decode/test_decode.py replays the frozen run. Nothing in the response states
-  the order. The rule is inferred, and scoped to what the vectors show.
+  the order. The rule is inferred, and scoped to what the vectors show. A
+  record names the rule it was read with as `decode.DECODE`
+  (`quantum_film.atlas.decode/v1`).
+- **A completed job's STATUS response carries its whole result** (P3, on job
+  9e04918d and on its own job 8586f1cc, 2026-09-25). So "commit before
+  fetching the result" means before the first status call. A device roll's
+  commitment must be committed after the POST and before any status poll;
+  `client.run_job` polls at once, and never runs a device roll.
 
 ## The client
 

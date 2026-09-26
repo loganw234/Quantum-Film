@@ -41,3 +41,29 @@ def test_a_test_file_outside_every_stage_is_caught(tmp_path):
     (tmp_path / "tests" / "stray" / "law_test.py").write_text("", encoding="utf-8")
     dirs = staged_dirs("  bash verify/pytest-stage.sh tests/golden\n")
     assert orphans(tmp_path, dirs) == ["tests/stray/law_test.py", "tests/stray/test_lost.py"]
+
+
+def clashes(root):
+    """Test files that share a basename. The test directories are not packages,
+    so pytest imports each test file under its bare basename: two of one name
+    stop a single session over tests/ (`make test`) at collection, while each
+    stage, run alone, passes. P1's test_uniform.py beside golden's did exactly
+    that (P1, 2026-09-26)."""
+    seen = {}
+    files = set((root / "tests").rglob("test_*.py")) | set((root / "tests").rglob("*_test.py"))
+    for f in sorted(files):
+        seen.setdefault(f.name, []).append(f.relative_to(root).as_posix())
+    return {name: paths for name, paths in seen.items() if len(paths) > 1}
+
+
+def test_no_two_test_files_share_a_basename():
+    assert clashes(ROOT) == {}
+
+
+def test_a_basename_clash_is_caught(tmp_path):
+    """Negative control: the clash P1 met, planted."""
+    for d in ("golden", "pinned"):
+        (tmp_path / "tests" / d).mkdir(parents=True)
+        (tmp_path / "tests" / d / "test_uniform.py").write_text("", encoding="utf-8")
+    (tmp_path / "tests" / "pinned" / "test_pinned_uniform.py").write_text("", encoding="utf-8")
+    assert clashes(tmp_path) == {"test_uniform.py": ["tests/golden/test_uniform.py", "tests/pinned/test_uniform.py"]}

@@ -85,7 +85,13 @@ def call(method, path, body=None, save=True):
 def run_job(engine, body, wait=900, poll=2.0):
     """Submit, poll to a terminal state, fetch the result once. The platform's own
     code sample says results are deleted after the fetch, so the saved response
-    is the record."""
+    is the record.
+
+    NOT FOR A DEVICE ROLL. A completed job's status response already carries
+    its whole result (P3, 2026-09-25), and this polls status straight after
+    the POST, so the result reaches the process before a commitment could be
+    published. A device roll's runner POSTs, commits its commitment to git,
+    and only then polls; P3's Atlas tool does exactly that."""
     code, sub = call("POST", f"/api/v1/engines/{engine}/process", body)
     if code >= 300:
         return {"engine": engine, "submit_status": code, "error": sub}

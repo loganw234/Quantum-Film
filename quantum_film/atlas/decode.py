@@ -15,7 +15,13 @@ whole-register samples: for a crystal circuit, whole crystal layouts.
 This is inferred from the engine's output; the engine's code is not public.
 The rule is scoped to what the vectors show. A result it cannot account for
 is refused, never guessed at.
+
+DECODE names this rule in the records that were read with it (a device roll's
+`decode` field, which its commitment binds). A change to the rule is a new
+name, never an edit under the old one.
 """
+
+DECODE = "quantum_film.atlas.decode/v1"
 
 
 def order(label):

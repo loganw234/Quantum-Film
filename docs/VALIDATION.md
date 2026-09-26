@@ -791,3 +791,26 @@ verifier-P3's in the fixer. Their entries are in the round's ledger
 - Every new module on both parcel branches now passes. The files the rule
   still refuses there are the research scripts of their base, which main has
   since guarded.
+
+## 2026-09-26 - the status call carries the result, the decode rule has one name, and test basenames are unique
+
+Three things the parcels found that belong in P0's files, landed while their
+branches are checked:
+
+- **A completed job's status response carries its whole result** (P3, on
+  jobs 9e04918d and 8586f1cc). So a device roll's commitment is committed
+  after the POST and before the first status call. `client.run_job` polls at
+  once, and its docstring now says it never runs a device roll. docs/ATLAS.md
+  says so too.
+- **The decode rule's name has one home.** `decode.DECODE` is
+  `quantum_film.atlas.decode/v1`, the string P3's records bind in their
+  commitments. A change to the rule is a new name, never an edit under the
+  old one.
+- **No two test files share a basename.** The test directories are not
+  packages, so pytest imports each file under its bare basename. P1's
+  `test_uniform.py` beside golden's stopped one session over tests/
+  (`make test`) at collection, while each stage, run alone, passed.
+  - tests/docs/test_registry.py now fails any clash, with a planted clash as
+    its control.
+  - main and both parcel branches have none.
+  - One session over tests/ on main: 127 passed.
