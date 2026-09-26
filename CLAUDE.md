@@ -6,8 +6,8 @@ README says what this project is; this file says what will bite you.
 ## Start here: one command answers "does it still hold?"
 
 ```
-make verify-quick          # ~30 s: lint, docs, vectors, golden, circuits, decode, client, fixer, the control and its twin
-make verify                # adds cft and the live Atlas smoke; each skips BY NAME when it cannot run
+make verify-quick          # ~55 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, the control and its twin
+make verify                # adds cft and the live Atlas smoke; any stage that cannot run skips BY NAME
 bash verify/run.sh --list  # every stage, with * on what a budget selects
 ```
 
@@ -48,11 +48,10 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
   form, before it is cached: a brief drop can come and go between checks.
 - **Measure the authority against code it does not share, on a tile whose
   arithmetic is not accidentally exact.** The first premise gate compared it
-  with itself, and passed a binary64 `math.fsum` 2^-51.5 off. On the shelf's
-  tiles (L = 4, 16) several binary64 slips round to the exact value and show
-  nowhere. The references are exact Fractions on L = 4 and L = 6 (Niven: the
-  only L with rational cosines besides 1-3) and an independent 512-bit chain
-  rule on 16x16. The source rule (no binary64 in golden) reads spellings only.
+  with itself, and passed a binary64 `math.fsum` 2^-51.5 off; on L = 4 and 16
+  some slips round to the exact value. The references are exact Fractions on
+  L = 4 and 6 (Niven) and an independent 512-bit chain rule on 16x16. The
+  source rule (no binary64 in golden) reads spellings only.
 
 ## Atlas (Moth's platform): what bites
 
@@ -63,10 +62,9 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 2. **`curl: (43) A libcurl function was given a bad argument`, even without a
    key.** That is Git for Windows' bundled curl 8.8.0. Use
    `C:\Windows\System32\curl.exe`.
-3. **An API path turns into `C:/Program Files/Git/api/v1/...`.** MSYS path
-   conversion rewrote a slash-leading argument in Git Bash. Set
-   `MSYS_NO_PATHCONV=1`. It also stops git.exe reading `-C /c/...`, so the
-   runner runs git from inside the tree.
+3. **An API path turns into `C:/Program Files/Git/api/v1/...`**: Git Bash's
+   MSYS path conversion. Set `MSYS_NO_PATHCONV=1`; it also stops git.exe
+   reading `-C /c/...`, so the runner runs git from inside the tree.
 4. **The key never enters the tree.** `QF_ATLAS_AUTH` names a header file
    outside the repository. The client refuses a path inside it, and any
    scheme and host but `https://api.mothquantum.com` (tests/client/). Results
@@ -83,10 +81,9 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
 7. **The account has `features: []`**: no QPU, no engine publishing
    (2026-09-25).
 8. **Know which circuit ran.** The first tile Atlas ran was research's open
-   box, not the shelf's law, and five documents said otherwise until the P0
+   box, not the shelf's law; five documents said otherwise until the P0
    verifier checked the QASM hashes. The shelf's law ran as job 8586f1cc
-   (givens_line, `ed767c01...`). A score is against one law; name the
-   circuit's SHA-256 beside it.
+   (givens_line, `ed767c01...`). Name the circuit's SHA-256 beside a score.
 
 ## Controls that cannot fail (every one happened, 2026-09-25/26)
 
@@ -101,6 +98,10 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
   gate until the mirror plant, 2^-240 below (tests/golden/test_golden_fermi.py).
 - **A control named by a number can miss.** "Plant 1e-14 from a boundary"
   (P1's brief) is where binary64 is still right; plant inside its own error.
+- **Equality with the authority cannot see a faulty certificate.** 10 of 11
+  faults planted in P1's certificate passed equality, containment and the
+  control. Hold each step exactly on tight inputs, and hold the value a
+  function returns, not the trace it writes (verifier-P1's D10).
 
 ## cft-fp256 (the pinned-arithmetic path)
 
@@ -109,21 +110,21 @@ decide is refused (`TieRefusal`). Every stock parameter lives only in
   `cft.dll` (not `all`) took 8 s with 0 warnings on 2026-09-25. A git
   worktree has the submodule uninitialised: point `QF_CFT_ROOT` at a built
   one, and the `cft` stage checks that DLL (it prints its path and SHA-256).
+- **`pinned`, in the quick budget, needs that DLL too.** Without it pinned and
+  cft skip BY NAME, and `--require-all` fails them. In ctypes pass
+  `ndarray.ctypes.data` (2 us), not `.ctypes.data_as` (5 us an operand).
 - **The build** is the owner's tested invocation, from Git Bash:
   `PATH="/c/msys64/mingw64/bin:$PATH" make -C vendor/cft-fp256/host CC=gcc OS=Windows_NT TMP='C:/Users/logan/AppData/Local/Temp' TEMP='C:/Users/logan/AppData/Local/Temp' cft.dll > build.log 2>&1`.
   - The i686 `cc` first on PATH, a missing `OS=Windows_NT` (the DLL then
-    exports nothing) and stale ELF objects each read as a source bug. Check
-    `objdump -p .../cft.dll | grep -c ' cft_'` (about 120) before blaming
-    Python.
+    exports nothing) and stale ELF objects each read as a source bug: check
+    `objdump -p .../cft.dll | grep -c ' cft_'` (about 120) before Python.
   - Never pipe a long make through `| grep | head`: it hangs at 0% CPU.
-  - Two builds of the same source differ in exactly three fields: the COFF
-    and export-directory TimeDateStamps and the PE CheckSum (the P0
-    verifier). A hash with those zeroed would pin a build; today a DLL is
-    identified by its path and full hash in the log.
-- **libcft's transcendentals cost about 1,000x an fma**: natively, at
-  binary64 through cftmpfr, cos 0.24 ms and exp 0.12 ms per element (measured
-  2026-09-25; the first figure, 0.4 ms, was WASM). Build tables of cos, sin
-  and exp once per stock, never per pixel or per draw.
+  - Two builds of one source differ in three fields: the COFF and export
+    TimeDateStamps and the PE CheckSum. A hash with those zeroed would pin a
+    build; today a DLL is identified by its path and full hash in the log.
+- **libcft's transcendentals cost about 1,000x an fma**: cos 0.24 ms and exp
+  0.12 ms per element natively at binary64 (2026-09-25; 0.4 ms was WASM).
+  Build tables of cos, sin and exp once per stock, never per pixel or draw.
 
 ## Housekeeping that has bitten
 

@@ -21,7 +21,7 @@ of the crystals is new.
 
 | stock | what lays the crystals | how its grain differs from real film | status |
 |---|---|---|---|
-| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler, and a hardware-shaped circuit whose law ran on Atlas and holds |
+| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler; a binary64 sampler on libcft that lays golden's roll; a hardware-shaped circuit whose law ran on Atlas and holds |
 | **Poisson** | uniform placement at the same density | none: the classical reference every other stock is measured against | on the shelf |
 | **Speckle** | Born-rule shots of a random pupil through a 2D quantum Fourier transform | crystals bunch; the grain's contrast equals the fidelity of the machine that exposed it | planned |
 
@@ -68,16 +68,31 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
   | nearest-neighbour pair correlation | 0.47 | 1.02 | 1.73 |
   | print-scale RMS on one shared scale, first layout only (grey levels) | 5.70 | 9.45 | 16.73 |
 
-- **Arithmetic decides a roll unless it is pinned** (2026-09-25). The same
-  random numbers were run at binary32, and 2 of 40 fermion films parted from
-  the binary64 reference. From the first differing draw on, they shared only
-  55–86% of their crystals.
+- **Arithmetic decides a roll unless it is pinned** (2026-09-25). On a
+  32x32 research tile with 128 crystals, the same random numbers were run at
+  binary32, and 2 of 40 fermion films parted from the binary64 reference.
+  From the first differing draw on, they shared only 55–86% of their
+  crystals. On the shelf's own stocks no random roll parted at any format:
+  binary32 on 5,800 rolls, binary64 and binary128 on 2,300. Random targets
+  came no closer than about 1e-6 to a boundary, relative. A target planted
+  inside a format's own error parts that format's roll.
 - **The authority's rolls do not depend on its arithmetic.** A draw closer
   than 2^-224 to a boundary is refused, not decided. The 256-bit error in
   every target and boundary is at most 2^-249.2. It was measured draw by draw
   against references that share none of the authority's code: exact
   Fractions on pauli-4x4, whose kernel is rational, and an independent chain
   rule at 512 bits on the 16x16 stock.
+- **A binary64 sampler on libcft lays the authority's roll** (2026-09-26,
+  `quantum_film/pinned`). It encloses the exact chain rule by directed
+  rounding, and decides a draw only when the target clears every boundary by
+  2^-200. A roll with any draw it cannot decide goes whole to the authority.
+  - 2,300 pauli-4x4 and 740 pauli rolls equal the authority's, and none was
+    handed off.
+  - With the hand-off removed, a target planted inside binary64's own error
+    parts from the authority, as it must.
+  - On the 16x16 stock it takes 0.62x the authority's time.
+  - Equality with the authority could not see a faulty certificate: 10 of 11
+    planted faults passed it. Each step is held to exact arithmetic instead.
 - **Identical requests to Atlas returned different bytes wherever sampling
   was involved**, seeded engines included; a seed fixes the circuit, not
   the shots.
@@ -101,8 +116,8 @@ Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md)
 One command, in two sizes:
 
 ```bash
-make verify-quick   # ~30 s: lint, docs, vectors, golden, circuits, decode, client, fixer, the control and its twin
-make verify         # adds the cft and live-Atlas stages, each skipped BY NAME when it cannot run
+make verify-quick   # ~55 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, the control and its twin
+make verify         # adds the cft and live-Atlas stages; pinned and cft skip BY NAME without libcft, Atlas without a key
 bash verify/run.sh --list
 ```
 
@@ -112,6 +127,12 @@ bash verify/run.sh --list
   circuits, the float paths and Atlas's results are all scored against it.
 - **Refusals.** A draw that rounding could decide is refused by name, and so
   is a record whose bytes or law have changed.
+- **The pinned path is held step by step.** Each directed operation is held
+  to its exact floor or ceiling. Each certificate step is held to exact
+  rationals on tight inputs, where flipping any directed call fails it. The
+  decision the sampler draws from is held to the exact chain rule's, with
+  targets planted either side of every boundary. What its source rule cannot
+  see is stated in `quantum_film/pinned/certificate.py`.
 - **The negative control, and its twin.** Every run feeds the fixer's own
   command line a record with one crystal moved. If the fixer accepts it, or
   refuses it for any reason but its digest, the run fails. The twin feeds it
@@ -131,6 +152,7 @@ What is promised, and what is not, is written down once, in
 ```
 quantum_film/stocks.py     the shelf: every stock's parameters, in one table
 quantum_film/golden/       the authority: exact uniforms, the Pauli and Poisson laws
+quantum_film/pinned/       the Pauli law in binary64 on libcft: the authority's roll, certified or handed off whole
 quantum_film/circuits/     the Pauli law as a Givens circuit (float64, independent of golden)
 quantum_film/atlas/        the Atlas client (key kept outside the tree) and the count-order rule
 quantum_film/fixer.py      negative records: fix, check from the record alone, reproduce

@@ -15,6 +15,8 @@ around the shot:
    and seed give the same crystal layout on any machine. From the same
    version of this package they also give the same negative record, byte for
    byte, and so the same digest: a record names the version that fixed it.
+   Two paths lay it: the authority, and a binary64 path on libcft that lays
+   the authority's roll by construction (below).
 2. **A fixed record is permanent.** On disk it is exactly its canonical
    text. Its digest is re-derived from its content. A changed byte, a
    duplicated key, a changed law or a missing provenance field is refused by
@@ -104,6 +106,52 @@ could not fail: random seeds come no closer than about 2^-15 to a boundary,
 so it passed with the refusal removed, and with a margin below the
 arithmetic's own error (the P0 verifier, 2026-09-25).
 
+## A second path: binary64 on libcft, equal by construction
+
+`quantum_film/pinned` lays the same roll in binary64 on libcft (P1, round 1).
+It does not trust binary64 to be close. It shows, draw by draw, that the
+authority would decide the same way:
+- **It encloses the exact chain rule.** Every weight, boundary and target is
+  bracketed by directed rounding around its exact value, not around the
+  authority's. The projections are bounded through Q = A^T T and a
+  certified bound F < 1 on Q^T Q - I, not enclosed as a recurrence; an
+  interval recurrence widened 2.5-3x a draw on the 16x16 stock.
+  quantum_film/pinned/certificate.py's docstring has the argument.
+- **A draw is decided only when its target's enclosure clears every boundary
+  by TAU = 2^-200.** That is 2^24 times the authority's margin, and the
+  authority errs by about 2^-249. So on a certified draw the authority
+  neither refuses nor decides otherwise.
+- **A roll with any draw it cannot certify goes whole to the authority**,
+  whose refusals propagate. The hand-off also audits the certificate: the
+  authority's first draws must be the certified ones, or the path raises
+  `EnclosureBroken`.
+- **The tile edge must be a power of two**, so every angle 2m/L is dyadic and
+  libcft's cospi and sinpi take it exactly. Both shelf stocks qualify, and
+  another L is refused by name.
+
+**The checks** (tests/pinned, the `pinned` stage):
+- Each directed operation is held bit for bit to its exact floor or ceiling.
+- Each certificate step is held to exact rationals on tight inputs, where
+  only its own roundings separate its bound from the exact value. Flipping
+  any directed call to the other direction fails its step.
+- The decision the sampler draws from is held to the exact chain rule's, in
+  Fractions, with targets planted either side of every boundary.
+- The named control: with the hand-off removed, a target planted inside
+  binary64's own error parts from the authority. As shipped, the same stream
+  agrees.
+- What the source rule cannot see is stated in certificate.py: it reads
+  spellings.
+
+**Equality with the authority is not enough.** 10 of 11 faults planted in
+the certificate passed equality, exact containment and the control; each
+fails its step check. And the first end-to-end check held the decision the
+certificate traced, not the one it returned. A fault that traced honestly
+and returned another answer passed it (verifier-P1, 2026-09-26).
+
+Measured: 2,300 pauli-4x4 and 740 pauli rolls equal the authority's, and
+none was handed off. From the enclosure widths, P1 believes a random 16x16
+roll hands off about once in 10^6.
+
 ## What is NOT promised
 
 - **A device roll is not reproducible.** That covers Atlas's emulator and any
@@ -112,9 +160,15 @@ arithmetic's own error (the P0 verifier, 2026-09-25).
   returned different bytes wherever sampling was involved, and that seeds pin
   circuits, not shots.
 - **The numpy float path is not a column of this contract.** It rounds without
-  pinning. On 2026-09-25, binary32 parted 2 of 40 fermion films from the
-  binary64 reference; binary64 parted none of 80 comparisons. "None of 80" is
-  not "never".
+  pinning.
+  - On 2026-09-25, on a 32x32 research tile with 128 crystals, binary32
+    parted 2 of 40 fermion films from the binary64 reference. binary64
+    parted none of 80 comparisons.
+  - On the shelf's own stocks no random roll parted at any format: binary32
+    on 5,800 rolls, binary64 and binary128 on 2,300 (P1).
+  - A target planted inside a format's own error parts that format's roll.
+
+  "None of 5,800" is not "never".
 - **A circuit is scored, not trusted.** Its statistics are held to the
   authority's kernel: exactly on a local statevector, and with standard errors
   on an emulator or device.
@@ -127,6 +181,7 @@ arithmetic's own error (the P0 verifier, 2026-09-25).
 | records are permanent | `fixer.check` on every rule; a file is exactly its canonical text; the runner's control, a moved crystal the fixer's command line must refuse by its digest, and its twin, which the command line must accept | **a device roll's commitment binds by its anchor, not by its value.** The salt is in the record, so a changed field can be re-sealed with a recomputed commitment; what binds is the line committed to git before the job's first status call. That timing rests on the code and the local clock, with nothing third-party (verifier-P3). The commitment does not bind `kind`, `fixed_at` or `occurrences`, nor which law the circuit lays (quantum_film/fixer.py) |
 | the circuit lays the Pauli law | local statevector against the golden kernel to 1e-12, for `givens.py` and `givens_line.py`; every rotation dropped fails it. On Atlas (job 8586f1cc), `givens_line`'s layouts matched the exact law: 1.48 and 2.52 standard errors, no forbidden layout | **not yet on a device.** Atlas's emulator is noiseless. A device's fraction of forbidden layouts will be its first witness of noise. |
 | mpmath is accurate enough | the premise gate above: exact on pauli-4x4, independent at 512 bits on the 16x16 stock | a different mpmath version is a claim to test, not assume (1.4.1 in WSL matched) |
+| the pinned path lays the authority's roll | tests/pinned: every directed operation exact; every certificate step exact on tight inputs, each directed call flipped failing; the decision returned held to the exact chain rule with planted targets; the named control. 2,300 pauli-4x4 and 740 pauli rolls equal | **its source rule reads spellings**, a limit stated in certificate.py. In the orchestration a respelling passes if it moves none of the end-to-end check's claims on that check's inputs. **One libcft build**, identified by its path and hash; no hash with the PE timestamps zeroed pins it yet |
 
 ## Versioning
 

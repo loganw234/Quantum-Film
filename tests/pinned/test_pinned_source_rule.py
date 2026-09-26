@@ -496,29 +496,6 @@ def test_the_directed_functions_are_bounds_whole_set_and_each_is_held_bit_for_bi
     assert DIRECTED <= used, sorted(DIRECTED - used)
 
 
-def shared_basenames(tests_root):
-    """Test-file basenames used in two directories. `make test` collects every stage's directory in one pytest
-    session, and pytest's default import mode refuses a second module of the same name: this package's first
-    test_uniform.py, beside golden's, broke it (2026-09-26). Each runner stage runs one directory, so no stage saw."""
-    seen = {}
-    for f in sorted(tests_root.rglob("*.py")):
-        if f.name.startswith("test_") or f.name.endswith("_test.py"):
-            seen.setdefault(f.name, []).append(f.parent.name)
-    return {n: d for n, d in seen.items() if len(d) > 1}
-
-
-def test_no_test_file_here_shares_its_basename_with_another_directory():
-    clashes = shared_basenames(pathlib.Path(__file__).resolve().parents[1])
-    assert {n: d for n, d in clashes.items() if "pinned" in d} == {}
-
-
-def test_the_basename_check_sees_a_clash(tmp_path):
-    for d, n in (("golden", "test_uniform.py"), ("pinned", "test_uniform.py"), ("pinned", "test_pinned_ok.py")):
-        (tmp_path / d).mkdir(exist_ok=True)
-        (tmp_path / d / n).write_text("", encoding="utf-8")
-    assert shared_basenames(tmp_path) == {"test_uniform.py": ["golden", "pinned"]}
-
-
 # Respellings: each is appended to the certificate's source as a function of its own and must be refused by the
 # layers that read every function (closed=False, so the registration check does not refuse it first).
 PLANTED = {

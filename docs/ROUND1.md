@@ -48,9 +48,10 @@ ledger template.
     `cft_sha256`), located through `QF_CFT_ROOT`, defaulting to
     `<repo>/vendor/cft-fp256`;
   - a binary64 Pauli sampler on libcft that EQUALS the authority on every
-    roll by construction: a draw whose target lies within a stated,
-    justified error bound of a boundary is handed to the authority for
-    that draw;
+    roll by construction: a roll with a draw whose target lies within a
+    stated, justified error bound of a boundary is handed to the authority
+    whole (this line said "for that draw" until P1's merge: the authority
+    has no per-draw entry, and the brief said the whole roll);
   - measure the hand-off rate;
   - a precision demonstration at binary32, 64 and 128: which rolls part
     from the authority, and at which draw;

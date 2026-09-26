@@ -8,17 +8,21 @@ named negative control, and a verifier.
 
 ## The parcels
 
-**P1: cft, the pinned path.**
+**P1: cft, the pinned path.** (Merged, round 1; docs/VALIDATION.md.)
 - (Done in P0: libcft is built in the pinned submodule, and the `cft` stage
   is green.)
-- Add a ctypes shim for `cft_reduce_seg` and `cft_sha256`.
-- A binary64 Pauli sampler on libcft whose near-boundary draws are handed to
-  the authority. It then equals the authority by construction, and the
-  hand-off rate is measured.
-- A precision demonstration at binary32, 64 and 128: which rolls part, and
-  where.
-- Negative control: a sampler with the hand-off removed must disagree with
-  the authority on a planted near-tie.
+- Done: a ctypes shim over libcft, `quantum_film/pinned/cft.py`: its
+  elementwise operations under any rounding attribute, `cft_reduce_seg`,
+  `cft_sha256` and `cft_convert`, which cftmpfr does not bind.
+- Done: a binary64 Pauli sampler on libcft that certifies each draw against
+  the exact chain rule, or hands the whole roll to the authority. It equals
+  the authority by construction. The hand-off rate is 0 of 3,040 random
+  rolls.
+- Done: a precision demonstration at binary32, 64 and 128. On the shelf no
+  random roll parts; a target planted inside a format's own error parts it,
+  and the cascade from one parted draw is measured.
+- Negative control: a sampler with the hand-off removed disagrees with the
+  authority on a near-tie planted inside binary64's own error.
 
 **P2: atlas-film on pinned arithmetic.** The owner's direction (2026-09-25):
 atlas-film was always meant to move onto cft-fp256, and the gaps its survey
