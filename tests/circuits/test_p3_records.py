@@ -159,10 +159,14 @@ def test_control_2_a_committed_roll_with_its_job_id_altered_is_refused(run):
 
 
 def test_the_platform_that_wrote_the_qasm_is_recorded_beside_it(run):
-    """atan2 decides the text's last bits, so the text is the platform's too."""
+    """atan2 decides the text's last bits, so the text is the platform's too. Runs in one directory share a
+    QASM file: the tool refuses a file with other bytes, and writes the platform record once, at the first
+    run to write it. So the record names the code commit of a run that wrote that file (2026-09-26: six
+    runs, one file); with one run in a directory, that is exactly its own."""
     out = next(o for o, ln in RUNS if ln is run["line"])
     rec = json.loads((out / (run["line"]["qasm_file"][:-len(".qasm")] + ".platform.json")).read_text(encoding="ascii"))
     assert rec["circuit_sha256"] == run["line"]["circuit_sha256"]
-    assert rec["made_by"]["code_commit"] == run["line"]["code_commit"]
+    writers = {ln["code_commit"] for o, ln in RUNS if o == out and ln["qasm_file"] == run["line"]["qasm_file"]}
+    assert rec["made_by"]["code_commit"] in writers
     assert rec["python"]["version"] and rec["numpy"]["version"] and rec["libm"]["library"]
     assert rec["basis"]["exact"] is True
