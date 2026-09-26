@@ -46,7 +46,7 @@ def orbital_problems(L, r2):
     for i, row in enumerate(rows):
         for n, v in enumerate(row):
             x = control.mpf_fraction(v)
-            if not Fraction(float(e.lo[i, n])) - SLACK <= x <= Fraction(float(e.hi[i, n])) + SLACK:
+            if not Fraction(float(e.box[0][i, n])) - SLACK <= x <= Fraction(float(e.box[1][i, n])) + SLACK:
                 out.append((i, n))
     return out
 
@@ -129,8 +129,8 @@ def test_the_certified_rolls_are_the_exact_chain_rules_with_every_exact_value_en
 
 
 def test_the_exact_check_sees_a_target_enclosure_that_is_one_rounded_point(monkeypatch):
-    def point(u_lo, u_hi, s_lo, s_hi):
-        t = bd.mul_lo(u_lo, s_lo)
+    def point(u, S):
+        t = bd.mul_lo(u[0], S[0])
         return t, t
     monkeypatch.setattr(certificate, "target", point)
     draws, order, outside = containment(stream("roll", "pauli-4x4", 1))

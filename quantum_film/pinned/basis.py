@@ -6,6 +6,11 @@ every angle reduced mod L as an integer before any trigonometry. The same
 columns here are integers (`modes`); the certificate encloses their exact
 values (quantum_film.pinned.certificate) and the plain chain rounds them to
 nearest in one format (`basis`).
+
+Every cached table is READ-ONLY (`frozen`): it is shared by every roll in the
+process, and a caller that wrote into one would change later rolls with no
+refusal (verifier-P1's D4, 2026-09-26). golden.orbitals returns tuples for the
+same reason.
 """
 from fractions import Fraction
 from functools import lru_cache
@@ -18,6 +23,13 @@ from .cft import FP32, FP64, FP128, RNE
 from .encode import exact
 
 FORMATS = {"fp32": FP32, "fp64": FP64, "fp128": FP128}
+
+
+def frozen(*arrays):
+    """Mark numpy arrays read-only, in place, and return them: a write into one then raises ValueError."""
+    for a in arrays:
+        a.flags.writeable = False
+    return arrays
 
 
 @lru_cache(maxsize=16)
@@ -46,7 +58,7 @@ def modes(L, r2):
             cols += [m, m]
     if len(kinds) != len(ks):
         raise AssertionError(f"basis has {len(kinds)} columns for {len(ks)} modes")
-    return np.array(kinds), np.stack(cols, axis=1)
+    return frozen(np.array(kinds), np.stack(cols, axis=1))
 
 
 def angles(L, fmt):
@@ -72,4 +84,5 @@ def basis(L, r2, fmt):
     ang = angles(L, fmt)
     a = np.repeat(cft.sqrt(fmt, RNE, exact(Fraction(2, M), fmt)), L)
     table = {1: cft.mul(fmt, RNE, a, cft.cospi(fmt, RNE, ang)), 2: cft.mul(fmt, RNE, a, cft.sinpi(fmt, RNE, ang))}
-    return assemble(L, r2, exact(Fraction(1, L), fmt), table, cft.dtype(fmt))
+    phi, = frozen(assemble(L, r2, exact(Fraction(1, L), fmt), table, cft.dtype(fmt)))
+    return phi

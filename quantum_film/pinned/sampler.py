@@ -56,7 +56,7 @@ from . import cft
 from .basis import FORMATS, basis
 from .certificate import TAU, Certificate, EnclosureBroken, enclosure
 from .cft import DOT, FP64, RNE, SUM
-from .encode import bounds64, round_fraction
+from .encode import round_fraction
 from .uniform import uniform as pinned_uniform
 
 __all__ = ["roll", "sample", "lay", "Roll", "Chain", "EnclosureBroken", "FloatRefusal", "TAU", "COUNTS",
@@ -193,7 +193,7 @@ def roll(L, r2, stream_bytes, uniform_fn=None, certify=True, handoff=True, fmt="
         u = _uniform(ufn, stream_bytes, j)
         idx = np.flatnonzero(~taken)
         if certify:
-            p, why, sl = cert.decide(j, idx, *bounds64(u), trace)
+            p, why, sl = cert.decide(j, idx, u, trace)
             if p is None and handoff:
                 return _hand_off(L, r2, stream_bytes, uniform_fn, draws, why)
             if p is None:

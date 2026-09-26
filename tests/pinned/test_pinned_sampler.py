@@ -9,7 +9,8 @@ import pytest
 from quantum_film import fixer
 from quantum_film.golden import fermi
 from quantum_film.golden.uniform import stream, uniform
-from quantum_film.pinned import certificate, cft, control, sampler
+from quantum_film.pinned import basis, certificate, cft, control, sampler
+from quantum_film.pinned.cft import FP64
 
 SLACK = Fraction(1, 2 ** 240)       # the authority's values are within about 2^-249 of exact
 
@@ -84,8 +85,8 @@ def test_a_target_the_authority_decides_but_binary64_cannot_see_is_handed_off_an
 
 def lying(real, at):
     """Certificate.decide, planted with a lie: at draw 0 it certifies the wrong site, then it cannot certify."""
-    def decide(self, j, idx, u_lo, u_hi, trace=None):
-        p, why, sl = real(self, j, idx, u_lo, u_hi, trace)
+    def decide(self, j, idx, u, trace=None):
+        p, why, sl = real(self, j, idx, u, trace)
         if j == 0:
             return at(p, len(idx)), None, (1.0, 1.0)
         return None, "planted: cannot certify", None
@@ -110,7 +111,7 @@ def test_the_hand_off_audits_a_certificate_that_decided_a_draw_the_authority_ref
 
 def test_an_enclosure_that_misses_the_exact_total_is_refused_by_name(monkeypatch):
     real = certificate.enclosure(4, 1)
-    shifted = dataclasses.replace(real, n_lo=real.n_lo + 0.25, n_hi=real.n_hi + 0.25)
+    shifted = dataclasses.replace(real, norm=(real.norm[0] + 0.25, real.norm[1] + 0.25))
     monkeypatch.setattr(certificate, "enclosure", lambda L, r2: shifted)
     with pytest.raises(sampler.EnclosureBroken, match="N - j"):
         sampler.roll(4, 1, stream("roll", "pauli-4x4", 1))
@@ -121,11 +122,35 @@ def test_a_negative_weight_bound_is_refused_by_name(monkeypatch):
 
     def inflated(self, rows, t):
         real(self, rows, t)
-        self.s_lo = self.s_lo + 1.0                   # |P phi|^2 claimed above |phi|^2 = 5/16
+        self.s = (self.s[0] + 1.0, self.s[1])          # |P phi|^2 claimed above |phi|^2 = 5/16
 
     monkeypatch.setattr(sampler.Certificate, "extend", inflated)
     with pytest.raises(sampler.EnclosureBroken, match="negative"):
         sampler.roll(4, 1, stream("roll", "pauli-4x4", 1))
+
+
+def cached_tables():
+    e = certificate.enclosure(4, 1)
+    return {"enclosure": (*e.box, *e.norm, e.l1, e.dl1), "basis": (basis.basis(4, 1, FP64),),
+            "modes": basis.modes(4, 1)}
+
+
+@pytest.mark.parametrize("name", ["enclosure", "basis", "modes"])
+def test_every_cached_table_is_read_only(name):
+    """verifier-P1's D4: the caches were writable, and a caller that wrote into one changed later rolls."""
+    for a in cached_tables()[name]:
+        assert not a.flags.writeable
+        with pytest.raises(ValueError, match="read-only"):
+            a[0] = a[0]
+
+
+def test_verifier_p1s_swap_of_two_cached_rows_is_refused_and_the_rolls_stay_the_authoritys():
+    lo = certificate.enclosure(4, 1).box[0]
+    with pytest.raises(ValueError, match="read-only"):
+        lo[[0, 5]] = lo[[5, 0]]
+    for seed in range(1, 21):
+        s = stream("roll", "pauli-4x4", seed)
+        assert sampler.roll(4, 1, s).crystals == fermi.sample(4, 1, s)
 
 
 def test_a_uniform_that_is_not_an_exact_fraction_is_refused():
