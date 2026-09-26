@@ -1057,3 +1057,41 @@ lead found the second while checking it, in the same table's source.
 - The README's sentence on random targets now says "of the weight left to
   draw" where it said "relative". CLAUDE.md drops a 2 us ctypes figure that
   P1 had not measured as stated (the verifier's minor).
+
+## 2026-09-26 - five more Atlas runs of the shelf's law, for a print laid by Atlas
+
+At the owner's word, the throwaway key's last five jobs were spent before it
+expires (about 17:25Z).
+- They used the same circuit (givens_line, `ed767c01bd4b851d`) and the same
+  tool (tools/pauli_atlas_run.py), with 4,096 shots each.
+- They were submitted from 11:46:31Z to 11:51:53Z.
+- Each commitment was committed, on a branch, before the job's first status
+  call. As for 8586f1cc, only the local clock dates that.
+
+| job | distinct layouts | one-site: max \|z\|, chi^2 over 16 | pairs: max \|z\|, chi^2 over 120 | forbidden | engine's <XX>, <YY> on (0, 1) |
+|---|---|---|---|---|---|
+| 579df87d | 1,997 | 2.53, 19.9 | 2.73, 138.5 | 0 | +0.3955, +0.3599 |
+| d017540c | 2,027 | 1.72, 9.8 | 2.14, 84.1 | 0 | +0.3740, +0.3560 |
+| 5831ff5e | 2,026 | 2.33, 19.1 | 2.52, 147.2 | 0 | +0.3740, +0.4097 |
+| 3673f9fe | 2,006 | 2.66, 24.6 | 2.84, 131.7 | 0 | +0.3779, +0.3408 |
+| 933138bc | 2,020 | 3.14, 34.0 | 3.11, 181.2 | 0 | +0.3652, +0.3818 |
+
+- **Pooled with 8586f1cc** (24,576 shots):
+  - 3,004 distinct layouts, of the law's 3,008 allowed;
+  - one-site max |z| 2.15, chi^2 17.1 over 16;
+  - pairs max |z| 2.64, chi^2 128.0 over 120;
+  - no forbidden layout.
+
+  The one-site z's are correlated, because every layout holds five crystals,
+  so one run's sum of squares is not chi^2 with 16 degrees of freedom.
+  933138bc's 34.0 does not survive pooling.
+- **The records.** 10,076 device rolls were fixed, and the fixer's command
+  line accepts each. `--score` audits all six runs: ALL CHECKS HOLD.
+- **A test assumed one run per directory.** tests/circuits/test_p3_records.py
+  held the platform record's code commit equal to each run's.
+  - Runs 2-5 each started after the previous run's results commit. They
+    wrote the same QASM file, and the tool writes its platform record once.
+  - The quantum_film code is identical at all five commits.
+  - The check now asks that the record name the commit of a run that wrote
+    that file. A planted record naming another commit fails it for all five.
+- All six of the Atlas account's jobs are now used.
