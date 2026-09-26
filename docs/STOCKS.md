@@ -32,13 +32,23 @@ A single RMS granularity reading at 48 um cannot tell them apart, because it
 mixes density, grain size and correlation into one number
 (research/2026-09-25/notes/quantum-film-physics.md).
 
-**Where to read S(k) on a print.** A sheet is laid from tiles of fixed crystal
-count (quantum_film/develop.py). That alone suppresses S(k) above the tile's
-scale for ANY law: the Poisson twin measured 0.02 at the lowest k of a 256-cell
-sheet (2026-09-26, docs/VALIDATION.md). So a stock's uniqueness is read
-between the tile's scale and its own correlation length. The classical
-reference there is atlas-film's own coating, a Poisson count per cell, whose
-S(k) is about 1 at every k.
+**Where to read S(k) on a print.** A sheet is laid from tiles that each hold a
+fixed crystal count (quantum_film/develop.py).
+- A fixed count sends S(k) to 0 as k goes to 0, for every law.
+- How far above the tile's scale that reaches depends on the law. For uniform
+  placement it reaches about the tile's scale: the Poisson twin measured 0.02
+  at the lowest k of a 256-cell sheet.
+- A bunched law can be enhanced there instead, several-fold. Verifier-P0's
+  control on the prints' geometry gave 1.6 to 11.7 (2026-09-26,
+  docs/VALIDATION.md).
+
+So a stock's uniqueness is read between the tile's scale and its own
+correlation length, against two references:
+- its twin: the same count per tile, placed at random;
+- atlas-film's own coating: a Poisson count per cell, whose S(k) is 1 at every
+  k in law.
+
+Speckle, whose crystals bunch, will need its twin measured, not assumed.
 
 ## On the shelf
 

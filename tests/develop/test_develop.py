@@ -1,6 +1,8 @@
 """The develop seam: rolls -> a sheet -> atlas-film's pinned negative and print (quantum_film/develop.py)."""
 import hashlib
+import json
 import math
+import pathlib
 import types
 
 import numpy as np
@@ -158,3 +160,22 @@ def test_device_shots_are_every_occurrence_in_the_canonical_order():
     shots = develop.device_shots(recs)
     assert shots == [[0, 1, 2, 3, 5]] + [[0, 1, 2, 3, 4]] * 2 + [[0, 1, 2, 3, 6]] * 3
     assert develop.device_shots(list(reversed(recs))) == shots
+
+
+def test_the_atlas_prints_sheet_is_its_records_own():
+    """The first Atlas print's sheet, rebuilt from the committed device rolls, is the one its record names: the
+    shots' canonical order, the shuffle on the print's stream and the mapping, held by the sheet's digests. A
+    shuffle that returned another permutation (a Sattolo walk passed every other gate: verifier-P0, round 2)
+    fails here."""
+    root = pathlib.Path(__file__).resolve().parents[2]
+    rec = json.loads((root / "docs" / "prints" / "atlas-pauli-4x4.json").read_text(encoding="ascii"))
+    files = sorted((root / "docs" / "records").glob("*/p3/rolls-*/*.json"))
+    recs = [r for r in (json.loads(f.read_text(encoding="ascii")) for f in files)
+            if r["source"]["job_id"] in rec["rolls"]["jobs"]]
+    stream_parts = tuple(rec["print_stream"])
+    shots = develop.shuffled(develop.device_shots(recs), stream_parts)
+    (across, down), layers = rec["tiles"], rec["layers"]
+    assert len(shots) == rec["rolls"]["shots"]
+    K, thr, _hw = develop.sheet(shots[:across * down * layers], rec["stock"], (across, down), layers, stream_parts)
+    assert develop.digest(K) == rec["digests"]["K"]
+    assert develop.digest(thr) == rec["digests"]["thresholds"]

@@ -164,9 +164,10 @@ d4007b2 (its pinned branch).
   and SHA-256 alone.
 - **The density is the borrowed stock's own, by construction.** Every roll
   holds N crystals, so the mean K is layers * N / L^2 exactly. The pitch is
-  derived so that the borrowed stock's lambda_K equals that mean, to one
-  rounding in a correctly rounded square root. atlas-film's `sheet=` path
-  does not check the mean of K; this one does.
+  derived so that the borrowed stock's lambda_K equals that mean. The
+  identity is exact in rationals, and within 2 x 2^-52 relative in binary64
+  (verifier-P0 measured every allowed layer count up to 1,000). atlas-film's
+  `sheet=` path does not check the mean of K; this one does.
 - **The honesty floor and the exact regime are refused by name.** At TRI-X's
   density, pauli needs at least 91 layers and pauli-4x4 at least 29.
 - **The negative and the print are atlas-film's pinned mode.** They are the

@@ -1208,3 +1208,51 @@ At the owner's request, for the submission's web demo, video and poster.
   - 29 layers;
   - "about 30 to 70 percent" for Pauli's 0.29-0.72;
   - the Atlas print's digest.
+
+## 2026-09-26 - corrections to the first prints and the demo entries: S(k)'s band, and what tiling does
+
+Verifier-P0's one pass over round 2 found two claims false as stated (round-2 ledger, verifier-P0.md 13:23Z). Both
+are prose. The code, the records, the gates and the prints held. The lead re-read each figure from the records.
+- **D1.** "Between the tile's scale (k = 16) and about twice Pauli's Fermi scale (k = 90), Pauli's count carries
+  0.29-0.72 of random placement's noise power" is false.
+  - 0.29-0.72 were the table's columns, k = 16 to 64. A Fermi sea's S(k) reaches 1 at twice the Fermi scale,
+    k = 90.5 on these sheets, and Pauli's record reaches 1.131 at k = 90.
+  - What the records hold between the tile's scale and the Fermi scale (k = 16 to 45, where k_F = 16 sqrt(8) =
+    45.25):
+
+    | sheet | min | max | mean |
+    |---|---|---|---|
+    | Pauli | 0.279 | 0.642 | 0.472 |
+    | the twin | 0.657 | 1.122 | 0.892 |
+    | TRI-X | 0.798 | 1.167 | 0.997 |
+
+  - Every Pauli bin in that band lies below every twin bin.
+  - The exact law expects 0.301-0.644 for Pauli and 0.889-0.905 for the twin (verifier-P0).
+  - The demo entry's "about 30 to 70 percent" for "Pauli's 0.29-0.72" inherited the error. The story now says
+    roughly 30 to 65 percent, and its plot's band ends at the Fermi scale.
+- **D2.** "A sheet of independent fixed-count tiles suppresses S(k) above the tile's scale for ANY law" is false.
+  The spike above and STOCKS.md both said it.
+  - A fixed count sends S(k) to 0 as k goes to 0, for every law. How far above the tile's scale the suppression
+    reaches depends on the law, through the variance of a tile's dipole moment.
+  - Verifier-P0's control used the prints' geometry, with crystals bunched in a 6 x 6 block at a random place in
+    each tile. It gave S of 1.6 to 11.7 at k = 4 to 12: enhanced, not suppressed.
+  - The evidence for "ANY law" was one law, the uniform twin.
+  - STOCKS.md now says what holds, and names the case it matters for: Speckle, whose crystals bunch.
+- **Also corrected (the verifier's minor items).**
+  - DETERMINISM said lambda_K equals the mean K "to one rounding". It holds within 2 x 2^-52 relative, measured at
+    every allowed layer count up to 1,000, and exactly at about 40% of them.
+  - README's "1.24 um across" was the 256-cell prints' pitch. The 4x4 prints' pitch is 1.2526 um.
+- **Recorded, not changed.**
+  - The table's golden-pauli-4x4 rolls also come from the pinned sampler, the authority's roll by construction.
+    Its --check therefore needs libcft too.
+  - TRI-X's lowest bin (0.238 at k = 1) holds two modes. "About 1 at every k" holds in law and on average: 0.997
+    over k = 16 to 45.
+  - The spike's figures (11,776 rolls in 233 s; 0.024 against 0.016) come from scratch work that nothing in the
+    tree reproduces.
+  - 933138bc is the six runs' outlier. Under the exact law, P(one-site chi^2 >= 34.0) = 0.0094, and the chance of
+    such a run among six is 5.5% (verifier-P0, 20,000 replicates).
+- **A gate for the shuffle** (verifier-P0's m1).
+  - A Sattolo walk planted in develop.shuffled passed every stage; only --check caught it.
+  - tests/develop now rebuilds the Atlas print's sheet from the committed device rolls. It holds the sheet's K
+    and threshold digests to the print's record, in about 3 s.
+  - The Sattolo plant fails it, and 15 tests pass.

@@ -21,7 +21,8 @@ const PAIRS = {
     left: "TRI-X, as atlas-film coats it", right: "Pauli, 91 layers of quantum-laid tiles",
     caption: "The same scene, the same density, both developed and printed through atlas-film's pinned mode. Each " +
              "pixel is one column of crystals, 1.24 um across. The difference lives in the grain's structure at " +
-             "mid scales: the Pauli sheet carries 0.29-0.72 of random film's noise power there.",
+             "scales between the tile and the Fermi length: the Pauli sheet carries 0.28-0.64 of film's noise " +
+             "power there, 0.47 on average, against 0.89 for random placement.",
     draw: (cv, which) => drawImage(cv, which === "left" ? "img/trix-print.png" : "img/pauli-print.png"),
   },
   atlas: {

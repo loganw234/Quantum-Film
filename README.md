@@ -43,18 +43,21 @@ columns each:
 - **its Poisson twin**, the same count per tile placed at random;
 - **TRI-X** as atlas-film coats it.
 
-Each pixel is one column of crystals through the emulsion, 1.24 um across, so
-each print is a fraction of a millimetre of film seen crystal by crystal.
+Each pixel is one column of crystals through the emulsion, 1.24-1.25 um across,
+so each print is a fraction of a millimetre of film seen crystal by crystal.
 
 ![The structure factor of each print's crystal count](docs/prints/structure.png)
 
 **The grain differs where the eye cannot see it.**
-- Between a Pauli tile's scale and its Fermi scale, Pauli's crystal count
-  carries 0.29-0.71 of the noise power of random placement. The Poisson twin
-  carries 0.80-0.96 there, and TRI-X about 1.
-- Below the tile scale every tiled stock is suppressed, the Poisson twin
-  included. That part comes from the tiling, not from the quantum law
-  (docs/STOCKS.md).
+- Between a Pauli tile's scale and its Fermi scale (k = 16 to 45 on the
+  256-column sheets), Pauli's crystal count carries on average 0.47 of the
+  noise power of film's random coating, and at most 0.64.
+- The Poisson twin averages 0.89 there, and TRI-X 1.00.
+- Every Pauli bin in that band lies below every twin bin.
+- The exact law expects 0.30-0.64 for Pauli.
+- Below the tile scale both are suppressed, the Poisson twin included. That
+  comes from the fixed count per tile, not from the quantum law. A bunched law
+  could instead be enhanced there (docs/STOCKS.md).
 - The Atlas-laid sheet and its exact twin trace the same curve.
 
 **Each print is a function of its record.** Each one's record in

@@ -32,7 +32,7 @@ const CAPTIONS = [
   [97, 109, "Stacked twenty-nine layers deep, the shots coat a sheet at the density of Tri-X film."],
   [110, 119, "Developed and printed with atlas-film, on pinned arithmetic. Every crystal in this print was laid by Atlas."],
   [120, 127.8, "Random crystals clump and leave gaps. Pauli's crystals repel, so they spread more evenly."],
-  [128, 137, "At the scales between a tile and its Fermi length, Pauli's grain carries about 30 to 70 percent of random film's noise power."],
+  [128, 137, "At the scales between a tile and its Fermi length, Pauli's grain carries roughly 30 to 65 percent of random film's noise power."],
   [138, 148, "Each print is fixed as a record: its rolls, its recipe, and the digest of every bit. Re-develop it, and the same print comes back."],
 ];
 
@@ -657,14 +657,14 @@ function plot(alpha, reveal) {
   g.globalAlpha = alpha;
   const lx = (k) => x0 + ((Math.log10(k) + 2.45) / 2.15) * w;            // cycles per column, 10^-2.45 .. 10^-0.3
   const ly = (v) => y0 + h - ((Math.log10(Math.max(v, 0.003)) + 2.5) / 2.75) * h;   // 10^-2.5 .. 10^0.25
-  // the band where the law, not the tiling, speaks: from the tile's scale to about twice the Fermi scale
+  // the band where the law, not the tiling, speaks: from the tile's scale to the Fermi scale
   g.fillStyle = "rgba(111, 211, 255, 0.07)";
-  g.fillRect(lx(1 / 16), y0, lx(90 / 256) - lx(1 / 16), h);
+  g.fillRect(lx(1 / 16), y0, lx(45 / 256) - lx(1 / 16), h);   // k_F = 16 sqrt(8) = 45.25 on this sheet
   g.fillStyle = "#6fd3ff";
   g.font = `400 22px ${SANS}`;
   g.textAlign = "center";
   g.textBaseline = "top";
-  g.fillText("between the tile and the Fermi scale", (lx(1 / 16) + lx(90 / 256)) / 2, y0 + 10);
+  g.fillText("between the tile and the Fermi scale", (lx(1 / 16) + lx(45 / 256)) / 2, y0 + 10);
   g.strokeStyle = "#3a3f4a";
   g.lineWidth = 1;
   for (const v of [1, 0.1, 0.01]) { g.beginPath(); g.moveTo(x0, ly(v)); g.lineTo(x0 + w, ly(v)); g.stroke(); }
