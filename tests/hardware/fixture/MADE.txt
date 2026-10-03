@@ -1,0 +1,16 @@
+The hardware fixture: a bundle frozen against a FAKE backend and a dry run of its three jobs. Kind
+simulator, test shots: nothing here ran on a device, and nothing here is a hardware record.
+
+Made 2026-10-03 by round 3's P1, with the IBM virtualenv (qiskit 2.5.2, qiskit-ibm-runtime 0.50.0,
+qiskit-aer 0.17.2), offline:
+
+    python tools/hw_bundle.py --fake fake_kingston --route ibm-direct --out B --shots-for-tests 64,256,64
+    # B committed and pushed in a throwaway git repository with a bare origin, then, in order:
+    python tools/hw_run.py --bundle B --job known-answer --out R --dry-run
+    python tools/hw_run.py --bundle B --job law --out R --dry-run
+    python tools/hw_run.py --bundle B --job coherence --out R --dry-run
+
+bundle/ is B and run/ is R, copied byte for byte. The pure tests (tests/hardware/pure) read them in place of
+a live freeze; the qiskit stage (tests/hardware/qiskit) freezes and dry-runs afresh on every run and holds its
+result to the same checks. A QPY file's bytes are not reproducible (qiskit wrote one circuit two ways in one
+process), so a re-freeze matches this one gate list for gate list, not file for file.
