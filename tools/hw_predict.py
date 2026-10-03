@@ -34,8 +34,8 @@ GLOBAL_CATALOG_*: their URLs and TLS switches); a runtime log file. It also refu
 when an instance is named rather than given as a CRN. This list is a copy until the merge, when the lead points
 the live path at P1's refusal module (lead.md, 16:05Z). The key and the instance come from QF_IBM_KEY_FILE and
 QF_IBM_INSTANCE_FILE, files outside this repository; the service is named explicitly (channel, token, instance);
-IAM's "API Key will be used instead" fallback is an error, raised before any request carries the key; nothing is
-saved, nothing printed, no job submitted.
+IAM's "API Key will be used instead" fallback stops the run at once, before the request that would carry the key
+(`refuse_the_fallback`); nothing is saved, nothing printed, no job submitted.
 """
 if __name__ != "__main__":
     raise ImportError("this script simulates a device and can read IBM's key; run it, never import it (CLAUDE.md)")
@@ -73,6 +73,28 @@ class Refused(SystemExit):
     def __init__(self, why):
         super().__init__(2)
         self.why = why
+
+
+class FallbackRefused(BaseException):
+    """IAM could not issue a token, and qiskit-ibm-runtime would now send the raw key with only a warning. A
+    BaseException, so the runtime's own `except Exception` handlers cannot absorb it: they absorbed an ordinary
+    exception, retried the token for two minutes and reported "No backend matches the criteria" (measured on the
+    recorded transport, tests/compare/venv/recorded_live.py)."""
+
+
+def refuse_the_fallback():
+    """Two locks on IAM's apikey fallback (qiskit_ibm_runtime/api/auth.py, CloudAuth.get_headers), each raised before
+    the request that would carry the key is prepared: warnings.warn itself raises FallbackRefused on that message,
+    and the message is an error by filter, should anything reach the warning another way."""
+    warnings.filterwarnings("error", message=IAM_FALLBACK, category=UserWarning)
+    original = warnings.warn
+
+    def warn(message, category=None, stacklevel=1, source=None, **kwargs):
+        if str(message).startswith(IAM_FALLBACK):
+            raise FallbackRefused(IAM_FALLBACK)
+        return original(message, category, stacklevel + 1, source, **kwargs)
+
+    warnings.warn = warn
 
 
 def refusals(environ=None, cwd=None, home=None):
@@ -115,7 +137,7 @@ def live_backend(name):
         crn = f.read().strip()
     if not (isinstance(key, str) and key and crn.startswith("crn:")):
         raise Refused("QF_IBM_KEY_FILE holds no apikey, or QF_IBM_INSTANCE_FILE no CRN")
-    warnings.filterwarnings("error", message=IAM_FALLBACK, category=UserWarning)
+    refuse_the_fallback()
     from qiskit_ibm_runtime import QiskitRuntimeService
     service = QiskitRuntimeService(channel="ibm_quantum_platform", token=key, instance=crn)
     del key
@@ -252,6 +274,11 @@ def main(argv):
         result = predict(args)
     except Refused as e:
         print(f"REFUSED: {e.why}", file=sys.stderr)
+        return 2
+    except FallbackRefused:
+        print("REFUSED: IAM could not issue a token, and qiskit-ibm-runtime would now send the raw key to the API "
+              "host (docs/HARDWARE.md); the run stops before that request, and the key went only to IAM",
+              file=sys.stderr)
         return 2
     text = json.dumps(result, indent=1, sort_keys=True, ensure_ascii=True) + "\n"
     if args.out:

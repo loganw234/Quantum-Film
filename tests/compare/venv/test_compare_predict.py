@@ -211,10 +211,13 @@ def test_the_live_path_reads_the_device_and_sends_the_key_only_to_iam(tmp, fez):
     assert any(e["host"] == "quantum.cloud.ibm.com" and e["path"].endswith("/ibm_fez/properties") for e in log)
 
 
-def test_the_iam_fallback_is_fatal_before_the_key_goes_anywhere_else(tmp, fez):
+def test_the_iam_fallback_stops_the_run_before_the_key_goes_anywhere_else(tmp, fez):
     """IAM down after the first token: qiskit-ibm-runtime would send the raw key to the API host with only a
-    warning (docs/HARDWARE.md). Here the warning is an error, raised before the request is sent."""
+    warning (docs/HARDWARE.md). Here the run stops at that warning, refused by name, before the request that would
+    carry the key is prepared: no request reaches the API host at all. (An ordinary exception there was absorbed by
+    the runtime's own handlers, which retried for two minutes and reported "No backend matches the criteria".)"""
     p, log = recorded(tmp, fez, "iam_fails_later")
-    assert p.returncode != 0 and "Unable to retrieve IBM Cloud access token" in p.stderr
+    assert p.returncode == 2 and "REFUSED: IAM could not issue a token" in p.stderr, p.stderr[-2000:]
     assert {e["host"] for e in log if e["key_in_request"]} == {"iam.cloud.ibm.com"}
     assert not any(e["auth"] == "apikey" for e in log)
+    assert not any(e["host"] == "quantum.cloud.ibm.com" for e in log)
