@@ -40,6 +40,7 @@ The constructors refuse what `check` refuses: `fix` seals nothing that
     python -m quantum_film.fixer check FILE...    # 0 = every record intact, 1 = refused
     python -m quantum_film.fixer lay STOCK SEED   # print a golden roll's record
 """
+import copy
 import datetime
 import hashlib
 import json
@@ -496,8 +497,11 @@ def check_run(record):
 def fix_run(stock_id, role, basis, counts, source):
     """Fix a device run: every shot of one circuit in one hardware job. `counts` must already be
     canonical ([[ones, occurrences], ...] sorted by ones); the record is refused, never reshaped."""
+    # The record owns copies: a caller that reuses or changes its counts or options afterwards must not change
+    # a record already fixed (verifier-P0 noted the aliasing; P2's tests were bitten by it, 16:58Z).
     rec = {"format": RUN_FORMAT, "stock": stock_id, "law": params(stock_id), "role": role, "basis": basis,
-           "counts": counts, "source": dict(source), "code": {"quantum_film": __version__}}
+           "counts": copy.deepcopy(counts), "source": copy.deepcopy(dict(source)),
+           "code": {"quantum_film": __version__}}
     rec["digest"] = digest(rec)
     problems = check_run(rec)
     if problems:

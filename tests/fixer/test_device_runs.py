@@ -343,3 +343,11 @@ def test_a_file_nested_between_the_encoders_limits_is_refused_not_crashed(run, t
     rec, problems = fixer.check_file(deep)
     assert rec is None and problems[0].startswith("unreadable: RecursionError")
     assert fixer.main(["check", str(deep)]) == 1
+
+
+def test_a_fixed_run_owns_copies_of_what_it_was_given():
+    counts, src = copy.deepcopy(COUNTS), copy.deepcopy(source())       # the test's own copies to change
+    rec = fixer.fix_run("pauli-4x4", "law", Z, counts, src)
+    counts[0][1] += 1
+    src["options"]["dynamical_decoupling"]["enable"] = True
+    assert fixer.check(rec) == [] and rec["counts"][0][1] == COUNTS[0][1]

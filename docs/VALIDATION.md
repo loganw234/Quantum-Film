@@ -1469,3 +1469,9 @@ Each is closed here:
     - a failed job's status file holds IBM's own state and usage, and no function checks its form, which is
       stated;
     - a device outside `IBM_DEVICES` is added by name before a bundle is frozen for it.
+- **Addendum, during P1 and P2's work:**
+  - `fix_run` now copies its counts and its source. A caller that changes or reuses them afterwards no longer changes
+    a record already fixed. verifier-P0 noted the aliasing, and P2's tests were bitten by it (round-3 ledger, P2.md
+    16:58Z).
+  - A test changes the caller's copies after fixing and finds the record intact. Planted, the aliasing fails it.
+  - The fixer and decode stages pass 184 tests.
