@@ -19,6 +19,9 @@ test = ["pytest", "ruff"]
 # imports it from there and refuses any other copy, so no extra installs it.
 # The tools that render images (first_prints, print_figures, poster) need these:
 media = ["pillow", "matplotlib"]
+# The hardware tools (round 3: tools/hw_bundle.py, hw_run.py, hw_predict.py) need these, pinned to the
+# versions measured in docs/HARDWARE.md, in a virtualenv of their own: never the main environment.
+ibm = ["qiskit==2.5.2", "qiskit-ibm-runtime==0.50.0", "qiskit-aer==0.17.2"]
 
 # Discovered, not listed: a parcel that adds a subpackage edits nothing here
 # (ParcelRound METHOD 2: aim for a glob, not a list).

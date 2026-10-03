@@ -11,6 +11,9 @@ Quantum-Film is MIT (LICENSE). What it depends on keeps its own licence.
 | [Pillow](https://python-pillow.org) | the image tools only (`pip install .[media]`): the prints' images, the gallery, the poster | HPND |
 | [matplotlib](https://matplotlib.org) | the image tools only (`pip install .[media]`): the structure-factor figure | Matplotlib License (PSF-based) |
 | [three.js](https://threejs.org) | the web demo in site/, loaded at r170 from jsDelivr, not vendored | MIT |
+| [Qiskit](https://github.com/Qiskit/qiskit) | the hardware tools only (round 3), in their own virtualenv (`pip install .[ibm]`): building and compiling the circuits sent to IBM | Apache-2.0 |
+| [qiskit-ibm-runtime](https://github.com/Qiskit/qiskit-ibm-runtime) | the hardware tools only: the client that submits to IBM Quantum and reads results | Apache-2.0 |
+| [qiskit-aer](https://github.com/Qiskit/qiskit-aer) | the hardware tools only: noisy simulation of the fake backends, for dry runs and predictions | Apache-2.0 |
 
 ## cft-fp256 NOTICE
 
