@@ -37,7 +37,7 @@ export PYTHONIOENCODING=utf-8
 ONLY=""; SKIP=""; REQUIRE_ALL=0; LIST=0; RESUME=""; FRESH=0; BUDGET=""
 
 # Named cuts, checked against the derived stage list below.
-BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,hardware,pinned,develop,fixer-cli,controls
+BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,hardware,pinned,develop,compare,fixer-cli,controls
 
 die () { echo "FATAL: $*" >&2; exit 2; }
 
@@ -306,6 +306,14 @@ stage pinned "libcft binary64 rolls equal the authority's; every certificate ste
 need_file "vendor/atlas-film/atlas_film/__init__.py" "atlas-film is not checked out (git submodule update --init vendor/atlas-film)"
 stage develop "rolls lay a sheet at the borrowed stock's own density; atlas-film's pinned negative and print, frozen bit for bit; a moved crystal moves the negative" -- \
   bash verify/pytest-stage.sh tests/develop
+
+need_file "vendor/atlas-film/atlas_film/__init__.py" "atlas-film is not checked out (git submodule update --init vendor/atlas-film)"
+stage compare "the comparison: the exact law held to the authority, a perfect sampler's floor, every measure, the print rule; four negative controls told apart from the law" -- \
+  bash verify/pytest-stage.sh tests/compare --ignore=tests/compare/predict
+
+need_env QF_IBM_PYTHON "no qiskit virtualenv configured (QF_IBM_PYTHON names its python)"
+stage predict "hw_predict.py in the qiskit virtualenv: fake backends' noise, ideal runs lay the law, the live path's refusals, the key only to IAM" -- \
+  bash verify/pytest-stage.sh tests/compare/predict
 
 # §3: the control and its twin. The twin runs the fixer's own command line,
 # the one a user runs, on the generated records, and must pass: a command line
