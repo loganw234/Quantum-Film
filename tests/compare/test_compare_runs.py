@@ -145,7 +145,15 @@ def test_a_column_with_coherence_runs_only_shows_them_and_dashes_elsewhere():
     col = compare.run_column(film()[1:])
     assert col["law"] is None
     rows = dict(line.split(" | ", 1) for line in compare.table([col]).splitlines()[2:])
-    assert rows["| <X0X1>"] == "+0.5000 +- 0.2500 |" and rows["| N-crystal share"] == "- |"
+    assert rows["| `<X0X1>`"] == "+0.5000 +- 0.2500 |" and rows["| N-crystal share"] == "- |"
+
+
+def test_every_row_of_the_table_has_one_cell_per_column():
+    """Markdown splits a row at every unescaped |: the row names' |z| are escaped, so a row has exactly
+    columns + 2 bars."""
+    text = compare.table([compare.run_column(film()), compare.run_column(film()[1:])])
+    for line in text.splitlines():
+        assert line.replace("\\|", "").count("|") == 4, line
 
 
 def test_a_prediction_is_a_column_labelled_as_one():

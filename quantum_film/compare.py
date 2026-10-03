@@ -690,12 +690,12 @@ ROWS = (
     ("TVD to the law", "law", lambda m: _cell((m.get("tvd") or {}).get("value"))),
     (f"perfect sampler's TVD floor: mean / p{FLOOR_PERCENTILE}", "law", _floor),
     ("linear XEB", "law", lambda m: _pm(m.get("xeb"))),
-    ("one-site max |z|: all / N-crystal", "law", lambda m: _both(m, "one_site", "max_abs_z")),
-    ("pair max |z|: all / N-crystal", "law", lambda m: _both(m, "pairs", "max_abs_z")),
+    ("one-site max \\|z\\|: all / N-crystal", "law", lambda m: _both(m, "one_site", "max_abs_z")),     # \| keeps
+    ("pair max \\|z\\|: all / N-crystal", "law", lambda m: _both(m, "pairs", "max_abs_z")),            # the cell
     ("NN pair correlation: all / N-crystal", "law", lambda m: _cell(m["pair_correlation"]["all"]) + " / "
      + _cell(m["pair_correlation"].get("n_crystal"))),
-    ("<X0X1>", "coherence", lambda m: _pm(m.get("X0X1"))),
-    ("<Y0Y1>", "coherence", lambda m: _pm(m.get("Y0Y1"))),
+    ("`<X0X1>`", "coherence", lambda m: _pm(m.get("X0X1"))),
+    ("`<Y0Y1>`", "coherence", lambda m: _pm(m.get("Y0Y1"))),
 )
 
 
