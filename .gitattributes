@@ -18,3 +18,9 @@
 # a CRLF editor from reintroducing the problem silently: the vectors gate
 # fails locally instead.
 tests/vectors/** -text
+
+# Round 3's hardware runs (P1's 16:22Z entry). A transpiled circuit's QPY file is what
+# the runner submits, and its SHA-256 is the commitment's isa_sha256; a raw result payload
+# is written before anything decodes it. Git stores both exactly: no line ending converted.
+*.qpy binary
+*-raw.json -text

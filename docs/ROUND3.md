@@ -88,15 +88,17 @@ before it is run, that fixes a hardware run completely.
   - The bundle's own identity is its manifest's SHA-256 (a job line's
     `bundle_sha256`).
 - **The jobs and their circuits.** A bundle holds jobs, each with its circuits
-  in PUB order, PUBs numbered within the job from 0. Each circuit is measured
-  with `measure_all` before compiling:
+  in PUB order, PUBs numbered within the job from 0. Each job's PUBs share one
+  shot count: qiskit-ibm-runtime deprecates different shots across a job's PUBs
+  (P1, 16:22Z), so the film is two jobs, not one. Each circuit is measured with
+  `measure_all` before compiling:
 
   | job | PUB | circuit | what it is | shots |
   |---|---|---|---|---|
   | known-answer | 0 | known-answer | X on {0, 1, 3, 7, 12} | 1,024 |
-  | film | 0 | law | `ed767c01bd4b851d` | 24,576 |
-  | film | 1 | coherence XX | the law, with qubits 0 and 1 rotated to X | 4,096 |
-  | film | 2 | coherence YY | the law, with qubits 0 and 1 rotated to Y | 4,096 |
+  | law | 0 | law | `ed767c01bd4b851d` | 24,576 |
+  | coherence | 0 | coherence XX | the law, with qubits 0 and 1 rotated to X | 4,096 |
+  | coherence | 1 | coherence YY | the law, with qubits 0 and 1 rotated to Y | 4,096 |
 
   In law, the pair's ⟨XX⟩ and ⟨YY⟩ are +0.375 for this circuit, and a
   classical mixture with the same layouts gives 0.
@@ -260,7 +262,7 @@ be submitted.
    It is committed before the law circuit runs.
 3. **The known-answer job** (1,024 shots), alone. If the device reads it in
    any order but decode's, nothing else runs until that is understood.
-4. **The film's job:** the law and both coherence circuits.
+4. **The film's two jobs:** the law, then the two coherence circuits.
 5. **Moth's run:** a bundle frozen for a device Moth's account reaches, handed
    to Moth, and its results recorded the same way.
 
