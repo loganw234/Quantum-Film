@@ -112,8 +112,16 @@ before it is run, that fixes a hardware run completely.
   line, and over a record directory no commitment appears in two lines
   (`fixer.check_job_lines`).
 - **A job that fails before its circuits run** (Moth says those never execute)
-  keeps its line. Its final status is recorded beside the line, and no run is
-  fixed from it. A re-run needs a newly frozen bundle, with new salts.
+  keeps its line, and no run is fixed from it. A re-run needs a newly frozen
+  bundle, with new salts.
+  - Beside the line goes a status file holding IBM's own state and usage for
+    the job, as returned.
+  - No function checks that file's form, which is a stated limit. The line
+    itself is pushed, and the job's state can be read from IBM.
+- **A device is named from a list.** A `qpu` record's backend must be one of
+  `fixer.IBM_DEVICES`, the nine QPUs IBM listed online on 2026-10-01. A device
+  outside it, one Moth's account reaches for instance, is added by the lead by
+  name before a bundle is frozen for it.
 
 ## P1: the hardware runner and the bundle (Quantum-Film)
 

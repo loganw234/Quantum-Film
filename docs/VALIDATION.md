@@ -1451,3 +1451,21 @@ Each is closed here:
 
   Its mutant D4 (`decode.lower()` inside the commitment) is now equivalent, since `decode` must be one of
   `RUN_DECODES`, all lowercase. The fixer and decode stages pass 175 tests.
+- **Addendum, verifier-P0's read of 07fbe49 and 6a48f97** (15:04Z). That read found A-D, the device list and the
+  thirteen boundaries closed. It found two small defects in 07fbe49's code, each failing closed, and both are
+  closed here.
+  - **`check_job_lines` passed a resubmission given as a generator.** It walked its lines three times, and a
+    one-shot iterable is seen once.
+    - It now reads them into a list first, and refuses by name anything that is not a sequence of lines.
+    - A resubmission is refused given as a list, a tuple, an iterator, a generator or a map.
+  - **A file nested between about 990 and 3,000 levels crashed `check_file`.** `fixer.text`'s indented encoder
+    recursed too deep outside the refusal. The check and the canonical text now sit inside the same refusal.
+    Tested at 1,500 and 2,500 levels.
+  - **The early return in `check_job_lines` is tested:** a line missing `job_id` and a `None` line are named, not
+    crashed.
+  - **Planted:** four faults, one at a time, and every one failed a test. The fixer and decode stages pass 183
+    tests.
+  - **ROUND3.md and the briefs:**
+    - a failed job's status file holds IBM's own state and usage, and no function checks its form, which is
+      stated;
+    - a device outside `IBM_DEVICES` is added by name before a bundle is frozen for it.

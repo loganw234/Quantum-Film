@@ -126,3 +126,25 @@ def test_a_pub_that_is_not_an_index_into_the_line_is_refused(pub):
     rec = copy.deepcopy(run(0))
     rec["source"]["pub"] = pub
     assert "line: the record's pub is not one of the line's circuits" in fixer.held_to_line(rec, line())
+
+def test_a_resubmission_is_refused_however_the_lines_are_given():
+    """A generator walked three times is seen once: the set check reads its lines into a list first."""
+    known = line(job_id="kn0wnanswerjob", commitments=[hashlib.sha256(b"known answer").hexdigest()])
+    again = line(job_id="resubmitted0job")
+    lines = [known, line(), again]
+    for given in (lines, tuple(lines), iter(lines), (x for x in lines), map(dict, lines)):
+        assert any("submitted twice" in p for p in fixer.check_job_lines(given)), type(given).__name__
+
+
+@pytest.mark.parametrize("given", [None, 5, "a line", line()])
+def test_something_that_is_not_a_set_of_lines_is_refused_by_name(given):
+    assert fixer.check_job_lines(given) == ["job lines: not a sequence of job lines"]
+
+
+def test_a_bad_line_in_a_set_is_named_not_crashed():
+    """The early return after the per-line checks: without it a line missing job_id raised KeyError."""
+    missing = line()
+    del missing["job_id"]
+    problems = fixer.check_job_lines([line(), missing, None])
+    assert any(p.startswith("line 1: job line: must carry job_id") for p in problems)
+    assert "line 2: job line: not an object" in problems

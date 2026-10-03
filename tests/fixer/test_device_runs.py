@@ -332,3 +332,14 @@ def test_an_option_stated_as_a_number_is_not_stated():
         fixer.fix_run("pauli-4x4", "law", Z, COUNTS,
                       source(options=options, options_sha256=fixer.options_digest(options)))
     assert "['dynamical_decoupling.enable', 'twirling.enable_measure']" in str(refusal.value)
+
+@pytest.mark.parametrize("levels", [1500, 2500])
+def test_a_file_nested_between_the_encoders_limits_is_refused_not_crashed(run, tmp_path, levels):
+    """json.loads reads ~3,000 levels; fixer.text's indented encoder runs out at ~990. Between the two the
+    check itself recursed too deep, outside the refusal (verifier-P0, 15:04Z)."""
+    deep = tmp_path / "between.json"
+    nested = '"options": {"x": ' + "[" * levels + "]" * levels + ", "
+    deep.write_bytes(fixer.text(run).replace('"options": {', nested, 1).encode("ascii"))
+    rec, problems = fixer.check_file(deep)
+    assert rec is None and problems[0].startswith("unreadable: RecursionError")
+    assert fixer.main(["check", str(deep)]) == 1

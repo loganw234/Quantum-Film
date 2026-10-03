@@ -563,7 +563,11 @@ def check_job_line(line):
 
 def check_job_lines(lines):
     """The named reasons a set of job lines is refused: any bad line, a job id twice, or a commitment in two
-    lines, which would mean one submission's commitments reused by another."""
+    lines, which would mean one submission's commitments reused by another. `lines` may be any iterable; it is
+    read once, into a list, because a generator walked three times is seen once (verifier-P0, 15:04Z)."""
+    if isinstance(lines, (str, bytes, dict)) or not hasattr(lines, "__iter__"):
+        return ["job lines: not a sequence of job lines"]
+    lines = list(lines)
     out = [f"line {i}: {p}" for i, line in enumerate(lines) for p in check_job_line(line)]
     if out:
         return out
@@ -645,8 +649,12 @@ def check_file(path):
         rec = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_twice)
     except (OSError, UnicodeDecodeError, ValueError, RecursionError) as e:   # RecursionError: nesting too deep
         return None, [f"unreadable: {type(e).__name__}: {e}"[:300]]
-    problems = check(rec)
-    if raw != text(rec).encode("ascii", "replace"):
+    try:                     # the check and the canonical text recurse too: text's indented encoder runs out at
+        problems = check(rec)                       # about 990 levels, below json.loads (verifier-P0, 15:04Z)
+        same = raw == text(rec).encode("ascii", "replace")
+    except RecursionError as e:
+        return None, [f"unreadable: RecursionError: {e}"[:300]]
+    if not same:
         problems.append("bytes: the file is not the record's canonical text (fixer.text)")
     return rec, problems
 
