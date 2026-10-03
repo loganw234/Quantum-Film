@@ -35,16 +35,18 @@ def run(role, basis, counts, **over):
     return fixer.fix_run("pauli-4x4", role, basis, counts, source(role, basis, sum(n for _, n in counts), **over))
 
 
-def film(**over):
-    """The film's job: the law at PUB 0 and the two coherence circuits at PUBs 1 and 2."""
-    return [run("law", Z, LAW_COUNTS, pub=0, **over),
-            run("coherence", XX, [[[], 6], [[0], 1], [[0, 1], 3], [[1, 7], 2]], pub=1, **over),
-            run("coherence", YY, [[[0], 4], [[0, 1, 5], 2], [[2], 2]], pub=2, **over)]
+def film(job="d3stand1n0job", **over):
+    """The plan's law job (its one PUB) and coherence job (XX at PUB 0, YY at PUB 1), on one backend
+    (lead.md, 16:24Z: one shot count per job)."""
+    return [run("law", Z, LAW_COUNTS, pub=0, job=job, **over),
+            run("coherence", XX, [[[], 6], [[0], 1], [[0, 1], 3], [[1, 7], 2]], pub=0, job=f"{job}-coh", **over),
+            run("coherence", YY, [[[0], 4], [[0, 1, 5], 2], [[2], 2]], pub=1, job=f"{job}-coh", **over)]
 
 
 def test_a_hardware_column_measures_the_law_run_and_both_coherence_runs():
     col = compare.run_column(film())
-    assert col["label"] == "qpu: ibm_kingston" and col["kind"] == "qpu" and col["jobs"] == ["d3stand1n0job"]
+    assert col["label"] == "qpu: ibm_kingston" and col["kind"] == "qpu"
+    assert col["jobs"] == ["d3stand1n0job", "d3stand1n0job-coh"]
     law, rec = col["law"], film()[0]
     assert law["shots"] == 13 and law["crystals_per_shot"] == {"2": 2, "5": 10, "6": 1}
     assert law["n_crystal"] == {"N": 5, "shots": 10, "share": 10 / 13}
