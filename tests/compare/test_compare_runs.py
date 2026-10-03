@@ -197,6 +197,18 @@ def test_the_print_takes_the_n_crystal_shots_of_qpu_law_runs_by_job_then_layout(
     assert compare.print_layouts([second, first]) == layouts                      # the order is the rule's
 
 
+def test_the_print_orders_by_job_before_layout_when_the_two_disagree():
+    """The first job by id laid only layouts that sort after the second job's: by job, then layout, its shots
+    still come first. By layout alone they would not (verifier-P2's M11; the test above sorts the same either
+    way)."""
+    first = run("law", Z, [[[0, 2], 1], [[3, 6, 9, 12, 15], 2], [[5, 6, 7, 8, 9], 1]], job="d3aaaa0job")
+    second = run("law", Z, [[[0, 1, 2, 3, 4], 1], [[0, 1, 2, 4, 8], 2], [[3, 6, 9, 12, 15], 1]], job="d3bbbb0job")
+    want = [[3, 6, 9, 12, 15]] * 2 + [[5, 6, 7, 8, 9]] + [[0, 1, 2, 3, 4]] + [[0, 1, 2, 4, 8]] * 2 \
+        + [[3, 6, 9, 12, 15]]
+    assert compare.print_layouts([second, first]) == want == compare.print_layouts([first, second])
+    assert sorted(want) != want
+
+
 def test_the_print_refuses_a_simulator_run_and_any_run_that_is_not_the_law_by_name():
     with pytest.raises(ValueError, match="a simulator run is not hardware"):
         compare.print_layouts(film(kind="simulator", backend="fake_kingston")[:1])

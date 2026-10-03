@@ -16,6 +16,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 HERE = pathlib.Path(__file__).resolve().parent
 PREDICT = ROOT / "tools" / "hw_predict.py"
 KEEP = ("SYSTEMROOT", "WINDIR", "PATH", "PATHEXT", "COMSPEC", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS")
+# The round's rule for every simulation (lead.md, 17:23Z: the owner's machine was maxed out): set in every child,
+# never inherited, so a gate run uncapped still runs its children capped (verifier-P2, 18:04Z: 766 s under load).
+CAPS = {"OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "QISKIT_IN_PARALLEL": "FALSE"}
 FAKE_KEY = "FAKEKEY-not-a-credential-0123456789abcdefgh"
 FAKE_CRN = "crn:v1:bluemix:public:quantum-computing:us-east:a/00000000000000000000000000000000:11111111-2222-3333-4444-555555555555::"
 
@@ -27,15 +30,23 @@ def venv_python():
 
 
 def environment(tmp, **extra):
-    """The child's environment: nothing that steers qiskit or IBM's stack, and its home and temp under tmp."""
+    """The child's environment: nothing that steers qiskit or IBM's stack, its home and temp under tmp, and the
+    round's thread caps."""
     home = tmp / "home"
     home.mkdir(exist_ok=True)
     env = {k: v for k, v in os.environ.items() if k.upper() in KEEP}
     env.update(PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1", PYTHONIOENCODING="utf-8", TEMP=str(tmp),
                TMP=str(tmp), USERPROFILE=str(home), HOME=str(home), APPDATA=str(home), LOCALAPPDATA=str(home),
-               QISKIT_SETTINGS=str(tmp / "no-such-settings.conf"))
+               QISKIT_SETTINGS=str(tmp / "no-such-settings.conf"), **CAPS)
     env.update(extra)
     return env
+
+
+def test_every_child_runs_under_the_rounds_thread_caps(tmp):
+    """What a child sees, read in the child itself: the four caps, whatever this process's own environment says."""
+    p = run(["-c", "import json, os; print(json.dumps({k: os.environ.get(k) for k in "
+                   "('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'QISKIT_IN_PARALLEL')}))"], tmp)
+    assert p.returncode == 0 and json.loads(p.stdout) == CAPS, p.stdout + p.stderr
 
 
 def run(args, tmp, cwd=None, **extra):
@@ -94,8 +105,8 @@ def test_an_ideal_run_of_the_coherence_circuits_reads_three_eighths(kingston, tm
 def test_a_noisy_prediction_states_what_it_ran_and_repeats_byte_for_byte(kingston, tmp):
     """The fake's own noise model: some shots leave the five-crystal sector. The output names the backend, the
     noise model's calibration date, the seeds and the versions, and a second run gives the same bytes."""
-    args = ["--backend", "fake_kingston", "--law", kingston / "law.qpy", "--shots-law", 256,
-            "--known-answer", kingston / "known-answer.qpy", "--shots-known-answer", 128, "--seed", 7]
+    args = ["--backend", "fake_kingston", "--law", kingston / "law.qpy", "--shots-law", 128,
+            "--known-answer", kingston / "known-answer.qpy", "--shots-known-answer", 64, "--seed", 7, "--with-counts"]
     first, again = predict(args, tmp), predict(args, tmp)
     assert first == again
     out = json.loads(first)
@@ -104,8 +115,14 @@ def test_a_noisy_prediction_states_what_it_ran_and_repeats_byte_for_byte(kingsto
     assert [(r["role"], r["seed_simulator"]) for r in out["circuits"]] == [("law", 7), ("known-answer", 10)]
     assert set(out["versions"]) == {"python", "qiskit", "qiskit-aer", "qiskit-ibm-runtime", "numpy", "quantum_film"}
     assert out["versions"]["qiskit"] == "2.5.2" and out["versions"]["qiskit-aer"] == "0.17.2"
-    assert out["circuits"][0]["measures"]["n_crystal"]["share"] < 1
     assert out["circuits"][0]["qpy_sha256"] == __import__("hashlib").sha256((kingston / "law.qpy").read_bytes()).hexdigest()
+    # A leaky run: its sector measures stand on its five-crystal shots, counted here from its own counts.
+    law = out["circuits"][0]
+    five = sum(n for ones, n in law["counts"] if len(ones) == 5)
+    assert sum(n for _, n in law["counts"]) == 128 and 0 < five < 128
+    m = law["measures"]
+    assert m["n_crystal"]["shots"] == five and m["n_crystal"]["share"] == five / 128
+    assert m["tvd"]["floor"]["shots"] == five and m["xeb"]["shots"] == five
 
 
 def test_a_prediction_takes_its_place_in_the_table_under_its_own_label(kingston, tmp):
