@@ -37,8 +37,17 @@ route; sources at the end). Each point says how it is known:
   warning. A runner treats that warning as fatal.
 - **The key or the tokens can be redirected.** Any of these redirects them or
   switches off TLS checks, so a runner refuses to start while one is present:
-  - the variables `IAM_URL`, `IBM_CREDENTIALS_FILE`, `VCAP_SERVICES`,
-    `<SERVICE>_URL` and `<SERVICE>_DISABLE_SSL`;
+  - the variables `IAM_URL`, `IBM_CREDENTIALS_FILE` and `VCAP_SERVICES`;
+  - any variable that STARTS with a service's upper-cased name.
+    - ibm_cloud_sdk_core reads every one of them (`_URL`, `_DISABLE_SSL`,
+      `_APIKEY`, `_AUTH_URL`, `_AUTH_TYPE` and the rest), and the stack
+      configures the services `GLOBAL_SEARCH` and `GLOBAL_CATALOG`.
+    - So a runner refuses any variable starting `GLOBAL_SEARCH` or
+      `GLOBAL_CATALOG`.
+    - Read in the installed source by round 3's P2. Before that it was listed
+      only as `<SERVICE>_URL` and `<SERVICE>_DISABLE_SSL`.
+  - `QISKIT_IBM_RUNTIME_LOG_FILE`, which makes the client write a log file
+    (round 3's P2, from source);
   - a file `ibm-credentials.env` in the working or home directory;
   - a proxy:
     - All three HTTP session classes the stack uses take one from the
