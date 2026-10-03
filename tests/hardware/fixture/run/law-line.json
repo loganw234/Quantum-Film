@@ -1,0 +1,14 @@
+{
+ "backend": "fake_kingston",
+ "bundle_sha256": "19c611a10b8bb06fa92498c62788215a69b5bfe117b0ee0b0da7140babec6edc",
+ "commitments": [
+  "176c547852b280719e6fb13d9ee0127183045fdf3adbaaf233e1bacdee6191aa"
+ ],
+ "format": "quantum-film/hardware-job/v1",
+ "job_id": "dryrun-09eabe503da9c12a",
+ "kind": "simulator",
+ "program": "sampler",
+ "route": "ibm-direct",
+ "stock": "pauli-4x4",
+ "submitted_at": "2026-10-03T17:06:30.028016Z"
+}

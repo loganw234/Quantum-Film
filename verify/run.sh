@@ -37,7 +37,7 @@ export PYTHONIOENCODING=utf-8
 ONLY=""; SKIP=""; REQUIRE_ALL=0; LIST=0; RESUME=""; FRESH=0; BUDGET=""
 
 # Named cuts, checked against the derived stage list below.
-BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,pinned,develop,fixer-cli,controls
+BUDGET_QUICK=lint,docs,vectors,golden,circuits,decode,client,fixer,hardware,pinned,develop,fixer-cli,controls
 
 die () { echo "FATAL: $*" >&2; exit 2; }
 
@@ -296,6 +296,9 @@ stage client "offline: the Atlas client sends its key to the API host only, and 
 stage fixer "negative records: fixed, checked from the record alone, reproduced, refused by name" -- \
   bash verify/pytest-stage.sh tests/fixer
 
+stage hardware "IBM runs without qiskit: key-leak refusals, the ISA check, the manifest, the job's order and its controls, every committed run held" -- \
+  bash verify/pytest-stage.sh tests/hardware/pure
+
 need_file "${QF_CFT_ROOT:-vendor/cft-fp256}/host/cft.dll" "libcft is not built at ${QF_CFT_ROOT:-vendor/cft-fp256} (CLAUDE.md has the build line)"
 stage pinned "libcft binary64 rolls equal the authority's; every certificate step exact on tight inputs, each directed call flipped fails; hand-off removed, a near-tie disagrees" -- \
   bash verify/pytest-stage.sh tests/pinned
@@ -317,6 +320,10 @@ stage fixer-cli "the fixer's own command line accepts every generated record" --
 MUST_FAIL=1 MUST_SAY="digest: the record's bytes are not the bytes it was fixed with"
 stage controls "a tampered negative MUST be refused by the fixer's own command line" -- \
   python -m quantum_film.fixer check tests/vectors/negative-tampered.json
+
+need_env QF_IBM_PYTHON "no IBM virtualenv named (QF_IBM_PYTHON is its python: qiskit 2.5.2, qiskit-ibm-runtime 0.50.0, qiskit-aer 0.17.2)"
+stage hardware-qiskit "offline with qiskit: a bundle frozen and dry-run end to end on a fake Heron r2, the live path on a recorded transport, the controls that need qiskit" -- \
+  env OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 QISKIT_IN_PARALLEL=FALSE bash verify/pytest-stage.sh tests/hardware/qiskit
 
 # The DLL a parcel loads is the one QF_CFT_ROOT names, so that is the one
 # checked (verifier-P0 11a); the stage prints its path and SHA-256.
