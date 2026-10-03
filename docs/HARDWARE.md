@@ -39,12 +39,44 @@ route; sources at the end). Each point says how it is known:
   switches off TLS checks, so a runner refuses to start while one is present:
   - the variables `IAM_URL`, `IBM_CREDENTIALS_FILE`, `VCAP_SERVICES`,
     `<SERVICE>_URL` and `<SERVICE>_DISABLE_SSL`;
-  - a file `ibm-credentials.env` in the working or home directory.
+  - a file `ibm-credentials.env` in the working or home directory;
+  - a proxy:
+    - All three HTTP session classes the stack uses take one from the
+      environment. They are requests, `ibm_cloud_sdk_core.BaseService` and
+      `qiskit_ibm_runtime`'s RetrySession, all with `trust_env` on.
+    - On Windows, `urllib.request.getproxies()` falls back to the
+      registry's system proxy when the environment names none.
+    - So a runner reads `getproxies()` and refuses a non-empty answer.
+      Measured by round 3's P0 verifier.
+  - a CA bundle in `REQUESTS_CA_BUNDLE` or `CURL_CA_BUNDLE` (measured by the
+    verifier); `SSL_CERT_FILE` and `SSL_CERT_DIR` are refused too (inferred,
+    from OpenSSL);
+  - a `.netrc` in the home directory, which requests reads for credentials
+    when no other auth is given (from its source, not measured).
+- **Names that are not read.** With an explicit token and channel, the client
+  never reads `QISKIT_IBM_URL` or `QISKIT_IBM_TOKEN` (from its source,
+  verifier-P0). Naming the token and the instance is what keeps them out.
 - **Job tags are not evidence (verified, measured).** They can be replaced
   after submission and carry no time of their own. A run's commitment rides
   in `circuit.metadata` instead: that goes inside the submitted job's
   parameters, which IBM keeps with the job's server-set `created` time, unless
   the job is private or its owner deletes it.
+  - **Where the metadata sits in the payload.** The executor Sampler puts it
+    in plain text, in its passthrough data. The legacy SamplerV2 puts it
+    inside the QPY-encoded circuit, which decodes back unchanged (round 3's
+    P0 verifier).
+- **Status and result are separate calls on IBM (measured, from the client's
+  source, verifier-P0).**
+  - A job's created time is not in the submit response, and
+    `job.creation_date` fetches it with `GET /jobs/{id}`, a status call.
+  - `job.result()` polls status and then fetches `/results` in one call.
+  - So a runner may make status calls before it commits its job line. It never
+    calls `result()` before that line is committed and pushed (docs/ROUND3.md).
+- **What the client sends (measured, verifier-P0).** Both samplers send a
+  pre-transpiled circuit identical, operation for operation, to the one
+  given, when dynamical decoupling and twirling are off. With either on, the
+  circuit sent changes. Whether IBM's server then runs it unchanged is not
+  established.
 
 ## Compiling
 
@@ -114,9 +146,12 @@ forbidden layouts, and random placement of five crystals puts 1,360 / 4,368
   circuits on tomography-api-v2, and offered to run a specific circuit for the
   project's validation. A job that fails before its circuit executes does not
   run, and sequential jobs each run.
-- **So the Moth leg is the same frozen bundle** (docs/ROUND3.md), run by Moth
-  on Moth's IBM access. Both legs are therefore IBM hardware: one vendor,
-  reached by two accounts.
+- **So the Moth leg is the same design, run by Moth on Moth's IBM access**
+  (docs/ROUND3.md).
+  - It is the same logical circuits and the same runner, in a bundle frozen
+    for a device Moth's account reaches.
+  - It is the IBM leg's bundle itself only when that device is the same one.
+  - Both legs are IBM hardware: one vendor, reached by two accounts.
 
 ## Sources (read 2026-10-01)
 

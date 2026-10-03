@@ -1334,3 +1334,59 @@ docs/HARDWARE.md holds what was read and measured before any job ran, and docs/R
   - its commitment committed to git before any result is read;
   - for a frozen bundle, the bundle's own commit before it leaves this repository;
   - the commitment in the submitted circuits' metadata, which IBM keeps with the job.
+
+## 2026-10-03 - round 3's P0, revised after its verifier: the simulator kind, the job line, and corrections
+
+Verifier-P0 (Sonnet 5.5, at the owner's word that this round's verifiers are Sonnet models) checked 33e0a08 and
+said NOT READY (round-3 ledger, verifier-P0.md 14:05Z-14:11Z). It confirmed by measurement:
+- **the reader:** 354 of 360 transpiles over levels 1-3 and five layout kinds read exactly, and none read wrong
+  (6 simulator memory failures). So did 78 noisy readings through both samplers;
+- **the commitment's encoding:** injective over 100,000 random tuples;
+- **the eight planted faults;**
+- **no regressions:** the fixer's verdict on all 12,185 JSON files was identical before and after.
+
+Every one of its defects is closed here:
+- **A simulator passed as a QPU.** Device runs now have two kinds:
+  - `qpu`, whose backend must be an IBM device's name (`ibm_<name>`);
+  - `simulator`, which may not name one.
+
+  `fake_kingston`, `aer_simulator`, `fake_ibm_kingston` and `ibm_kingston_sim` are refused as `qpu`.
+- **The anchor could not be run as written.**
+  - A job line (`quantum-film/hardware-job/v1`: `check_job_line`, `held_to_line`) names the job, IBM's created
+    time, the bundle's manifest hash and every circuit's commitment in PUB order. Each record is held to it.
+  - The order: submit; read IBM's created time, a status call; commit AND push the line; only then
+    `result()`, which fetches results itself.
+  - A bundle is submitted once.
+  - The Moth leg's line is written on Moth's machine. That is stated as a limit (docs/ROUND3.md).
+- **The key-leak list was incomplete.** docs/HARDWARE.md now also refuses:
+  - a proxy, by reading `urllib.request.getproxies()`, which on Windows includes the registry's;
+  - CA bundles: `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `SSL_CERT_FILE` and `SSL_CERT_DIR`;
+  - a `.netrc`.
+- **decode.py was wrong about BitArray.array.** Read MSB-first, its bytes are the right string. Only the raw
+  Executor array in column order is the mirror. Corrected.
+- **Raw results were written after decoding.** The plan now writes them first.
+- **The minors:**
+  - the time order counts fractions of a second;
+  - `decode` must be a known rule, so a lone surrogate is refused by name, not by a traceback;
+  - the options are the options AS SENT, and must state `dynamical_decoupling.enable`, `twirling.enable_gates`
+    and `twirling.enable_measure`. Those paths are what both samplers send;
+  - the job's PUB index is a bound field, so two runs with equal shots cannot be swapped;
+  - `basis[q]` is qubit q, stated;
+  - `decode.known_answer` judges a known-answer run: the expected set must be modal and strictly ahead of its
+    mirror, and a mirror-symmetric answer is refused.
+- **Commitment v3 is redefined in place.** It now also binds the kind and the PUB index. No v3 record existed.
+  33e0a08 is public, so this line says it.
+- **Correction to the entry above.** "The kind and the device were unbound in v2, and v3 binds them" was false as
+  written at 33e0a08: v3 there had one kind and did not bind it. It is true from this commit.
+- **Correction to the entry above.** "Tests: ... The fixer and decode stages pass 105 tests" stands. The verifier
+  found six conditions in that code that no test held, among them `options_digest` without `sort_keys` and a qubit
+  twice in one outcome. Each is now tested.
+- **Tests:** tests/fixer/test_device_runs.py, tests/fixer/test_job_line.py (new) and
+  tests/decode/test_ibm_decode.py. The fixer and decode stages pass 149 tests.
+- **Twenty faults were planted** one at a time, and every one failed a test. The files were restored byte for
+  byte. They included:
+  - the verifier's six uncaught ones;
+  - a simulator as a qpu;
+  - the commitment without the kind or without the PUB;
+  - a line holding any commitment at any PUB;
+  - a known answer passing on a tie with its mirror.

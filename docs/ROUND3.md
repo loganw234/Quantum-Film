@@ -26,13 +26,27 @@ These are lead-owned. Parcels read them and never edit them.
 
 - **The device-run record and commitment v3** in `quantum_film/fixer.py`:
   `RUN_FORMAT`, `check_run`, `fix_run`, `commitment_v3`, `options_digest`.
-  - One record holds every shot of one circuit in one job, with its role and
-    the basis each qubit was read in. Its commitment binds the route, the
-    backend, the program, the logical and the transpiled circuit, the shots,
-    the options and the decode rule.
+  - **One record** holds every shot of one circuit in one job: its role, the
+    basis each qubit was read in (`basis[q]` is qubit q, qubit 0 first), its
+    PUB index in the job, and its counts.
+  - **Its commitment binds** the kind, the route, the backend, the program, the
+    PUB, the logical and the transpiled circuit, the shots, the options and the
+    decode rule.
+  - **Two kinds:**
+    - `qpu`, whose backend must be an IBM device's name;
+    - `simulator`, for every dry run, which may not name one.
+  - **The options are the options as sent.** They must state dynamical
+    decoupling and both twirlings, and `decode` must be a rule this package
+    reads.
   - Tests: `tests/fixer/test_device_runs.py`.
+- **The job line** in `quantum_film/fixer.py`: `JOB_FORMAT`, `check_job_line`,
+  `held_to_line`. It names the job, IBM's created time, the bundle's manifest
+  hash and every circuit's commitment, in PUB order. Every run record of the job
+  is held to it. Tests: `tests/fixer/test_job_line.py`.
 - **The IBM reader**, `quantum_film/ibm/decode.py`, held to a known answer by
-  `tests/decode/test_ibm_decode.py`.
+  `tests/decode/test_ibm_decode.py`. Its `known_answer` judges a known-answer
+  run: the expected set must be the modal outcome, strictly ahead of its
+  mirror.
 - **The claims files and the front door.** The claims files are README.md,
   CLAUDE.md, THIRD_PARTY_NOTICES.md and `docs/`. The front door is
   `verify/run.sh`, apart from the additions a parcel's section names, and
@@ -54,8 +68,20 @@ before it is run, that fixes a hardware run completely.
   - the qiskit and qiskit-ibm-runtime versions, and the program;
   - the options: dynamical decoupling and twirling off, stated, not
     defaulted.
-  - For each circuit: its role and basis, its shots, the logical and
-    transpiled circuits' SHA-256, the chain, a salt and its commitment v3.
+  - For each circuit, in PUB order:
+    - its role, basis and shots;
+    - the logical and transpiled circuits' SHA-256;
+    - the chain;
+    - a salt and its commitment v3.
+
+    The logical circuit's SHA-256 is that of its OpenQASM text in the
+    bundle, measurements included. For the law and coherence circuits, the
+    manifest also names the source circuit, `ed767c01bd4b851d`, and the
+    records test holds the chain between them.
+  - The transpiled circuit's SHA-256 is that of the QPY bytes the runner
+    submits.
+  - The bundle's own identity is its manifest's SHA-256 (a job line's
+    `bundle_sha256`).
 - **The circuits**, each measured with `measure_all` before compiling:
 
   | circuit | what it is | shots |
@@ -70,11 +96,15 @@ before it is run, that fixes a hardware run completely.
 - **Running a bundle never compiles.**
   - The runner submits exactly the committed transpiled circuits, after
     checking their bytes and the backend's name against the manifest.
-  - So both routes run the same circuits, and everything the commitment binds
-    is in git before the job exists.
+  - So everything the commitment binds is in git before the job exists.
+  - Two routes on one device run the same circuits.
   - The price: the chain was chosen against the calibration of the day the
     bundle was frozen. So a bundle is frozen close to its run, and another
-    device gets another bundle.
+    device gets another bundle, with the same logical circuits.
+- **A bundle is submitted once.** A runner refuses a bundle that already has a
+  job line. A job that fails before its circuits run (Moth says those never
+  execute) leaves a line saying so, and a new bundle is frozen, with new
+  salts.
 
 ## P1: the hardware runner and the bundle (Quantum-Film)
 
@@ -104,19 +134,34 @@ before it is run, that fixes a hardware run completely.
     - refuses every key-leak condition in docs/HARDWARE.md, and names the
       Open instance;
     - checks the backend and the transpiled circuits' bytes against the
-      manifest;
+      manifest, and refuses a bundle that already has a job line;
+    - takes the kind from the backend object: `qpu` only for an IBM backend
+      from the service, `simulator` for anything else;
     - puts each circuit's commitment in its metadata;
     - submits one job, with `max_execution_time` capped;
-    - git-commits the job line (job id and IBM's created time) BEFORE any
-      status or result call;
-    - then fetches, reads every circuit's bitstrings through
-      `quantum_film.ibm.decode`, fixes one device run per circuit, and writes
-      the raw results and the job's metrics;
-    - checks every record with the fixer's command line.
-  - A dry run against a fake backend exercises the whole path offline.
+    - reads IBM's created time (a status call, which is allowed);
+    - writes the job line (`fixer.JOB_FORMAT`), then git-commits AND pushes it,
+      all BEFORE `result()` is called. `result()` fetches the results itself;
+    - writes the raw result bytes to disk the moment they arrive, before
+      anything decodes them;
+    - then reads every circuit's bitstrings through `quantum_film.ibm.decode`,
+      fixes one device run per circuit, writes the job's metrics, and holds
+      every record to the job line (`fixer.held_to_line`);
+    - checks every record with the fixer's command line;
+    - never resubmits.
+  - **A dry run against a fake backend** exercises the whole path offline.
+    Its records are kind `simulator`.
   - **Moth's route.** A README in the bundle tells Moth's CTO what to run,
     with what, and what to send back. It is the same runner and the same
-    bundle; only the account differs. This was P3 before Moth's answer.
+    design, in a bundle frozen for a device Moth's account reaches; only the
+    account differs. This was P3 before Moth's answer.
+    - **Stated, not closed:** that leg's job line is written on Moth's
+      machine, so this project cannot commit it before its results exist.
+    - **What anchors that leg is weaker:**
+      - the bundle, committed and pushed before it leaves;
+      - the commitments in the submitted circuits' metadata, which IBM keeps
+        with the job's created time;
+      - whatever of the job's record Moth sends back.
 - **Negative controls:**
   - A transpiled circuit with one gate changed is refused before
     submission.

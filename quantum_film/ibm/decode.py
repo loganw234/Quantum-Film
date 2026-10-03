@@ -20,9 +20,12 @@ statistic can tell the two orders apart (CLAUDE.md). So the order is held to
 a known-answer circuit, never to the physics: tests/decode/test_ibm_decode.py
 here, and on hardware the first job of every route.
 
-Only those strings are this reader's input. BitArray.array is big-endian
-bytes, and the Executor's raw output is a boolean array whose column j is
-bit j: either read as a string here would be the mirror.
+Only those strings are this reader's input. BitArray.array holds the same
+bits as big-endian bytes: read most significant bit first, they ARE the
+string. The Executor's raw output is a boolean array whose column j is
+classical bit j: written out in column order, it reads as the mirror. Both
+were measured by round 3's P0 verifier, who also found that an earlier
+version of this paragraph had BitArray.array wrong.
 
 DECODE names this rule in the records read with it (a device run's
 `decode`, which its commitment binds). A change to the rule is a new name.
@@ -50,3 +53,25 @@ def tally(bitstrings, M):
 def canonical(counts):
     """{ones: shots} as a device run's counts: [[ones, shots], ...], sorted by ones."""
     return [[list(key), n] for key, n in sorted(counts.items())]
+
+
+def known_answer(counts, expected, M):
+    """Did a known-answer run read in this rule's order? {ones: shots} -> a verdict.
+
+    It holds when the most frequent outcome is exactly the expected set, with
+    strictly more shots than its mirror under q -> M - 1 - q: a tie between the
+    two decides nothing. An expected set that is its own mirror is refused, as
+    such a run could not tell the orders apart.
+    Readout noise leaves the expected set modal and loses a share of the shots
+    to its neighbours; the mirror being modal is an order error, not noise."""
+    want = tuple(sorted(expected))
+    mirror = tuple(sorted(M - 1 - q for q in want))
+    if want == mirror:
+        raise ValueError(f"{want} is its own mirror: a known answer must tell the orders apart")
+    total = sum(counts.values())
+    if total < 1:
+        raise ValueError("no shots to judge")
+    modal = min(counts, key=lambda k: (-counts[k], k))          # the most shots; ties broken by the smaller key
+    holds = modal == want and counts.get(want, 0) > counts.get(mirror, 0)
+    return {"expected": list(want), "modal": list(modal), "holds": holds,
+            "share": counts.get(want, 0) / total, "mirror_share": counts.get(mirror, 0) / total, "shots": total}

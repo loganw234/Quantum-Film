@@ -107,25 +107,44 @@ LOCAL_FIELDS = ("backend", "fixed_at", "kind")
 #           to a circuit with a known result), "law" (the stock's law: these
 #           are crystal layouts), "coherence" (the law's circuit with basis
 #           rotations: what a classical mixture with the same layouts lacks).
-#   basis   one letter per logical qubit, X, Y or Z: the basis each was read in.
+#   basis   one letter per logical qubit, X, Y or Z, the basis each was read in.
+#           basis[q] is qubit q, qubit 0 FIRST: the opposite of a bitstring,
+#           and of Qiskit's Pauli labels, which put qubit 0 last.
+#   kind    "qpu" for a device (its backend must be an IBM device's name),
+#           "simulator" for anything else that ran the same path, such as a dry
+#           run on a fake backend (its backend must not look like a device's).
+#   pub     the circuit's index in its job. Two circuits of one job differ by
+#           it, so two runs with the same shots cannot be swapped unseen.
+# The options are the options AS SENT, as the primitive serialises them.
+# - They must state dynamical decoupling and both twirlings, true or false.
+#   The legacy SamplerV2 sends exactly
+#   {"dynamical_decoupling": {"enable": false}, "twirling": {"enable_gates":
+#   false, "enable_measure": false}}. The executor Sampler's full options dump
+#   has the same paths (measured by round 3's P0 verifier). STATED_OPTIONS
+#   names the paths.
+# - decode must be a rule this package reads (RUN_DECODES).
 # The commitment (v3) binds everything known BEFORE submission: what ran, where
 # and how, and the decode rule. The job id is known only after, so the record
-# carries it beside the commitment; the anchor (a git commit before any result
-# is read, and, for a run made from a frozen bundle, the bundle's own commit
-# before it left this repository) binds it to the job. What v2 left unbound,
-# v3 binds: the route, the backend and the exact circuit the device ran.
+# carries it beside the commitment, and the job line binds the two (JOB_FORMAT,
+# below): committed and pushed after submission and before any result is read.
+# For a run made from a frozen bundle, the bundle's own commit before it left
+# this repository is a second anchor. What v2 left unbound, v3 binds: the kind,
+# the route, the backend, the job's PUB index and the exact circuit that ran.
 RUN_FORMAT = "quantum-film/device-run/v1"
 RUN_FIELDS = ("format", "stock", "law", "role", "basis", "counts", "source", "code", "digest")
 ROLES = ("known-answer", "law", "coherence")
-RUN_KINDS = ("qpu",)
+RUN_KINDS = ("qpu", "simulator")
 ROUTES = ("ibm-direct", "moth")
+RUN_DECODES = ("quantum_film.ibm.decode/v1",)
+STATED_OPTIONS = (("dynamical_decoupling", "enable"), ("twirling", "enable_gates"), ("twirling", "enable_measure"))
 COMMITMENT_V3 = "quantum-film/commitment/v3"
-RUN_COMMITTED = ("route", "backend", "program", "circuit_sha256", "isa_sha256", "shots", "options_sha256",
-                 "decode", "salt")
-RUN_SOURCE = {"kind": str, "route": str, "backend": str, "program": str, "job_id": str, "circuit_sha256": str,
-              "isa_sha256": str, "shots": int, "options": dict, "options_sha256": str, "decode": str, "salt": str,
-              "commitment": str, "submitted_at": str, "fixed_at": str}
+RUN_COMMITTED = ("kind", "route", "backend", "program", "pub", "circuit_sha256", "isa_sha256", "shots",
+                 "options_sha256", "decode", "salt")
+RUN_SOURCE = {"kind": str, "route": str, "backend": str, "program": str, "job_id": str, "pub": int,
+              "circuit_sha256": str, "isa_sha256": str, "shots": int, "options": dict, "options_sha256": str,
+              "decode": str, "salt": str, "commitment": str, "submitted_at": str, "fixed_at": str}
 _NAME = re.compile(r"[a-z][a-z0-9_-]{0,63}", re.ASCII)            # a backend or program name
+_DEVICE = re.compile(r"ibm_[a-z]+", re.ASCII)                      # an IBM Quantum device: a qpu run's backend
 _JOB = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", re.ASCII)    # a provider's job id
 
 
@@ -146,11 +165,12 @@ def commitment(*, stock, circuit_sha256, engine, job_id, shots, decode, salt):
     return hashlib.sha256(msg).hexdigest()
 
 
-def commitment_v3(*, stock, role, basis, route, backend, program, circuit_sha256, isa_sha256, shots,
+def commitment_v3(*, stock, role, basis, kind, route, backend, program, pub, circuit_sha256, isa_sha256, shots,
                   options_sha256, decode, salt):
-    """A device run's commitment: SHA-256 of golden.uniform's stream of every field known at submission."""
-    msg = stream(COMMITMENT_V3, stock, role, basis, route, backend, program, circuit_sha256, isa_sha256, shots,
-                 options_sha256, decode, salt)
+    """A device run's commitment: SHA-256 of golden.uniform's stream of these fields, all known at submission.
+    The record's other fields (job_id, submitted_at, fixed_at, counts, code) are not in it."""
+    msg = stream(COMMITMENT_V3, stock, role, basis, kind, route, backend, program, pub, circuit_sha256, isa_sha256,
+                 shots, options_sha256, decode, salt)
     return hashlib.sha256(msg).hexdigest()
 
 
@@ -323,8 +343,20 @@ def fix_device(stock_id, crystals, source):
     return fix(stock_id, crystals, rec_source)
 
 
+def _option(options, path):
+    """The value at a nested path of the options as sent, or None when the path is not there."""
+    for key in path:
+        if not isinstance(options, dict) or key not in options:
+            return None
+        options = options[key]
+    return options
+
+
 def _utc_time(s):
-    return datetime.datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S")
+    """A checked UTC string as a datetime, to the microsecond: a fraction counts (verifier-P0, round 3, 1a)."""
+    fraction = s[20:-1] if s[19] == "." else ""
+    return datetime.datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S").replace(
+        microsecond=int((fraction + "000000")[:6]))
 
 
 def _counts_problems(counts, M, shots):
@@ -369,15 +401,24 @@ def _run_source_problems(src):
     for field in ("backend", "program"):
         if not _NAME.fullmatch(src[field]):
             out.append(f"source: {field} must be a lowercase name ([a-z][a-z0-9_-]*)")
+    if src["kind"] == "qpu" and not _DEVICE.fullmatch(src["backend"]):
+        out.append("source: a qpu run's backend must be an IBM device (ibm_<name>); a simulator is kind simulator")
+    if src["kind"] == "simulator" and _DEVICE.fullmatch(src["backend"]):
+        out.append("source: a simulator run may not name an IBM device as its backend")
     if not _JOB.fullmatch(src["job_id"]):
         out.append("source: job_id must be a provider's job id ([A-Za-z0-9_-]+)")
+    if src["pub"] < 0:
+        out.append("source: pub is the circuit's index in its job, from 0")
     for field in ("circuit_sha256", "isa_sha256", "options_sha256", "salt", "commitment"):
         if len(src[field]) != 64 or not set(src[field]) <= _HEX64:
             out.append(f"source: {field} must be 64 lowercase hex digits")
     if src["shots"] < 1:
         out.append("source: shots must be positive")
-    if not src["decode"]:
-        out.append("source: decode must name the rule the counts were read with")
+    if src["decode"] not in RUN_DECODES:
+        out.append(f"source: decode must name a rule this package reads, one of {RUN_DECODES}")
+    unstated = [".".join(path) for path in STATED_OPTIONS if not isinstance(_option(src["options"], path), bool)]
+    if unstated:
+        out.append(f"source: the options as sent must state {unstated}, true or false")
     for field in ("submitted_at", "fixed_at"):
         if not _is_utc(src[field]):
             out.append(f"source: {field} must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
@@ -449,6 +490,77 @@ def fix_run(stock_id, role, basis, counts, source):
     if problems:
         raise ValueError("the fixer refuses this device run: " + "; ".join(problems))
     return rec
+
+
+# THE JOB LINE (round 3) is what a runner writes, git-commits and pushes after
+# it submits a job and before it reads any result.
+# - Timing: on IBM, status and result are separate calls, and a job's created
+#   time is read with a status call, so a status call may come first.
+# - Content: the line names the job and the commitments its circuits were
+#   submitted with, in PUB order. Every run record of the job is held to a line
+#   that existed before its counts could be read (`held_to_line`).
+# - Once only: a runner submits a bundle once. A bundle that already has a line
+#   is never submitted again, so no two jobs share one set of commitments.
+JOB_FORMAT = "quantum-film/hardware-job/v1"
+JOB_LINE = {"format": str, "stock": str, "kind": str, "route": str, "backend": str, "program": str, "job_id": str,
+            "submitted_at": str, "bundle_sha256": str, "commitments": list}
+
+
+def check_job_line(line):
+    """The named reasons a job line is refused; an empty list means well formed."""
+    if not isinstance(line, dict):
+        return ["job line: not an object"]
+    out = []
+    for field, kind in JOB_LINE.items():
+        v = line.get(field)
+        if not isinstance(v, kind) or isinstance(v, bool):
+            out.append(f"job line: must carry {field} ({kind.__name__})")
+    unknown = sorted(set(line) - set(JOB_LINE))
+    if unknown:
+        out.append(f"job line: {unknown} are fields it does not know")
+    if out:
+        return out
+    if line["format"] != JOB_FORMAT:
+        out.append(f"job line: format {line['format']!r} is not {JOB_FORMAT!r}")
+    if line["stock"] not in STOCKS:
+        out.append(f"job line: stock {line['stock']!r} is not on the shelf")
+    if line["kind"] not in RUN_KINDS or line["route"] not in ROUTES:
+        out.append(f"job line: kind is one of {RUN_KINDS} and route one of {ROUTES}")
+    elif (line["kind"] == "qpu") != bool(_DEVICE.fullmatch(line["backend"])):
+        out.append("job line: a qpu job names an IBM device, and only a qpu job does")
+    if not (_NAME.fullmatch(line["backend"]) and _NAME.fullmatch(line["program"])):
+        out.append("job line: backend and program must be lowercase names")
+    if not _JOB.fullmatch(line["job_id"]):
+        out.append("job line: job_id must be a provider's job id ([A-Za-z0-9_-]+)")
+    if not _is_utc(line["submitted_at"]):
+        out.append("job line: submitted_at must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
+    hexes = [line["bundle_sha256"], *line["commitments"]]
+    if not line["commitments"] or not all(isinstance(h, str) and len(h) == 64 and set(h) <= _HEX64 for h in hexes):
+        out.append("job line: bundle_sha256 and each commitment are 64 lowercase hex digits, at least one commitment")
+    elif len(set(line["commitments"])) != len(line["commitments"]):
+        out.append("job line: a commitment appears twice")
+    return out
+
+
+def held_to_line(record, line):
+    """The named reasons a device run is not the run its job line committed to; [] when it is."""
+    out = check_job_line(line)
+    if out:
+        return out
+    src = record.get("source") if isinstance(record, dict) else None
+    if not isinstance(src, dict):
+        return ["line: the record has no source"]
+    if record.get("stock") != line["stock"]:
+        out.append("line: the record's stock is not the line's")
+    for field in ("kind", "route", "backend", "program", "job_id", "submitted_at"):
+        if src.get(field) != line[field]:
+            out.append(f"line: the record's {field} is not the line's")
+    pub = src.get("pub")
+    if not (_is_int(pub) and 0 <= pub < len(line["commitments"])):
+        out.append("line: the record's pub is not one of the line's circuits")
+    elif src.get("commitment") != line["commitments"][pub]:
+        out.append(f"line: the record's commitment is not the one the line committed for pub {pub}")
+    return out
 
 
 def lay(stock_id, seed):
