@@ -117,7 +117,8 @@ def test_a_simulator_is_never_a_qpu():
     """A dry run on a fake backend is kind simulator; a qpu run must name an IBM device (verifier-P0 1c)."""
     sim = fixer.fix_run("pauli-4x4", "law", Z, COUNTS, source(kind="simulator", backend="fake_kingston"))
     assert fixer.check(sim) == [] and sim["source"]["kind"] == "simulator"
-    for backend in ("fake_kingston", "aer_simulator", "statevector", "fake_ibm_kingston", "ibm_kingston_sim"):
+    for backend in ("fake_kingston", "aer_simulator", "statevector", "fake_ibm_kingston", "ibm_kingston_sim",
+                    "ibm_simulator", "ibm_fake", "ibm_aer", "ibm_qasm", "ibm_dryrun", "ibm_k1", "ibm_", "ibm_torino"):
         with pytest.raises(ValueError, match="a qpu run's backend must be an IBM device"):
             fixer.fix_run("pauli-4x4", "law", Z, COUNTS, source(backend=backend))
     with pytest.raises(ValueError, match="a simulator run may not name an IBM device"):
@@ -281,3 +282,30 @@ def test_the_command_line_reads_a_run_by_its_format(run, tmp_path, capsys):
     worse = tmp_path / "bad.json"
     worse.write_text(fixer.text(bad), encoding="ascii", newline="\n")
     assert fixer.main(["check", str(worse)]) == 1
+
+def test_a_qpu_names_one_of_the_nine_devices_online_on_2026_10_01():
+    """A list of real names (quantum.cloud.ibm.com/computers, 2026-10-01), not a shape: the owner's three
+    Heron r2 devices and the six others IBM listed, which Moth's account may reach."""
+    assert fixer.IBM_DEVICES == ("ibm_aachen", "ibm_berlin", "ibm_boston", "ibm_fez", "ibm_kingston",
+                                 "ibm_marrakesh", "ibm_miami", "ibm_phoenix", "ibm_pittsburgh")
+    for backend in fixer.IBM_DEVICES:
+        assert fixer.check(fixer.fix_run("pauli-4x4", "law", Z, COUNTS, source(backend=backend))) == []
+
+
+@pytest.mark.parametrize("field, value", [("shots", "6"), ("pub", "0"), ("backend", 5), ("job_id", ["x"]),
+                                          ("options", None), ("salt", 0)])
+def test_a_field_of_the_wrong_type_is_refused_by_name_not_by_a_crash(run, field, value):
+    """The early return after the type checks: without it a string shots or pub, an int backend or a list
+    job_id raised TypeError inside the checks that follow (verifier-P0's confirming pass)."""
+    bad = copy.deepcopy(run)
+    bad["source"][field] = value
+    refused(resealed(bad), f"must carry {field}")
+
+
+def test_a_file_nested_too_deep_is_refused_not_crashed(run, tmp_path):
+    deep = tmp_path / "deep.json"
+    text = fixer.text(run)
+    nested = '"options": {"x": ' + "[" * 100000 + "]" * 100000 + ", "
+    deep.write_bytes(text.replace('"options": {', nested, 1).encode("ascii"))
+    rec, problems = fixer.check_file(deep)
+    assert rec is None and problems and problems[0].startswith("unreadable: RecursionError")

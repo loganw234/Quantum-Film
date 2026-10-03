@@ -51,8 +51,12 @@ route; sources at the end). Each point says how it is known:
   - a CA bundle in `REQUESTS_CA_BUNDLE` or `CURL_CA_BUNDLE` (measured by the
     verifier); `SSL_CERT_FILE` and `SSL_CERT_DIR` are refused too (inferred,
     from OpenSSL);
-  - a `.netrc` in the home directory, which requests reads for credentials
-    when no other auth is given (from its source, not measured).
+  - a netrc file, which requests reads for credentials when no other auth is
+    given: `~/.netrc`, Windows' `~/_netrc`, or the file the `NETRC` variable
+    names (from its source, not measured);
+  - `SSLKEYLOGFILE`, the variable whose file urllib3's TLS context writes the
+    session secrets to, those of the IAM exchange included (measured at the
+    function by round 3's P0 verifier; from source for the path).
 - **Names that are not read.** With an explicit token and channel, the client
   never reads `QISKIT_IBM_URL` or `QISKIT_IBM_TOKEN` (from its source,
   verifier-P0). Naming the token and the instance is what keeps them out.

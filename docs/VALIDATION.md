@@ -1390,3 +1390,48 @@ Every one of its defects is closed here:
   - the commitment without the kind or without the PUB;
   - a line holding any commitment at any PUB;
   - a known answer passing on a tie with its mirror.
+
+## 2026-10-03 - round 3's P0 after verifier-P0's confirming pass: jobs within a bundle, the device list, and three more paths closed
+
+Verifier-P0's confirming pass on e8454ef (round-3 ledger, verifier-P0.md 14:45Z) found:
+- every defect of its first pass closed, by a gate it watched fail or by a stated limit;
+- four text-level points left open, A to D below, and one test gap.
+
+Each is closed here:
+- **A. "A bundle is submitted once" contradicted the plan's two jobs.**
+  - A bundle holds jobs: the known-answer job, then the film's.
+  - Each job has its circuits in PUB order, PUBs numbered within the job from 0, and one line per job.
+  - Once-only is per job. A runner refuses a job that already has a line, and over a record directory
+    `fixer.check_job_lines` refuses a job id twice or a commitment in two lines.
+- **B. Two more key-leak paths join docs/HARDWARE.md:**
+  - `SSLKEYLOGFILE`, which would write the IAM exchange's TLS secrets to disk;
+  - every netrc spelling requests reads: `~/.netrc`, `~/_netrc` and `NETRC`.
+- **C. A failed job's record.** ROUND3.md promised "a line saying so" for a job that fails before its circuits
+  run, with no field for it. Now such a job keeps its line, its final status is recorded beside the line, and
+  no run is fixed from it.
+- **D. P1's brief gains controls and the details that make them possible:**
+  - **Raw bytes:** a decode error never loses them. `result()` decodes internally, so raw-first means fetching
+    the payload below it.
+  - **Once-only:** a second submission is refused.
+  - **PUBs:** counts land under their own PUB. `held_to_line` cannot see counts put under the wrong one; the
+    verifier showed it.
+  - **The created time** is read in UTC, since `job.creation_date` is local time.
+  - **The executor Sampler's options** are found where it puts them.
+  - **The preimages:** each hash's preimage file.
+  - **ROUND3.md's control list** matches the brief's ten.
+- **A qpu run's backend is now one of the nine IBM QPUs online on 2026-10-01**, a list of real names. A shape
+  (`ibm_[a-z]+`) passed `ibm_simulator` and `ibm_fake`, and a list of forbidden words would have refused a real
+  device (`ibm_rensselaer` holds "aer"). A device that comes online later is added by name.
+- **A file nested too deep is refused by name** ("unreadable: RecursionError"), not by a traceback.
+- **Correction to the entry above.** "Each is now tested" was one short: the early return after the source's
+  type checks was held by no test, and without it a string `shots` raised TypeError inside `check`. It is tested
+  now, with six fields of the wrong type.
+- **Tests:** tests/fixer and tests/decode pass 158.
+- **Planted:** seven new faults, one at a time, and every one failed a test:
+  - a commitment in two lines;
+  - a job id twice;
+  - a bad line inside a set;
+  - any `ibm_` name taken for a device;
+  - a device missing from the list;
+  - deep nesting crashing `check_file`;
+  - no early return after the type checks.

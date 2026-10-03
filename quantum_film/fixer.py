@@ -110,11 +110,14 @@ LOCAL_FIELDS = ("backend", "fixed_at", "kind")
 #   basis   one letter per logical qubit, X, Y or Z, the basis each was read in.
 #           basis[q] is qubit q, qubit 0 FIRST: the opposite of a bitstring,
 #           and of Qiskit's Pauli labels, which put qubit 0 last.
-#   kind    "qpu" for a device (its backend must be an IBM device's name),
+#   kind    "qpu" for a device (its backend must be in IBM_DEVICES, below),
 #           "simulator" for anything else that ran the same path, such as a dry
-#           run on a fake backend (its backend must not look like a device's).
-#   pub     the circuit's index in its job. Two circuits of one job differ by
-#           it, so two runs with the same shots cannot be swapped unseen.
+#           run on a fake backend (its backend may not be one of IBM_DEVICES).
+#   pub     the circuit's index in its job, numbered within the job from 0.
+#           The commitment binds it, so a record cannot be relabelled to
+#           another PUB unseen. That a record's COUNTS came from its PUB's
+#           result is the runner's to hold, and is tested in P1's dry run.
+#           Nothing here can see counts put under the wrong PUB.
 # The options are the options AS SENT, as the primitive serialises them.
 # - They must state dynamical decoupling and both twirlings, true or false.
 #   The legacy SamplerV2 sends exactly
@@ -144,7 +147,17 @@ RUN_SOURCE = {"kind": str, "route": str, "backend": str, "program": str, "job_id
               "circuit_sha256": str, "isa_sha256": str, "shots": int, "options": dict, "options_sha256": str,
               "decode": str, "salt": str, "commitment": str, "submitted_at": str, "fixed_at": str}
 _NAME = re.compile(r"[a-z][a-z0-9_-]{0,63}", re.ASCII)            # a backend or program name
-_DEVICE = re.compile(r"ibm_[a-z]+", re.ASCII)                      # an IBM Quantum device: a qpu run's backend
+# A qpu run's backend is one of these: the nine IBM Quantum QPUs online on 2026-10-01
+# (quantum.cloud.ibm.com/computers, read by round 3's research). A list of real names, not a shape: a shape
+# passed ibm_simulator and ibm_fake (verifier-P0's confirming pass), and a list of forbidden words would have
+# refused real devices (ibm_rensselaer holds "aer"). A device that comes online later is added here by name.
+# A name is still a claim the record's writer makes: only the runner tells a real backend from a fake one.
+IBM_DEVICES = ("ibm_aachen", "ibm_berlin", "ibm_boston", "ibm_fez", "ibm_kingston", "ibm_marrakesh", "ibm_miami",
+               "ibm_phoenix", "ibm_pittsburgh")
+
+
+def _is_device(name):
+    return name in IBM_DEVICES
 _JOB = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", re.ASCII)    # a provider's job id
 
 
@@ -401,9 +414,9 @@ def _run_source_problems(src):
     for field in ("backend", "program"):
         if not _NAME.fullmatch(src[field]):
             out.append(f"source: {field} must be a lowercase name ([a-z][a-z0-9_-]*)")
-    if src["kind"] == "qpu" and not _DEVICE.fullmatch(src["backend"]):
-        out.append("source: a qpu run's backend must be an IBM device (ibm_<name>); a simulator is kind simulator")
-    if src["kind"] == "simulator" and _DEVICE.fullmatch(src["backend"]):
+    if src["kind"] == "qpu" and not _is_device(src["backend"]):
+        out.append("source: a qpu run's backend must be an IBM device in IBM_DEVICES; a simulator is kind simulator")
+    if src["kind"] == "simulator" and _is_device(src["backend"]):
         out.append("source: a simulator run may not name an IBM device as its backend")
     if not _JOB.fullmatch(src["job_id"]):
         out.append("source: job_id must be a provider's job id ([A-Za-z0-9_-]+)")
@@ -499,8 +512,14 @@ def fix_run(stock_id, role, basis, counts, source):
 # - Content: the line names the job and the commitments its circuits were
 #   submitted with, in PUB order. Every run record of the job is held to a line
 #   that existed before its counts could be read (`held_to_line`).
-# - Once only: a runner submits a bundle once. A bundle that already has a line
-#   is never submitted again, so no two jobs share one set of commitments.
+# - Jobs: a bundle holds one or more jobs (round 3's has two: the known-answer
+#   job, then the film's). Each job's circuits are in PUB order, with PUBs
+#   numbered within the job from 0. One line covers one job.
+# - Once only: each of a bundle's jobs is submitted once, so no commitment
+#   appears in two lines (`check_job_lines`, over every line of a record
+#   directory). A job that fails before its circuits run keeps its line; its
+#   final status goes beside it, no run is fixed from it, and a re-run needs a
+#   newly frozen bundle, with new salts.
 JOB_FORMAT = "quantum-film/hardware-job/v1"
 JOB_LINE = {"format": str, "stock": str, "kind": str, "route": str, "backend": str, "program": str, "job_id": str,
             "submitted_at": str, "bundle_sha256": str, "commitments": list}
@@ -526,7 +545,7 @@ def check_job_line(line):
         out.append(f"job line: stock {line['stock']!r} is not on the shelf")
     if line["kind"] not in RUN_KINDS or line["route"] not in ROUTES:
         out.append(f"job line: kind is one of {RUN_KINDS} and route one of {ROUTES}")
-    elif (line["kind"] == "qpu") != bool(_DEVICE.fullmatch(line["backend"])):
+    elif (line["kind"] == "qpu") != _is_device(line["backend"]):
         out.append("job line: a qpu job names an IBM device, and only a qpu job does")
     if not (_NAME.fullmatch(line["backend"]) and _NAME.fullmatch(line["program"])):
         out.append("job line: backend and program must be lowercase names")
@@ -539,6 +558,23 @@ def check_job_line(line):
         out.append("job line: bundle_sha256 and each commitment are 64 lowercase hex digits, at least one commitment")
     elif len(set(line["commitments"])) != len(line["commitments"]):
         out.append("job line: a commitment appears twice")
+    return out
+
+
+def check_job_lines(lines):
+    """The named reasons a set of job lines is refused: any bad line, a job id twice, or a commitment in two
+    lines, which would mean one submission's commitments reused by another."""
+    out = [f"line {i}: {p}" for i, line in enumerate(lines) for p in check_job_line(line)]
+    if out:
+        return out
+    jobs = [line["job_id"] for line in lines]
+    out += [f"job lines: job {j} has two lines" for j in sorted({j for j in jobs if jobs.count(j) > 1})]
+    seen = {}
+    for i, line in enumerate(lines):
+        for c in line["commitments"]:
+            if c in seen:
+                out.append(f"job lines: commitment {c[:16]} is in line {seen[c]} and line {i}: submitted twice")
+            seen.setdefault(c, i)
     return out
 
 
@@ -607,8 +643,8 @@ def check_file(path):
     try:
         raw = open(path, "rb").read()
         rec = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_twice)
-    except (OSError, UnicodeDecodeError, ValueError) as e:
-        return None, [f"unreadable: {e}"]
+    except (OSError, UnicodeDecodeError, ValueError, RecursionError) as e:   # RecursionError: nesting too deep
+        return None, [f"unreadable: {type(e).__name__}: {e}"[:300]]
     problems = check(rec)
     if raw != text(rec).encode("ascii", "replace"):
         problems.append("bytes: the file is not the record's canonical text (fixer.text)")

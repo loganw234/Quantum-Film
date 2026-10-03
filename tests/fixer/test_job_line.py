@@ -84,3 +84,15 @@ def test_a_bad_line_is_refused_by_name(over, needle):
     problems = fixer.check_job_line(line(**over))
     assert any(needle in p for p in problems), problems
     assert fixer.held_to_line(run(0), line(**over)) == problems         # a bad line holds nothing to it
+
+def test_a_bundles_two_jobs_each_get_one_line_and_share_no_commitment():
+    """Round 3's bundle has two jobs, the known answer then the film. PUBs are numbered within each job, and
+    once-only is checked over the set: no job id twice, and no commitment in two lines."""
+    known = line(job_id="kn0wnanswerjob", commitments=[hashlib.sha256(b"known answer").hexdigest()])
+    film = line()
+    assert fixer.check_job_lines([known, film]) == []
+    again = line(job_id="resubmitted0job")                      # the film's commitments, submitted a second time
+    assert any("submitted twice" in p for p in fixer.check_job_lines([known, film, again]))
+    assert any("has two lines" in p for p in fixer.check_job_lines([film, line()]))
+    assert any(p.startswith("line 1: job line: format") for p in
+               fixer.check_job_lines([known, line(format="x")]))

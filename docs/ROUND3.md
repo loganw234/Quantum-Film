@@ -14,7 +14,9 @@ a brief, named negative controls and a verifier of its own.
   where a mistake is cheap.
 - Then make an honest comparison: 24,576 hardware shots against Atlas's
   24,576 emulator shots, the exact law and the classical twin.
-- Then hand the same bundle to Moth, whose CTO runs it on Moth's IBM access.
+- Then hand the same design to Moth, whose CTO runs it on Moth's IBM access:
+  the same circuits and runner, in a bundle frozen for a device Moth's account
+  reaches.
   Moth has no route for arbitrary circuits (2026-10-03).
 
 docs/HARDWARE.md holds what was measured before any job ran. The deadline is
@@ -40,9 +42,12 @@ These are lead-owned. Parcels read them and never edit them.
     reads.
   - Tests: `tests/fixer/test_device_runs.py`.
 - **The job line** in `quantum_film/fixer.py`: `JOB_FORMAT`, `check_job_line`,
-  `held_to_line`. It names the job, IBM's created time, the bundle's manifest
-  hash and every circuit's commitment, in PUB order. Every run record of the job
-  is held to it. Tests: `tests/fixer/test_job_line.py`.
+  `check_job_lines`, `held_to_line`.
+  - One line covers one job. It names the job, IBM's created time, the bundle's
+    manifest hash and every circuit's commitment, in PUB order.
+  - Every run record of the job is held to it.
+  - Over a record directory, no job has two lines and no commitment is in two.
+  - Tests: `tests/fixer/test_job_line.py`.
 - **The IBM reader**, `quantum_film/ibm/decode.py`, held to a known answer by
   `tests/decode/test_ibm_decode.py`. Its `known_answer` judges a known-answer
   run: the expected set must be the modal outcome, strictly ahead of its
@@ -82,14 +87,16 @@ before it is run, that fixes a hardware run completely.
     submits.
   - The bundle's own identity is its manifest's SHA-256 (a job line's
     `bundle_sha256`).
-- **The circuits**, each measured with `measure_all` before compiling:
+- **The jobs and their circuits.** A bundle holds jobs, each with its circuits
+  in PUB order, PUBs numbered within the job from 0. Each circuit is measured
+  with `measure_all` before compiling:
 
-  | circuit | what it is | shots |
-  |---|---|---|
-  | known-answer | X on {0, 1, 3, 7, 12} | 1,024 |
-  | law | `ed767c01bd4b851d` | 24,576 |
-  | coherence XX | the law, with qubits 0 and 1 rotated to X | 4,096 |
-  | coherence YY | the law, with qubits 0 and 1 rotated to Y | 4,096 |
+  | job | PUB | circuit | what it is | shots |
+  |---|---|---|---|---|
+  | known-answer | 0 | known-answer | X on {0, 1, 3, 7, 12} | 1,024 |
+  | film | 0 | law | `ed767c01bd4b851d` | 24,576 |
+  | film | 1 | coherence XX | the law, with qubits 0 and 1 rotated to X | 4,096 |
+  | film | 2 | coherence YY | the law, with qubits 0 and 1 rotated to Y | 4,096 |
 
   In law, the pair's ⟨XX⟩ and ⟨YY⟩ are +0.375 for this circuit, and a
   classical mixture with the same layouts gives 0.
@@ -101,10 +108,12 @@ before it is run, that fixes a hardware run completely.
   - The price: the chain was chosen against the calibration of the day the
     bundle was frozen. So a bundle is frozen close to its run, and another
     device gets another bundle, with the same logical circuits.
-- **A bundle is submitted once.** A runner refuses a bundle that already has a
-  job line. A job that fails before its circuits run (Moth says those never
-  execute) leaves a line saying so, and a new bundle is frozen, with new
-  salts.
+- **Each job is submitted once.** A runner refuses a job that already has a
+  line, and over a record directory no commitment appears in two lines
+  (`fixer.check_job_lines`).
+- **A job that fails before its circuits run** (Moth says those never execute)
+  keeps its line. Its final status is recorded beside the line, and no run is
+  fixed from it. A re-run needs a newly frozen bundle, with new salts.
 
 ## P1: the hardware runner and the bundle (Quantum-Film)
 
@@ -134,12 +143,14 @@ before it is run, that fixes a hardware run completely.
     - refuses every key-leak condition in docs/HARDWARE.md, and names the
       Open instance;
     - checks the backend and the transpiled circuits' bytes against the
-      manifest, and refuses a bundle that already has a job line;
+      manifest, and refuses a job that already has a line;
     - takes the kind from the backend object: `qpu` only for an IBM backend
       from the service, `simulator` for anything else;
     - puts each circuit's commitment in its metadata;
     - submits one job, with `max_execution_time` capped;
-    - reads IBM's created time (a status call, which is allowed);
+    - reads IBM's created time in UTC (a status call, which is allowed;
+      `job.creation_date` is local time, so the UTC value is taken from the
+      job's metrics or converted);
     - writes the job line (`fixer.JOB_FORMAT`), then git-commits AND pushes it,
       all BEFORE `result()` is called. `result()` fetches the results itself;
     - writes the raw result bytes to disk the moment they arrive, before
@@ -162,12 +173,25 @@ before it is run, that fixes a hardware run completely.
       - the commitments in the submitted circuits' metadata, which IBM keeps
         with the job's created time;
       - whatever of the job's record Moth sends back.
-- **Negative controls:**
-  - A transpiled circuit with one gate changed is refused before
-    submission.
-  - A reader in plain order fails the known-answer check.
-  - The runner refuses to start under each key-leak condition.
-  - A manifest whose hash differs from a circuit file is refused.
+- **Its records test** holds every committed run:
+  - to its job line;
+  - its `circuit_sha256` and `isa_sha256` to the bundle's files;
+  - the law and coherence circuits to their source, `ed767c01bd4b851d`.
+
+  It is the hardware twin of `tests/circuits/test_p3_records.py`.
+- **Negative controls** (the P1 brief has each in full):
+  1. A transpiled circuit with one gate changed is refused before
+     submission.
+  2. A reader in plain order fails the known-answer check.
+  3. The runner refuses to start under each key-leak condition.
+  4. A manifest whose hash differs from a circuit file is refused.
+  5. A chain with a SWAP inserted is refused.
+  6. Handed a fake or Aer backend, the runner never writes kind `qpu`.
+  7. A result fetched before the job line is committed is refused.
+  8. A decode error never loses the raw bytes.
+  9. A second submission of a job is refused.
+  10. Counts land under their own PUB: a dry run with circuits whose results
+      differ shows each under the right one.
 - **Forbidden:**
   - everything P0 settled, and every file P2 owns;
   - any contact with IBM or Moth;
