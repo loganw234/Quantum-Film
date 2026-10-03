@@ -287,7 +287,7 @@ stage golden "the authority: its law (planted bugs fail); its margin against exa
 stage circuits "the Givens circuit against the golden kernel; three sabotages must fail" -- \
   bash verify/pytest-stage.sh tests/circuits
 
-stage decode "Atlas's count order against a frozen known-answer run; plain order must fail" -- \
+stage decode "Atlas's and IBM's read-out orders against known answers; plain order must fail" -- \
   bash verify/pytest-stage.sh tests/decode
 
 stage client "offline: the Atlas client sends its key to the API host only, and never reads one from the tree" -- \

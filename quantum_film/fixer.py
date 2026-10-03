@@ -29,6 +29,11 @@ itself (stock, law, stream and crystals), so a later version that lays the
 same roll still reproduces it. A roll from a device carries `fixed_at`,
 because there the event is the thing.
 
+A DEVICE RUN (`quantum-film/device-run/v1`, round 3) is every shot of one
+circuit in one hardware job, in one record, with a commitment (v3) that binds
+the route, the backend and the exact circuit the device ran. `check` reads
+either kind of record by its format.
+
 The constructors refuse what `check` refuses: `fix` seals nothing that
 `check` would reject, and never rounds a value into shape.
 
@@ -90,6 +95,39 @@ COMMITTED = ("circuit_sha256", "engine", "job_id", "shots", "decode", "salt")
 _UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z", re.ASCII)
 LOCAL_FIELDS = ("backend", "fixed_at", "kind")
 
+# A DEVICE RUN (round 3, 2026-10-03) is every shot of ONE circuit in ONE
+# hardware job, in one record. A device roll is one layout, and hardware noise
+# spreads a run over thousands of distinct layouts: one Atlas job already made
+# 1,995 files (docs/ROADMAP.md, carried from round 1).
+#   counts  [[ones, occurrences], ...]: `ones` the logical qubits that read 1
+#           in the measured basis, strictly increasing; sorted by `ones`, no
+#           `ones` twice, occurrences >= 1 and summing to the run's shots. A
+#           run records what the device laid, noise included: any crystal count.
+#   role    what the circuit was for: "known-answer" (the read-out order, held
+#           to a circuit with a known result), "law" (the stock's law: these
+#           are crystal layouts), "coherence" (the law's circuit with basis
+#           rotations: what a classical mixture with the same layouts lacks).
+#   basis   one letter per logical qubit, X, Y or Z: the basis each was read in.
+# The commitment (v3) binds everything known BEFORE submission: what ran, where
+# and how, and the decode rule. The job id is known only after, so the record
+# carries it beside the commitment; the anchor (a git commit before any result
+# is read, and, for a run made from a frozen bundle, the bundle's own commit
+# before it left this repository) binds it to the job. What v2 left unbound,
+# v3 binds: the route, the backend and the exact circuit the device ran.
+RUN_FORMAT = "quantum-film/device-run/v1"
+RUN_FIELDS = ("format", "stock", "law", "role", "basis", "counts", "source", "code", "digest")
+ROLES = ("known-answer", "law", "coherence")
+RUN_KINDS = ("qpu",)
+ROUTES = ("ibm-direct", "moth")
+COMMITMENT_V3 = "quantum-film/commitment/v3"
+RUN_COMMITTED = ("route", "backend", "program", "circuit_sha256", "isa_sha256", "shots", "options_sha256",
+                 "decode", "salt")
+RUN_SOURCE = {"kind": str, "route": str, "backend": str, "program": str, "job_id": str, "circuit_sha256": str,
+              "isa_sha256": str, "shots": int, "options": dict, "options_sha256": str, "decode": str, "salt": str,
+              "commitment": str, "submitted_at": str, "fixed_at": str}
+_NAME = re.compile(r"[a-z][a-z0-9_-]{0,63}", re.ASCII)            # a backend or program name
+_JOB = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", re.ASCII)    # a provider's job id
+
 
 def _is_utc(s):
     """A real UTC time in ASCII digits. The first check read only a shape, and passed
@@ -106,6 +144,20 @@ def _is_utc(s):
 def commitment(*, stock, circuit_sha256, engine, job_id, shots, decode, salt):
     msg = stream(COMMITMENT_DOMAIN, stock, circuit_sha256, engine, job_id, shots, decode, salt)
     return hashlib.sha256(msg).hexdigest()
+
+
+def commitment_v3(*, stock, role, basis, route, backend, program, circuit_sha256, isa_sha256, shots,
+                  options_sha256, decode, salt):
+    """A device run's commitment: SHA-256 of golden.uniform's stream of every field known at submission."""
+    msg = stream(COMMITMENT_V3, stock, role, basis, route, backend, program, circuit_sha256, isa_sha256, shots,
+                 options_sha256, decode, salt)
+    return hashlib.sha256(msg).hexdigest()
+
+
+def options_digest(options):
+    """The SHA-256 of the run options' canonical JSON (sorted keys, no whitespace, ASCII)."""
+    return hashlib.sha256(json.dumps(options, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=True).encode("ascii")).hexdigest()
 
 
 def canonical(record):
@@ -166,6 +218,8 @@ def check(record):
     out = []
     if not isinstance(record, dict):
         return ["not a record"]
+    if record.get("format") == RUN_FORMAT:
+        return check_run(record)
     extra = sorted(set(record) - set(FIELDS))
     if extra:
         out.append(f"fields: unexpected {extra}; a record carries exactly {list(FIELDS)}")
@@ -269,6 +323,134 @@ def fix_device(stock_id, crystals, source):
     return fix(stock_id, crystals, rec_source)
 
 
+def _utc_time(s):
+    return datetime.datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S")
+
+
+def _counts_problems(counts, M, shots):
+    if not isinstance(counts, list) or not counts:
+        return ["counts: a non-empty list of [ones, occurrences] pairs"]
+    total, previous = 0, None
+    for i, pair in enumerate(counts):
+        if not (isinstance(pair, list) and len(pair) == 2):
+            return [f"counts[{i}]: not an [ones, occurrences] pair"]
+        ones, n = pair
+        if not (isinstance(ones, list) and all(_is_int(q) for q in ones)):
+            return [f"counts[{i}]: ones is not a list of integers"]
+        if any(b <= a for a, b in pairwise(ones)):
+            return [f"counts[{i}]: ones not strictly increasing (sorted, no qubit twice)"]
+        if ones and (ones[0] < 0 or ones[-1] >= M):
+            return [f"counts[{i}]: a qubit outside 0..{M - 1}"]
+        if not (_is_int(n) and n >= 1):
+            return [f"counts[{i}]: occurrences must be a whole number of shots, at least 1"]
+        if previous is not None and not previous < ones:
+            return [f"counts[{i}]: not in canonical order (sorted by ones, none twice)"]
+        previous, total = ones, total + n
+    if _is_int(shots) and total != shots:
+        return [f"counts: {total} shots counted where the run took {shots}"]
+    return []
+
+
+def _run_source_problems(src):
+    out = []
+    for field, kind in RUN_SOURCE.items():
+        v = src.get(field)
+        if not isinstance(v, kind) or isinstance(v, bool):
+            out.append(f"source: a device run must carry {field} ({kind.__name__})")
+    unknown = sorted(set(src) - set(RUN_SOURCE))
+    if unknown:
+        out.append(f"source: {unknown} are fields the fixer does not know; they would ride unchecked")
+    if out:
+        return out
+    if src["kind"] not in RUN_KINDS:
+        out.append(f"source: a device run's kind is one of {RUN_KINDS}")
+    if src["route"] not in ROUTES:
+        out.append(f"source: route must be one of {ROUTES}")
+    for field in ("backend", "program"):
+        if not _NAME.fullmatch(src[field]):
+            out.append(f"source: {field} must be a lowercase name ([a-z][a-z0-9_-]*)")
+    if not _JOB.fullmatch(src["job_id"]):
+        out.append("source: job_id must be a provider's job id ([A-Za-z0-9_-]+)")
+    for field in ("circuit_sha256", "isa_sha256", "options_sha256", "salt", "commitment"):
+        if len(src[field]) != 64 or not set(src[field]) <= _HEX64:
+            out.append(f"source: {field} must be 64 lowercase hex digits")
+    if src["shots"] < 1:
+        out.append("source: shots must be positive")
+    if not src["decode"]:
+        out.append("source: decode must name the rule the counts were read with")
+    for field in ("submitted_at", "fixed_at"):
+        if not _is_utc(src[field]):
+            out.append(f"source: {field} must be a UTC time, YYYY-MM-DDTHH:MM:SSZ")
+    if out:
+        return out
+    if _utc_time(src["fixed_at"]) < _utc_time(src["submitted_at"]):
+        out.append("source: fixed_at comes before submitted_at; a run is fixed after it is submitted")
+    if options_digest(src["options"]) != src["options_sha256"]:
+        out.append("source: options_sha256 is not the digest of the options the record carries")
+    return out
+
+
+def check_run(record):
+    """The named reasons a device-run record is refused; an empty list means fixed and intact."""
+    out = []
+    extra = sorted(set(record) - set(RUN_FIELDS))
+    if extra:
+        out.append(f"fields: unexpected {extra}; a run record carries exactly {list(RUN_FIELDS)}")
+    missing = sorted(set(RUN_FIELDS) - set(record))
+    if missing:
+        out.append(f"fields: missing {missing}")
+    sid = record.get("stock")
+    if not isinstance(sid, str) or sid not in STOCKS:
+        return out + [f"stock: {sid!r} is not on the shelf"]
+    try:
+        law = params(sid)
+    except LookupError as e:
+        return out + [f"stock: {e}"]
+    if not _same_json(record.get("law"), law):
+        out.append("law: the record was laid under a law the shelf no longer states")
+    M, role, basis = law["M"], record.get("role"), record.get("basis")
+    framed = True
+    if role not in ROLES:
+        out.append(f"role: must be one of {ROLES}")
+        framed = False
+    if not (isinstance(basis, str) and len(basis) == M and set(basis) <= set("XYZ")):
+        out.append(f"basis: one of X, Y or Z for each of the {M} qubits")
+        framed = False
+    elif role in ("known-answer", "law") and basis != "Z" * M:
+        out.append(f"basis: a {role} run is read in Z on every qubit")
+    elif role == "coherence" and basis == "Z" * M:
+        out.append("basis: a coherence run reads at least one qubit out of Z")
+    src = record.get("source")
+    out += _counts_problems(record.get("counts"), M, src.get("shots") if isinstance(src, dict) else None)
+    if not isinstance(src, dict):
+        out.append("source: not an object")
+    else:
+        problems = _run_source_problems(src)
+        out += problems
+        if not problems and framed and src["commitment"] != commitment_v3(
+                stock=sid, role=role, basis=basis, **{k: src[k] for k in RUN_COMMITTED}):
+            out.append("source: the commitment does not bind this stock, role, basis, route, backend, program, "
+                       "circuit, ISA circuit, shots, options, decode and salt")
+    code = record.get("code")
+    if not (isinstance(code, dict) and list(code) == ["quantum_film"] and isinstance(code["quantum_film"], str)):
+        out.append('code: exactly {"quantum_film": <the version that fixed it>}')
+    if record.get("digest") != digest(record):
+        out.append("digest: the record's bytes are not the bytes it was fixed with")
+    return out
+
+
+def fix_run(stock_id, role, basis, counts, source):
+    """Fix a device run: every shot of one circuit in one hardware job. `counts` must already be
+    canonical ([[ones, occurrences], ...] sorted by ones); the record is refused, never reshaped."""
+    rec = {"format": RUN_FORMAT, "stock": stock_id, "law": params(stock_id), "role": role, "basis": basis,
+           "counts": counts, "source": dict(source), "code": {"quantum_film": __version__}}
+    rec["digest"] = digest(rec)
+    problems = check_run(rec)
+    if problems:
+        raise ValueError("the fixer refuses this device run: " + "; ".join(problems))
+    return rec
+
+
 def lay(stock_id, seed):
     """A golden roll of `stock_id`, fixed. Stream: ("roll", stock_id, seed)."""
     from .golden import binomial, fermi
@@ -331,6 +513,9 @@ def main(argv):
                 print(f"REFUSED {f}")
                 for p in problems:
                     print(f"   {p}")
+            elif rec.get("format") == RUN_FORMAT:
+                print(f"fixed   {f}  {rec['digest'][:16]}  {rec['stock']}, a {rec['role']} run: "
+                      f"{rec['source']['shots']} shots, {len(rec['counts'])} distinct outcomes")
             else:
                 print(f"fixed   {f}  {rec['digest'][:16]}  {rec['stock']}, {len(rec['crystals'])} crystals")
         return 1 if bad else 0

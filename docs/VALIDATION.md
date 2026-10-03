@@ -1290,3 +1290,47 @@ At the owner's request, a link to the site previews with the poster, in Discord 
   for byte.
 - Not held: how each service draws a preview, which nothing here can check. The poster is portrait, 3:4, so a service
   that crops previews to a wide card will crop it. A service may also keep a preview it fetched before these tags.
+
+## 2026-10-03 - round 3's P0: the device-run record, commitment v3 and IBM's reader
+
+The owner's word (2026-10-01 and 03):
+- validate the system on IBM's free tier first, where a mistake is cheap;
+- then take 24,576 hardware shots for an honest comparison with the emulator, the law and the classical twin;
+- then hand the same bundle to Moth, whose CTO runs it.
+
+docs/HARDWARE.md holds what was read and measured before any job ran, and docs/ROUND3.md is the round's plan.
+- **The device-run record** (`quantum-film/device-run/v1`, in quantum_film/fixer.py).
+  - It holds every shot of one circuit in one hardware job: its role (known-answer, law, coherence), the basis
+    each qubit was read in, and the counts, canonical and summing to the shots.
+  - A device roll is one layout per file. Hardware noise spreads a run over thousands of distinct layouts, which
+    is the bundle format carried from round 1.
+- **Commitment v3** binds:
+  - the stock, the role and the basis;
+  - the route, the backend and the program;
+  - the logical circuit's and the transpiled circuit's SHA-256;
+  - the shots, the options' digest, the decode rule and the salt.
+
+  The kind and the device were unbound in v2, and v3 binds them. The job id exists only after submission, so the
+  record carries it beside the commitment, and the anchor binds it.
+- **IBM's reader** (quantum_film/ibm/decode.py) reads a sampler bitstring as the logical qubits that read 1.
+  - Position p holds classical bit 15 - p. It is held to the known answer X on {0, 1, 3, 7, 12}, which read
+    0001000010001011 on the fake Heron r2 backends on 2026-10-01.
+  - Plain order gives the mirror, {3, 8, 12, 14, 15}. On the device, the first job of every route repeats the
+    known answer.
+- **Tests:** tests/fixer/test_device_runs.py and tests/decode/test_ibm_decode.py. The fixer and decode stages pass
+  105 tests.
+- **Eight faults were planted** one at a time, and every one failed a test. The files were restored byte for byte.
+  - a commitment without the transpiled circuit;
+  - the shots not summed;
+  - a law run read out of Z;
+  - counts in any order;
+  - a run fixed before it was submitted;
+  - options not held to their digest;
+  - runs checked as negatives;
+  - the reader in plain order.
+- **Stated, not closed:** a record alone cannot prove its commitment came first, because the salt is in it.
+  test_a_record_alone_cannot_prove_its_commitment_came_first shows a re-sealed backend passing `check`. What binds a
+  run is its anchor:
+  - its commitment committed to git before any result is read;
+  - for a frozen bundle, the bundle's own commit before it leaves this repository;
+  - the commitment in the submitted circuits' metadata, which IBM keeps with the job.

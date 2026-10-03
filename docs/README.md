@@ -17,6 +17,8 @@ answer is not in here: it is `make verify-quick`.
 | [ATLAS.md](ATLAS.md) | Moth's Atlas as measured: what the account can do, which engines repeat their bytes, and the count order tomography-api-v2 writes in. |
 | [ROADMAP.md](ROADMAP.md) | The parcels from the skeleton to the submission, each with its negative control. |
 | [ROUND1.md](ROUND1.md) | Round 1's plan: what P0 settled, each parcel's owned and forbidden files, its control, the ledger's path. |
+| [HARDWARE.md](HARDWARE.md) | IBM Quantum as measured before any job ran: the account, where the key can go wrong, compiling, the read-out order, and what the hardware is predicted to do. |
+| [ROUND3.md](ROUND3.md) | Round 3's plan: the frozen bundle, what P0 settled, each parcel's owned and forbidden files, and the order of the hardware runs. |
 
 ## The record
 
