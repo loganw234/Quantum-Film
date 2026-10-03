@@ -30,6 +30,14 @@ NEEDS = pytest.mark.skipif(not PY, reason="QF_IBM_PYTHON is unset; verify/run.sh
 CAPS = {"OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "QISKIT_IN_PARALLEL": "FALSE"}
 
 
+# Under heavy load on the owner's desktop, a fresh venv process now and then fails to load one of the stack's
+# compiled extensions while `import qiskit_ibm_runtime` runs (sspilib's or scipy's: "ImportError: DLL load failed
+# while importing ...: The handle is invalid"). Seen 3 times at 97-100% CPU, never in 60 fresh imports at 3%
+# (P1, 2026-10-03). It happens before any request or file write, so such a run is retried, at most twice, and said.
+FLAKE = "DLL load failed while importing"
+RETRIED = []
+
+
 def venv(script, *args, root, env=None, timeout=1500):
     """Run a script in the virtualenv, offline, writing only under `root`, its threads capped. -> CompletedProcess."""
     root = pathlib.Path(root)
@@ -39,8 +47,14 @@ def venv(script, *args, root, env=None, timeout=1500):
              QISKIT_SETTINGS=str(root / "no-such-settings.conf"), TEMP=str(root / "tmp"), TMP=str(root / "tmp"),
              **CAPS)
     e.update(env or {})
-    return subprocess.run([PY, str(OFFLINE), str(script), *map(str, args)], cwd=ROOT, env=e, capture_output=True,
-                          stdin=subprocess.DEVNULL, text=True, timeout=timeout)
+    for attempt in range(3):
+        p = subprocess.run([PY, str(OFFLINE), str(script), *map(str, args)], cwd=ROOT, env=e, capture_output=True,
+                           stdin=subprocess.DEVNULL, text=True, timeout=timeout)
+        if p.returncode == 0 or FLAKE not in p.stderr or attempt == 2:
+            return p
+        RETRIED.append((pathlib.Path(script).name, [ln for ln in p.stderr.splitlines() if FLAKE in ln][-1]))
+        print(f"hwq: retried {pathlib.Path(script).name} after an import-time DLL load failure: {RETRIED[-1][1]}")
+    return p
 
 
 def out(p):
