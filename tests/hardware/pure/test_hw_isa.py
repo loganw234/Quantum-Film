@@ -20,9 +20,9 @@ SX = np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]]) / 2
 X = np.array([[0, 1], [1, 0]], dtype=complex)
 
 
-def reference(n, gates):
+def reference(n, gates, sx=SX):
     """A dense 2^n statevector, qubit q the q-th bit from the RIGHT of the basis index (qiskit's order), each
-    gate a full Kronecker matrix: nothing shared with isa.distribution."""
+    gate a full Kronecker matrix: nothing shared with isa. -> the state."""
     psi = np.zeros(2 ** n, dtype=complex)
     psi[0] = 1.0
 
@@ -37,13 +37,13 @@ def reference(n, gates):
         if name == "rz":
             psi = full(RZ(ps[0]), qs[0]) @ psi
         elif name == "sx":
-            psi = full(SX, qs[0]) @ psi
+            psi = full(sx, qs[0]) @ psi
         elif name == "x":
             psi = full(X, qs[0]) @ psi
         elif name == "cz":
             idx = np.arange(2 ** n)
             psi = np.where(((idx >> qs[0]) & 1) & ((idx >> qs[1]) & 1), -psi, psi)
-    return np.abs(psi) ** 2          # index n: bit q = qubit q, the same convention as distribution's
+    return psi                       # index n: bit q = qubit q, the same convention as distribution's
 
 
 def doc_of(n_physical, gates, measures, layout=None):
@@ -68,8 +68,24 @@ def test_random_circuits_agree_with_the_dense_matrix_reference(seed):
             gates.append(("cz", (a, b), ()))
         else:
             gates.append((kind, (rng.randrange(n),), (rng.uniform(-7, 7),) if kind == "rz" else ()))
-    p = isa.distribution(doc_of(n, gates, [(q, q) for q in range(n)]))
-    assert np.max(np.abs(p - reference(n, gates))) < 1e-12
+    doc = doc_of(n, gates, [(q, q) for q in range(n)])
+    want = reference(n, gates)
+    assert np.max(np.abs(isa.distribution(doc) - np.abs(want) ** 2)) < 1e-12
+    # Amplitudes too, up to one global phase: the probabilities alone cannot tell sx from its adjoint (in these
+    # circuits from |0...0> every Z-basis probability is the same either way; P1's planted fault F7 passed them).
+    got = isa.statevector(doc)
+    phase = np.vdot(want, got)
+    assert abs(abs(phase) - 1) < 1e-12 and np.max(np.abs(got - phase * want)) < 1e-12
+
+
+def test_probabilities_alone_cannot_tell_sx_from_its_adjoint_the_amplitudes_can():
+    """Why the test above compares amplitudes: one sx on |0>, and its adjoint, give the same Z-basis
+    probabilities (1/2, 1/2) and orthogonal states; the planted fault F7 (sx made its adjoint) passed every
+    probability test, the fixture's circuits included, and fails the amplitude one."""
+    gates = [("sx", (0,), ())]
+    psi, psi_adjoint = reference(1, gates), reference(1, gates, sx=SX.conj().T)
+    assert np.max(np.abs(np.abs(psi) ** 2 - np.abs(psi_adjoint) ** 2)) < 1e-15
+    assert abs(np.vdot(psi, psi_adjoint)) < 1e-15
 
 
 def test_each_gate_on_a_basis_state():

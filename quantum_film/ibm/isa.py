@@ -20,7 +20,9 @@ gates of the Heron r2 targets' ISA, GATES, and refuses any other by name:
     rz(t) = diag(exp(-i t/2), exp(i t/2))    sx = [[1+i, 1-i], [1-i, 1+i]] / 2
     x     = [[0, 1], [1, 0]]                  cz = diag(1, 1, 1, -1)
 (qiskit's definitions; tests/hardware/pure/test_hw_isa.py holds each to its
-matrix, and the qiskit stage holds the whole to qiskit's own operator).
+matrix by the amplitudes, since Z-basis probabilities alone cannot tell sx
+from its adjoint here, and the qiskit stage holds every frozen circuit's
+distribution to qiskit's own Statevector).
 A measurement maps a physical qubit to a classical bit; a gate on a qubit
 after its measurement is refused. The result is the distribution over the
 classical register, index n = sum of bit i * 2^i, so bit i is logical qubit i
@@ -149,6 +151,29 @@ def read(doc):
 def distribution(doc):
     """P(outcome) over the classical register, index n = sum of bit i * 2^i. Refuses (IsaRefusal) a gate
     list it does not read, a clbit not measured exactly once, and a gate on a qubit after its measurement."""
+    psi, axis, clbit_of = _simulate(doc)
+    n, m = psi.ndim, doc["num_clbits"]
+    p = (psi.real ** 2 + psi.imag ** 2)
+    keep = [axis[clbit_of[c]] for c in range(m)]
+    drop = tuple(k for k in range(n) if k not in keep)
+    if drop:
+        p = p.sum(axis=drop)
+        keep = [k - sum(1 for d in drop if d < k) for k in keep]
+    # Axes in clbit order m-1 .. 0: C order then makes clbit 0 the low bit.
+    return np.transpose(p, [keep[c] for c in reversed(range(m))]).reshape(-1)
+
+
+def statevector(doc):
+    """The final state on the active qubits, before any measurement: index sum of bit k * 2^k, k the active
+    qubits in ascending physical order. For tests that hold each gate to its matrix: probabilities alone cannot
+    tell sx from its adjoint (in circuits of rz, sx, x and cz from |0...0>, every Z-basis probability is the
+    same either way, while the states differ; measured by P1, 2026-10-03)."""
+    psi, _axis, _clbit_of = _simulate(doc)
+    return np.transpose(psi, list(reversed(range(psi.ndim)))).reshape(-1)
+
+
+def _simulate(doc):
+    """-> (the final state as an n-axis tensor over the active qubits, {physical qubit: axis}, {clbit: qubit})."""
     problems = read(doc)
     if problems:
         raise IsaRefusal("; ".join(problems[:5]))
@@ -191,14 +216,7 @@ def distribution(doc):
     missing = [c for c in range(m) if c not in clbit_of]
     if missing:
         raise IsaRefusal(f"clbits {missing} are never measured")
-    p = (psi.real ** 2 + psi.imag ** 2)
-    keep = [axis[clbit_of[c]] for c in range(m)]
-    drop = tuple(k for k in range(n) if k not in keep)
-    if drop:
-        p = p.sum(axis=drop)
-        keep = [k - sum(1 for d in drop if d < k) for k in keep]
-    # Axes in clbit order m-1 .. 0: C order then makes clbit 0 the low bit.
-    return np.transpose(p, [keep[c] for c in reversed(range(m))]).reshape(-1)
+    return psi, axis, clbit_of
 
 
 def _pauli(phi, q, letter):

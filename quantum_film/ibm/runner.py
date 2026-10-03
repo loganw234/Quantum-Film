@@ -2,7 +2,8 @@
 
 tools/hw_run.py builds the calls (a live job, or a dry run's stand-in) and hands them to `run`, which does
 the rest in this order (docs/ROUND3.md and the P1 brief):
-   1. the bundle holds (bundle.check), and names this backend and this kind;
+   1. (the tool, before `run`: the bundle holds by bundle.check, and its QPY files are its gate lists) the
+      bundle names this backend, and this kind, which the tool took from the backend object;
    2. once only: the job has no line, and none of its commitments is in any line already, here or under
       docs/records (fixer.check_job_lines stays clean);
    3. submit ONE job;
@@ -23,8 +24,8 @@ It never resubmits. Before step 3 a failure is `Refused` (nothing was sent); aft
 message says what exists and what to do. The files of a job, in the output directory:
     <job>-line.json  <job>-raw.json  <job>-status.json  <job>-metrics.json  <job>-verdict.json
     <job>-pub<k>-<name>.json   one device run per circuit, PUB k
-(.gitattributes stores every *-raw.json exactly, with no line ending converted.) `refix` redoes steps 8 to 11
-from the files alone, for a raw payload whose fixing failed.
+(main's .gitattributes, since 9c44f37, stores every *-raw.json exactly, with no line ending converted.) `refix`
+redoes steps 8 to 11 from the files alone, for a raw payload whose fixing failed.
 """
 import json
 import os
