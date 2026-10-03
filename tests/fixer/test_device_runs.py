@@ -188,6 +188,8 @@ def test_the_basis_names_qubit_0_first():
     ("decode", "", "decode must name a rule this package reads"),
     ("decode", "plain order", "decode must name a rule this package reads"),
     ("decode", "\ud800", "decode must name a rule this package reads"),
+    ("decode", "quantum_film.atlas.decode/v1", "decode must name a rule this package reads"),
+    ("kind", "emulator", "a device run's kind is one of"),
 ])
 def test_the_source_is_refused_by_name(run, field, value, needle):
     bad = copy.deepcopy(run)
@@ -309,3 +311,24 @@ def test_a_file_nested_too_deep_is_refused_not_crashed(run, tmp_path):
     deep.write_bytes(text.replace('"options": {', nested, 1).encode("ascii"))
     rec, problems = fixer.check_file(deep)
     assert rec is None and problems and problems[0].startswith("unreadable: RecursionError")
+
+
+def test_the_kinds_and_the_decode_rules_are_exactly_these():
+    """Pinned: a third kind, or the Atlas rule among a run's decode rules, would pass the cases above unseen."""
+    assert fixer.RUN_KINDS == ("qpu", "simulator")
+    assert fixer.RUN_DECODES == (decode.DECODE,)
+
+
+def test_the_time_order_counts_microseconds(run):
+    bad = copy.deepcopy(run)
+    bad["source"]["submitted_at"] = "2026-10-03T18:00:00.000002Z"
+    bad["source"]["fixed_at"] = "2026-10-03T18:00:00.000001Z"
+    refused(resealed(bad), "fixed_at comes before submitted_at")
+
+
+def test_an_option_stated_as_a_number_is_not_stated():
+    options = {"dynamical_decoupling": {"enable": 1}, "twirling": {"enable_gates": False, "enable_measure": 0}}
+    with pytest.raises(ValueError) as refusal:
+        fixer.fix_run("pauli-4x4", "law", Z, COUNTS,
+                      source(options=options, options_sha256=fixer.options_digest(options)))
+    assert "['dynamical_decoupling.enable', 'twirling.enable_measure']" in str(refusal.value)

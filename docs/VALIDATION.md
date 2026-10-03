@@ -1435,3 +1435,19 @@ Each is closed here:
   - a device missing from the list;
   - deep nesting crashing `check_file`;
   - no early return after the type checks.
+- **Addendum, the same day: the boundaries verifier-P0's mutants passed at e8454ef** (its 14:46Z entry) are each held
+  by a test now. Thirteen of its mutants were planted again, one at a time, and every one failed:
+  - a time order compared to the millisecond;
+  - an int taken as a stated option;
+  - the Atlas rule among a run's decode rules;
+  - a third kind;
+  - the stock not compared in `held_to_line`;
+  - a negative or a bool PUB;
+  - a line that is not an object;
+  - no early return in `check_job_line`;
+  - a line's kind, route or names not held;
+  - a record with no source;
+  - the known answer's expected set left unsorted.
+
+  Its mutant D4 (`decode.lower()` inside the commitment) is now equivalent, since `decode` must be one of
+  `RUN_DECODES`, all lowercase. The fixer and decode stages pass 175 tests.

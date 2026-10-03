@@ -96,3 +96,33 @@ def test_a_bundles_two_jobs_each_get_one_line_and_share_no_commitment():
     assert any("has two lines" in p for p in fixer.check_job_lines([film, line()]))
     assert any(p.startswith("line 1: job line: format") for p in
                fixer.check_job_lines([known, line(format="x")]))
+
+
+def test_a_line_that_is_not_an_object_or_has_wrong_types_is_refused_by_name():
+    assert fixer.check_job_line("a line") == ["job line: not an object"]
+    for over in ({"backend": 5}, {"program": None}, {"job_id": ["x"]}, {"submitted_at": 0}):
+        field = next(iter(over))
+        assert any(f"must carry {field}" in p for p in fixer.check_job_line(line(**over)))     # and no crash
+
+
+@pytest.mark.parametrize("over, needle", [
+    ({"kind": "emulator"}, "kind is one of"), ({"route": "atlas"}, "kind is one of"),
+    ({"program": "Sampler"}, "backend and program must be lowercase names"),
+    ({"backend": "ibm_simulator"}, "a qpu job names an IBM device")])
+def test_a_lines_kind_route_and_names_are_held(over, needle):
+    assert any(needle in p for p in fixer.check_job_line(line(**over)))
+
+
+def test_a_record_without_a_source_or_of_another_stock_is_not_the_lines():
+    assert fixer.held_to_line({"stock": "pauli-4x4"}, line()) == ["line: the record has no source"]
+    other = copy.deepcopy(run(0))
+    other["stock"] = "pauli"
+    assert "line: the record's stock is not the line's" in fixer.held_to_line(other, line())
+
+
+@pytest.mark.parametrize("pub", [-1, -2, True, 0.0, "0"])
+def test_a_pub_that_is_not_an_index_into_the_line_is_refused(pub):
+    """A negative pub would index from the end of the list, and a bool is an int: both are refused."""
+    rec = copy.deepcopy(run(0))
+    rec["source"]["pub"] = pub
+    assert "line: the record's pub is not one of the line's circuits" in fixer.held_to_line(rec, line())

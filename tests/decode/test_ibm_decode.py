@@ -65,3 +65,8 @@ def test_a_tie_with_the_mirror_decides_nothing():
     verdict = decode.known_answer({MIRROR: 5, KNOWN: 5}, KNOWN, M)
     assert verdict["modal"] == list(KNOWN)          # the tie is broken the same way every time: the smaller key
     assert not verdict["holds"]                     # but a tie between the orders is not a reading of either
+
+
+def test_the_expected_set_may_be_given_in_any_order():
+    noisy = {KNOWN: 880, MIRROR: 10}
+    assert decode.known_answer(noisy, (12, 0, 7, 1, 3), M)["holds"]
