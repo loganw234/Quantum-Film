@@ -124,49 +124,123 @@ def test_the_leaky_run_is_what_hardware_will_send(leaky, measured):
 
 
 def test_the_tvd_is_over_the_n_crystal_shots(leaky, measured):
-    """TVD = (1/2) sum over all D layouts of |c_Y / n - P(Y)|, n the N-crystal shots; a layout no shot laid
-    contributes P(Y), so the sum is the laid layouts' terms plus the law's mass on the rest."""
+    """TVD = (1/2) sum over all D layouts of |c_Y / n - P(Y)|, n the N-crystal shots (`tvd`, below)."""
     c = sector(leaky)
-    n = sum(c.values())
-    laid = sum(abs(Fraction(k, n) - P(Y)) for Y, k in c.items())
-    tvd = (laid + 1 - sum(P(Y) for Y in c)) / 2
-    assert measured["tvd"]["value"] == float(tvd)
+    assert measured["tvd"]["value"] == float(tvd(c))
     over_all = (sum(abs(Fraction(k, 600) - P(Y)) for Y, k in c.items()) + 1 - sum(P(Y) for Y in c)) / 2
-    assert float(over_all) != float(tvd)                     # the test can tell the two normalisations apart
+    assert float(over_all) != float(tvd(c))                  # the test can tell the two normalisations apart
 
 
-def test_the_floor_is_a_perfect_sampler_at_the_n_crystal_count(law, measured):
-    """The floor stands at n = 360, not at the 600 shots. Two of its replicas, drawn here with golden.uniform's
-    Fractions and bisect on the hand-made weights, are among its 200."""
-    floor = measured["tvd"]["floor"]
-    assert floor["shots"] == 360 and floor["replicas"] == 200
+def tvd(counts):
+    """(1/2) sum |c_Y / n - P(Y)| over all D layouts, n the counts' total: the laid layouts' terms, plus the law's
+    mass on the layouts nobody laid."""
+    n = sum(counts.values())
+    return (sum(abs(Fraction(k, n) - P(Y)) for Y, k in counts.items()) + 1 - sum(P(Y) for Y in counts)) / 2
+
+
+def xeb(counts, probs):
+    """(F, its standard error) over five-crystal counts, from the definition."""
+    n = sum(counts.values())
+    norm = sum(p * p for p in probs) - Fraction(1, D)
+    mean = sum(k * P(Y) for Y, k in counts.items()) / n
+    var = sum(k * (P(Y) - mean) ** 2 for Y, k in counts.items()) / (n - 1)
+    return (mean - Fraction(1, D)) / norm, math.sqrt(var / n) / float(norm)
+
+
+def max_z(counts):
+    """(one-site max |z|, pair max |z|) in binary64, against the kernel by hand: (measured - exact) over the
+    binomial standard error, exact = K_qq for a site and K_ii K_jj - K_ij^2 for a pair (round 1's definitions)."""
+    S = sum(counts.values())
+    K = [[(1 + 2 * COS[(i // L - j // L) % L] + 2 * COS[(i % L - j % L) % L]) / 16 for j in range(M)] for i in range(M)]
+    one = max(abs((sum(c for Y, c in counts.items() if q in Y) / S - K[q][q]) / math.sqrt(K[q][q] * (1 - K[q][q]) / S))
+              for q in range(M))
+    pairs = []
+    for i, j in itertools.combinations(range(M), 2):
+        ex = K[i][i] * K[j][j] - K[i][j] ** 2
+        both = sum(c for Y, c in counts.items() if i in Y and j in Y) / S
+        pairs.append(abs((both - ex) / math.sqrt(ex * (1 - ex) / S)))
+    return one, max(pairs)
+
+
+@pytest.fixture(scope="module")
+def floor_by_hand(law):
+    """All 200 replicas of the floor at n = 360, drawn here: replica r takes golden.uniform's Fractions of
+    stream("compare-floor", "pauli-4x4", 360, r), target = floor(u * 4096), and the layout whose interval of the
+    hand-made cumulative weights holds it (bisect); each replica's TVD exactly. Ascending."""
     layouts, probs = law
     cum = list(itertools.accumulate(int(p * 4096) for p in probs))
     assert cum[-1] == 4096 and all(p * 4096 == int(p * 4096) for p in probs)
-    replicas = compare.floor_replicas(360)
-    for r in (0, 199):
+    out = []
+    for r in range(200):
         s = stream("compare-floor", "pauli-4x4", 360, r)
         counts = {}
         for i in range(360):
             Y = layouts[bisect.bisect_right(cum, math.floor(uniform(s, i) * 4096))]
             counts[Y] = counts.get(Y, 0) + 1
-        tvd = (sum(abs(Fraction(k, 360) - P(Y)) for Y, k in counts.items()) + 1 - sum(P(Y) for Y in counts)) / 2
-        assert tvd in replicas
-    rank = math.ceil(0.95 * 200)
-    assert floor["upper"] == float(replicas[rank - 1]) and floor["mean"] == float(sum(replicas) / 200)
+        out.append(tvd(counts))
+    return sorted(out)
+
+
+def test_the_floor_is_a_perfect_sampler_at_the_n_crystal_count(measured, floor_by_hand):
+    """The floor stands at n = 360, not at the 600 shots. Its 200 replicas are the 200 drawn here, and its stated
+    values are their definitions: the mean, the 95th percentile by nearest rank (the 190th of 200), the maximum.
+    On these replicas the mean is not the median, nor the 95th percentile the maximum (verifier-P2's M21)."""
+    floor = measured["tvd"]["floor"]
+    assert floor["shots"] == 360 and floor["replicas"] == 200 and floor["percentile"] == 95
+    assert list(compare.floor_replicas(360)) == floor_by_hand
+    mean = sum(floor_by_hand) / 200
+    assert floor["mean"] == float(mean) and floor["exact"]["mean"] == str(mean)
+    assert floor["upper"] == float(floor_by_hand[189]) and floor["exact"]["upper"] == str(floor_by_hand[189])
+    assert floor["max"] == float(floor_by_hand[199])
+    assert mean != (floor_by_hand[99] + floor_by_hand[100]) / 2 and floor_by_hand[189] != floor_by_hand[199]
 
 
 def test_the_fidelity_is_over_the_n_crystal_shots(law, leaky, measured):
     """F = (mean of P over the N-crystal shots - 1/D) / (sum of P^2 - 1/D), and its error the sample deviation of P
     over those shots, over sqrt(n), over the normaliser."""
-    layouts, probs = law
+    F, se = xeb(sector(leaky), law[1])
+    assert measured["xeb"]["exact"] == str(F) and measured["xeb"]["shots"] == 360
+    assert math.isclose(measured["xeb"]["se"], se, rel_tol=1e-12)
+
+
+def test_every_row_of_the_table_states_the_measure_its_label_names(law, leaky, measured, floor_by_hand):
+    """The printed table, one leaky column, every data row against a value computed here. On this input the
+    measures a row could confuse differ: the TVD from the fidelity, one-site z from pair z, all shots from the
+    N-crystal shots, the floor's mean from its median and its 95th percentile from its maximum. So a row that
+    printed another measure, or another field of the right one, shows (verifier-P2's M21-M24)."""
+    xx = {(): 5, (0,): 2, (0, 1): 1, (1, 3): 3}                     # bits 0 and 1 agree in 6 shots, differ in 5
+    yy = {(0,): 4, (2,): 7}                                         # agree in 7, differ in 4
+    col = {"label": "leaky", "law": measured,
+           "coherence": {"X0X1": compare.coherence(xx, "XX" + "Z" * 14),
+                         "Y0Y1": compare.coherence(yy, "YY" + "Z" * 14)}}
     c = sector(leaky)
-    n = sum(c.values())
-    norm = sum(p * p for p in probs) - Fraction(1, D)
-    mean = sum(k * P(Y) for Y, k in c.items()) / n
-    assert measured["xeb"]["exact"] == str((mean - Fraction(1, D)) / norm) and measured["xeb"]["shots"] == 360
-    var = sum(k * (P(Y) - mean) ** 2 for Y, k in c.items()) / (n - 1)
-    assert math.isclose(measured["xeb"]["se"], math.sqrt(var / n) / float(norm), rel_tol=1e-12)
+    F, se = xeb(c, law[1])
+    mean, p95, top = sum(floor_by_hand) / 200, floor_by_hand[189], floor_by_hand[199]
+    (one_all, pair_all), (one_n, pair_n) = max_z(leaky), max_z(c)
+
+    def pm(m, shots):
+        return f"{float(m):+.4f} +- {math.sqrt((1 - m * m) / shots):.4f}"
+
+    want = [
+        ("shots", "600"),
+        ("N-crystal share", f"{360 / 600:.4f}"),
+        ("forbidden share of N-crystal shots", f"{sum(k for Y, k in c.items() if P(Y) == 0) / 360:.4f}"),
+        ("TVD to the law", f"{float(tvd(c)):.4f}"),
+        ("perfect sampler's TVD floor: mean / p95", f"{float(mean):.4f} / {float(p95):.4f}"),
+        ("linear XEB", f"{float(F):+.4f} +- {se:.4f}"),
+        ("one-site max \\|z\\|: all / N-crystal", f"{one_all:.2f} / {one_n:.2f}"),
+        ("pair max \\|z\\|: all / N-crystal", f"{pair_all:.2f} / {pair_n:.2f}"),
+        ("NN pair correlation: all / N-crystal", f"{float(pair_correlation(leaky)):.4f} / "
+                                                 f"{float(pair_correlation(c)):.4f}"),
+        ("`<X0X1>`", pm(Fraction(6 - 5, 11), 11)),
+        ("`<Y0Y1>`", pm(Fraction(7 - 4, 11), 11)),
+    ]
+    lines = compare.table([col]).splitlines()
+    assert lines[:2] == ["| measure | leaky |", "|---|---|"]
+    assert lines[2:] == [f"| {name} | {cell} |" for name, cell in want]
+    assert f"{float(tvd(c)):.4f}" not in f"{float(F):+.4f} +- {se:.4f}"                 # M24 would show
+    assert f"{float(top):.4f}" != f"{float(p95):.4f}"                                   # M22 would show
+    assert f"{one_all:.2f}" != f"{pair_all:.2f}" and f"{one_n:.2f}" != f"{pair_n:.2f}"    # M23 would show
 
 
 def test_the_pair_correlation_is_taken_on_all_shots_and_on_the_n_crystal_shots_apart(leaky, measured):

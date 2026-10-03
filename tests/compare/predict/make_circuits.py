@@ -1,7 +1,7 @@
 """Transpiled circuits for tools/hw_predict.py's tests, built as round 3's research built them: run with the
 lead's virtualenv ($QF_IBM_PYTHON), never imported by the project's Python.
 
-    $QF_IBM_PYTHON tests/compare/venv/make_circuits.py OUTDIR BACKEND [--level 2] [--seed-transpiler 11]
+    $QF_IBM_PYTHON tests/compare/predict/make_circuits.py OUTDIR BACKEND [--level 2] [--seed-transpiler 11]
                                                      [--scheduling alap] [--only law,xx,yy,known-answer,bad]
 
 Writes OUTDIR/<role>.qpy, one circuit each, compiled for the fake BACKEND at an explicit level with a fixed seed:
@@ -10,7 +10,9 @@ Writes OUTDIR/<role>.qpy, one circuit each, compiled for the fake BACKEND at an 
   known-answer   X on {0, 1, 3, 7, 12}, measure_all;
   bad            the known-answer circuit with a CZ planted between physical qubits 0 and 100, which no
                  Heron r2 couples: a circuit no backend's target supports.
-Each circuit is measured with measure_all BEFORE compiling, the contract quantum_film.ibm.decode reads.
+  otherreg       the known-answer circuit measured qubit by qubit into a 16-bit register named "c", not by
+                 measure_all: hw_predict refuses it by name.
+Each other circuit is measured with measure_all BEFORE compiling, the contract quantum_film.ibm.decode reads.
 """
 import argparse
 import pathlib
@@ -22,7 +24,14 @@ FAKES = {"fake_kingston": "FakeKingston", "fake_fez": "FakeFez", "fake_marrakesh
 
 
 def logical(role):
-    from qiskit import QuantumCircuit, qasm2
+    from qiskit import ClassicalRegister, QuantumCircuit, qasm2
+    if role == "otherreg":
+        qc = QuantumCircuit(16)
+        qc.add_register(ClassicalRegister(16, "c"))
+        for q in (0, 1, 3, 7, 12):
+            qc.x(q)
+        qc.measure(range(16), range(16))
+        return qc
     if role == "known-answer" or role == "bad":
         qc = QuantumCircuit(16)
         for q in (0, 1, 3, 7, 12):
@@ -47,7 +56,7 @@ def main(argv):
     ap.add_argument("--level", type=int, default=2)
     ap.add_argument("--seed-transpiler", type=int, default=11)
     ap.add_argument("--scheduling", default=None)
-    ap.add_argument("--only", default="law,xx,yy,known-answer,bad")
+    ap.add_argument("--only", default="law,xx,yy,known-answer,bad,otherreg")
     args = ap.parse_args(argv)
     from qiskit import qpy
     from qiskit.transpiler import generate_preset_pass_manager

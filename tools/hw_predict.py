@@ -5,7 +5,9 @@ A noisy simulation of the device, never the device: AerSimulator.from_backend(ba
 exactly the transpiled circuits the bundle holds (QPY files, given by path; the manifest is not read here). Every
 shot is read through quantum_film.ibm.decode and measured by quantum_film.compare, so a prediction and a
 hardware run are scored by the same code. It runs in the lead's virtualenv (qiskit, qiskit-aer and
-qiskit-ibm-runtime), never in the project's Python, and writes nothing but the JSON it is asked to write.
+qiskit-ibm-runtime), never in the project's Python. Of its own it writes only the JSON it is asked to write; the
+libraries it loads keep their own files (verifier-P2 saw a transient temporary file, and stevedore's entry-point
+cache under %LOCALAPPDATA%).
 
     $QF_IBM_PYTHON tools/hw_predict.py --backend fake_kingston --law LAW.qpy [--xx XX.qpy] [--yy YY.qpy]
                                        [--known-answer KA.qpy] [--seed 20261003] [--out PREDICTION.json]
@@ -79,7 +81,7 @@ class FallbackRefused(BaseException):
     """IAM could not issue a token, and qiskit-ibm-runtime would now send the raw key with only a warning. A
     BaseException, so the runtime's own `except Exception` handlers cannot absorb it: they absorbed an ordinary
     exception, retried the token for two minutes and reported "No backend matches the criteria" (measured on the
-    recorded transport, tests/compare/venv/recorded_live.py)."""
+    recorded transport, tests/compare/predict/recorded_live.py)."""
 
 
 def refuse_the_fallback():
@@ -159,6 +161,9 @@ def load_circuit(path):
     if len(circuits) != 1:
         raise Refused(f"{pathlib.Path(path).name}: {len(circuits)} circuits; a bundle's QPY holds one")
     qc = circuits[0]
+    # decode.ones already refuses a bitstring that is not 16 characters of 0 and 1 (another size, or two registers'
+    # strings joined by a space). This refuses earlier, by name, and also a single 16-bit register that
+    # measure_all did not make, which the bundle never builds (verifier-P2's H5; tested by name).
     if [(r.name, r.size) for r in qc.cregs] != [("meas", 16)]:
         raise Refused(f"{pathlib.Path(path).name}: its classical register is not measure_all's 16-bit 'meas', "
                       "so quantum_film.ibm.decode's contract does not hold")

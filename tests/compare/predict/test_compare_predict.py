@@ -5,6 +5,7 @@ QF_IBM_PYTHON is set, and skips it by name otherwise; a test here never skips, i
 
 Nothing here reaches IBM: the fakes' own noise models, and for the live path a recorded transport with the
 network refused (recorded_live.py)."""
+import hashlib
 import json
 import os
 import pathlib
@@ -20,7 +21,8 @@ KEEP = ("SYSTEMROOT", "WINDIR", "PATH", "PATHEXT", "COMSPEC", "NUMBER_OF_PROCESS
 # never inherited, so a gate run uncapped still runs its children capped (verifier-P2, 18:04Z: 766 s under load).
 CAPS = {"OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "QISKIT_IN_PARALLEL": "FALSE"}
 FAKE_KEY = "FAKEKEY-not-a-credential-0123456789abcdefgh"
-FAKE_CRN = "crn:v1:bluemix:public:quantum-computing:us-east:a/00000000000000000000000000000000:11111111-2222-3333-4444-555555555555::"
+FAKE_CRN = ("crn:v1:bluemix:public:quantum-computing:us-east:a/00000000000000000000000000000000:"
+            "11111111-2222-3333-4444-555555555555::")
 
 
 def venv_python():
@@ -67,7 +69,8 @@ def tmp(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def kingston(tmp):
-    """The four circuits and the planted bad one, compiled for fake_kingston at level 2 with seed 11."""
+    """The four circuits and the two planted ones (bad, otherreg), compiled for fake_kingston at level 2 with
+    seed 11."""
     out = tmp / "kingston"
     p = run([HERE / "make_circuits.py", out, "fake_kingston"], tmp)
     assert p.returncode == 0, p.stderr[-3000:]
@@ -115,7 +118,7 @@ def test_a_noisy_prediction_states_what_it_ran_and_repeats_byte_for_byte(kingsto
     assert [(r["role"], r["seed_simulator"]) for r in out["circuits"]] == [("law", 7), ("known-answer", 10)]
     assert set(out["versions"]) == {"python", "qiskit", "qiskit-aer", "qiskit-ibm-runtime", "numpy", "quantum_film"}
     assert out["versions"]["qiskit"] == "2.5.2" and out["versions"]["qiskit-aer"] == "0.17.2"
-    assert out["circuits"][0]["qpy_sha256"] == __import__("hashlib").sha256((kingston / "law.qpy").read_bytes()).hexdigest()
+    assert out["circuits"][0]["qpy_sha256"] == hashlib.sha256((kingston / "law.qpy").read_bytes()).hexdigest()
     # A leaky run: its sector measures stand on its five-crystal shots, counted here from its own counts.
     law = out["circuits"][0]
     five = sum(n for ones, n in law["counts"] if len(ones) == 5)
@@ -136,6 +139,7 @@ def test_a_prediction_takes_its_place_in_the_table_under_its_own_label(kingston,
 
 @pytest.mark.parametrize("args, why", [
     (["--known-answer", "bad.qpy"], "not an ISA circuit for fake_kingston: ['cz on (0, 100)']"),
+    (["--known-answer", "otherreg.qpy"], "its classical register is not measure_all's 16-bit 'meas'"),
     (["--backend", "fake_torino", "--law", "law.qpy"], "a fake is one of"),
     (["--backend", "ibm_kingston", "--law", "law.qpy"], "a device needs --live"),
     ([], "no circuit given"),

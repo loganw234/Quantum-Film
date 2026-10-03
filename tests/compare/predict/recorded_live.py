@@ -3,7 +3,7 @@ the fake backend's own files (FakeFez's configuration and properties, served as 
 the machine: an audit hook refuses every socket connection and name lookup. For the predict stage's tests,
 run with the lead's virtualenv ($QF_IBM_PYTHON); the key and the instance are fakes the test writes.
 
-    $QF_IBM_PYTHON tests/compare/venv/recorded_live.py LOG SCENARIO -- [hw_predict.py's arguments]
+    $QF_IBM_PYTHON tests/compare/predict/recorded_live.py LOG SCENARIO -- [hw_predict.py's arguments]
 
 SCENARIO is "normal", or "iam_fails_later": IAM answers the first token request and refuses every later one
 with a 503, which is when qiskit-ibm-runtime falls back to sending the raw key (docs/HARDWARE.md). LOG receives

@@ -306,11 +306,11 @@ stage develop "rolls lay a sheet at the borrowed stock's own density; atlas-film
 
 need_file "vendor/atlas-film/atlas_film/__init__.py" "atlas-film is not checked out (git submodule update --init vendor/atlas-film)"
 stage compare "the comparison: the exact law held to the authority, a perfect sampler's floor, every measure, the print rule; four negative controls told apart from the law" -- \
-  bash verify/pytest-stage.sh tests/compare --ignore=tests/compare/venv
+  bash verify/pytest-stage.sh tests/compare --ignore=tests/compare/predict
 
 need_env QF_IBM_PYTHON "no qiskit virtualenv configured (QF_IBM_PYTHON names its python)"
 stage predict "hw_predict.py in the qiskit virtualenv: fake backends' noise, ideal runs lay the law, the live path's refusals, the key only to IAM" -- \
-  bash verify/pytest-stage.sh tests/compare/venv
+  bash verify/pytest-stage.sh tests/compare/predict
 
 # §3: the control and its twin. The twin runs the fixer's own command line,
 # the one a user runs, on the generated records, and must pass: a command line

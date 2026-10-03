@@ -126,8 +126,21 @@ def test_the_twin_sample_is_golden_binomial_shot_by_shot():
 def test_exact_law_samples_score_at_the_floor_and_a_corrupted_sample_does_not(law_shots, law_measured):
     """The authority's 2,048 shots: their TVD falls inside the perfect sampler's stated percentile (95th) at the
     same count. The negative: every fourth of them replaced by a twin shot lands above every one of the 200
-    replicas. A perfect sample exceeds the 95th percentile one time in twenty by construction; these streams
-    were named before the result was seen, and the margin is printed by the run, not chosen."""
+    replicas. These streams were named before the result was seen.
+
+    What this control cannot see, stated (verifier-P2, 19:26Z):
+    - It compares compare's TVD of a sample with compare's TVD of the floor's replicas. A fault shared by both
+      (the 1/2 dropped, say) passes it. The TVD and the replicas are held to their definitions elsewhere, by code
+      that shares nothing with compare.py: test_compare_law.py (one replica at n = 300, re-counted in Fractions)
+      and test_compare_leaky.py (the TVD of a leaky run, and all 200 replicas at n = 360 drawn with
+      golden.uniform's Fractions and bisect).
+    - Its samples hold five crystals in every shot, so n equals the shots. A fault that shows only when they
+      differ (the floor or the TVD taken over all shots), the case hardware will be in, is held by
+      test_compare_leaky.py alone.
+    - What remains for this control itself: whether the floor is the right yardstick for an exact sample, and
+      that one corruption shows. The 95th percentile is the 190th of 200 replicas, so it carries Monte Carlo
+      error, and a perfect sample exceeds it about one time in twenty: another stream could fail this control
+      with nothing wrong."""
     tvd = law_measured["tvd"]
     assert tvd["floor"]["shots"] == N_LAW
     assert tvd["value"] <= tvd["floor"]["upper"]
