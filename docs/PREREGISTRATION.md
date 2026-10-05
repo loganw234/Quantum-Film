@@ -139,8 +139,13 @@ seed 20261003. Each run read its device with the key, and no job ran.
 - **The calibrations behind it all** are committed beside the bundles as
   `properties-<stamp>.json`:
   - one for each freeze, which chose the chain and its ESP;
-  - one for each noisy prediction where it differs: marrakesh's and fez's had
-    moved on by then, and kingston's had not.
+  - one for each noisy prediction where its stamp differs: marrakesh's and
+    fez's stamps had moved on by then, and kingston's had not.
+
+  The values had not moved. Between each device's two snapshots, 0 of
+  marrakesh's 6,230 values and 0 of fez's 6,203 differ; only their dates do
+  (round 3's verifier-P2). So each device's freeze and its prediction rest on
+  the same error data.
 
   Each was read again from IBM's history, as of the moment it was first read,
   and its `last_update_date` is the stamp it is named by. Together they hold
@@ -148,9 +153,15 @@ seed 20261003. Each run read its device with the key, and no job ran.
 
 The files are in `docs/records/2026-10-05/ibm/<device>/`. Each circuit's simulator
 seed is the seed plus its place (law, xx, yy, known-answer: 0 to 3), the same
-on every device. So the three devices' sampling fluctuations are not
-independent of one another, and a shared deviation is one fluctuation, not
-three.
+on every device, so the devices' sampling may be correlated.
+- Measured on the ideal controls (verifier-P2), the correlation is weak. Two
+  devices' per-outcome deviations correlate by -0.03 to +0.08, against about
+  +0.01 for two independent samples.
+- So the three ideal coherences in X, +1.8, +2.4 and +0.4 standard errors
+  from +0.375, are close to three independent draws.
+- The bundle check's exact parities of the frozen circuits are 0.375, and
+  verifier-P1's amplitude check gives each circuit fidelity 1 with its logical
+  circuit.
 
 With each device's noise model:
 
