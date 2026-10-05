@@ -107,9 +107,90 @@ Each point below is one the pre-registration named before any job ran. None of t
 | `<X0X1>` | +0.3750 | +0.3804 +- 0.0145 | +0.3564 +- 0.0146 | +0.2690 +- 0.0150 |
 | `<Y0Y1>` | +0.3750 | +0.3813 +- 0.0144 | +0.3613 +- 0.0146 | +0.3047 +- 0.0149 |
 
+## The sheets: more law runs on each device
+
+At the owner's word, after the nine jobs above, each device ran more standard bundles, known answer and law only, so that each gives a print of about 256 columns (docs/PREREGISTRATION.md, the note of 2026-10-05). Each row below is one law job; the first of each device is the run above.
+
+### ibm_kingston
+
+9 law runs; 9 known answers, of which 9 held (90.3% to 92.1% of their shots on {0, 1, 3, 7, 12}, 0.0% on the mirror); the sheets' jobs were charged 88 QPU-seconds.
+
+| law job | created (UTC) | five-crystal share | forbidden, of those | linear XEB | TVD / floor p95 |
+|---|---|---|---|---|---|
+| `db1nn11b694s73dsidjg` | 2026-10-05T10:27:16Z | 0.6095 | 0.0431 | +0.8444 ± 0.0117 | 0.1998 / 0.1764 |
+| `db1pcuhb694s73dsklc0` | 2026-10-05T12:22:18Z | 0.6092 | 0.0403 | +0.8626 ± 0.0118 | 0.1971 / 0.1760 |
+| `db1peuivog1s73fifr1g` | 2026-10-05T12:26:34Z | 0.5972 | 0.0425 | +0.8715 ± 0.0120 | 0.2012 / 0.1788 |
+| `db1pfjivog1s73fifrr0` | 2026-10-05T12:27:58Z | 0.5840 | 0.0431 | +0.8539 ± 0.0121 | 0.2003 / 0.1806 |
+| `db1pg26egvvc73bhvrig` | 2026-10-05T12:28:56Z | 0.5824 | 0.0451 | +0.8274 ± 0.0119 | 0.2044 / 0.1809 |
+| `db1pgf3id5ic73erg1l0` | 2026-10-05T12:29:48Z | 0.5997 | 0.0402 | +0.8628 ± 0.0120 | 0.1984 / 0.1777 |
+| `db1ph1eegvvc73bhvskg` | 2026-10-05T12:31:01Z | 0.5964 | 0.0415 | +0.8783 ± 0.0120 | 0.2005 / 0.1782 |
+| `db1phe3id5ic73erg2mg` | 2026-10-05T12:31:52Z | 0.6015 | 0.0443 | +0.8649 ± 0.0120 | 0.2007 / 0.1777 |
+| `db1pk02vog1s73fig1o0` | 2026-10-05T12:37:20Z | 0.5817 | 0.0456 | +0.8439 ± 0.0120 | 0.2014 / 0.1811 |
+
+Across its 9 law runs the five-crystal share runs 0.5817 to 0.6095, the forbidden share 0.0402 to 0.0456 and the XEB +0.827 to +0.878, where one run's XEB error is about 0.012.
+The five-crystal share's range is 9 times one run's own standard error (0.0031): the device's noise moved from job to job by more than sampling can. Its largest step between consecutive jobs, -0.0198, falls between `db1phe3id5ic73erg2mg` (12:31:52Z) and `db1pk02vog1s73fig1o0` (12:37:20Z); what changed on the device is not recorded here.
+
+### ibm_marrakesh
+
+11 law runs; 11 known answers, of which 11 held (87.1% to 92.5% of their shots on {0, 1, 3, 7, 12}, 0.0% on the mirror); the sheets' jobs were charged 110 QPU-seconds.
+
+| law job | created (UTC) | five-crystal share | forbidden, of those | linear XEB | TVD / floor p95 |
+|---|---|---|---|---|---|
+| `db1npojid5ic73erdnfg` | 2026-10-05T10:33:06Z | 0.5185 | 0.0513 | +0.8491 ± 0.0129 | 0.2189 / 0.1885 |
+| `db1pmcivog1s73fig60g` | 2026-10-05T12:42:27Z | 0.5073 | 0.0598 | +0.8315 ± 0.0132 | 0.2221 / 0.1884 |
+| `db1pmqeegvvc73bi064g` | 2026-10-05T12:43:21Z | 0.5026 | 0.0621 | +0.8017 ± 0.0129 | 0.2233 / 0.1893 |
+| `db1pn6qvog1s73fig76g` | 2026-10-05T12:44:11Z | 0.5066 | 0.0564 | +0.8270 ± 0.0130 | 0.2214 / 0.1888 |
+| `db1pnj3id5ic73ergcs0` | 2026-10-05T12:45:00Z | 0.5133 | 0.0536 | +0.8347 ± 0.0128 | 0.2173 / 0.1897 |
+| `db1pnv6egvvc73bi07u0` | 2026-10-05T12:45:48Z | 0.5439 | 0.0479 | +0.8387 ± 0.0124 | 0.2121 / 0.1860 |
+| `db1pobbid5ic73ergdt0` | 2026-10-05T12:46:37Z | 0.5424 | 0.0474 | +0.8471 ± 0.0124 | 0.2092 / 0.1851 |
+| `db1ponavog1s73fig970` | 2026-10-05T12:47:25Z | 0.5406 | 0.0447 | +0.8630 ± 0.0126 | 0.2106 / 0.1861 |
+| `db1pp4rid5ic73erget0` | 2026-10-05T12:48:19Z | 0.5395 | 0.0484 | +0.8538 ± 0.0127 | 0.2165 / 0.1854 |
+| `db1ppg9b694s73dsl710` | 2026-10-05T12:49:05Z | 0.5405 | 0.0494 | +0.8687 ± 0.0128 | 0.2164 / 0.1854 |
+| `db1ppsuegvvc73bi0aqg` | 2026-10-05T12:49:55Z | 0.5383 | 0.0479 | +0.8482 ± 0.0123 | 0.2088 / 0.1869 |
+
+Across its 11 law runs the five-crystal share runs 0.5026 to 0.5439, the forbidden share 0.0447 to 0.0621 and the XEB +0.802 to +0.869, where one run's XEB error is about 0.013.
+The five-crystal share's range is 13 times one run's own standard error (0.0032): the device's noise moved from job to job by more than sampling can. Its largest step between consecutive jobs, +0.0306, falls between `db1pnj3id5ic73ergcs0` (12:45:00Z) and `db1pnv6egvvc73bi07u0` (12:45:48Z); what changed on the device is not recorded here.
+
+### ibm_fez
+
+11 law runs; 11 known answers, of which 11 held (86.4% to 90.6% of their shots on {0, 1, 3, 7, 12}, 0.0% on the mirror); the sheets' jobs were charged 110 QPU-seconds.
+
+| law job | created (UTC) | five-crystal share | forbidden, of those | linear XEB | TVD / floor p95 |
+|---|---|---|---|---|---|
+| `db1nq9hb694s73dsihg0` | 2026-10-05T10:34:14Z | 0.5310 | 0.0544 | +0.8064 ± 0.0125 | 0.2194 / 0.1867 |
+| `db1pqbeegvvc73bi0bm0` | 2026-10-05T12:50:54Z | 0.5281 | 0.0542 | +0.8317 ± 0.0127 | 0.2121 / 0.1875 |
+| `db1pqnivog1s73figcrg` | 2026-10-05T12:51:42Z | 0.5415 | 0.0531 | +0.8467 ± 0.0126 | 0.2143 / 0.1859 |
+| `db1pr3qvog1s73figds0` | 2026-10-05T12:52:31Z | 0.5554 | 0.0515 | +0.8276 ± 0.0123 | 0.2128 / 0.1844 |
+| `db1prgjid5ic73ergjf0` | 2026-10-05T12:53:22Z | 0.5457 | 0.0528 | +0.8518 ± 0.0124 | 0.2117 / 0.1858 |
+| `db1prsbid5ic73ergk1g` | 2026-10-05T12:54:09Z | 0.5474 | 0.0495 | +0.8419 ± 0.0124 | 0.2103 / 0.1860 |
+| `db1ps8megvvc73bi0fa0` | 2026-10-05T12:54:58Z | 0.5441 | 0.0481 | +0.8588 ± 0.0125 | 0.2076 / 0.1853 |
+| `db1pskuegvvc73bi0fqg` | 2026-10-05T12:55:47Z | 0.5507 | 0.0468 | +0.8685 ± 0.0125 | 0.2067 / 0.1852 |
+| `db1pt31b694s73dsld80` | 2026-10-05T12:56:44Z | 0.5576 | 0.0482 | +0.8349 ± 0.0122 | 0.2055 / 0.1845 |
+| `db1ptepb694s73dsldl0` | 2026-10-05T12:57:31Z | 0.5385 | 0.0525 | +0.8541 ± 0.0125 | 0.2118 / 0.1872 |
+| `db1ptr9b694s73dsle4g` | 2026-10-05T12:58:21Z | 0.5433 | 0.0542 | +0.8293 ± 0.0124 | 0.2162 / 0.1865 |
+
+Across its 11 law runs the five-crystal share runs 0.5281 to 0.5576, the forbidden share 0.0468 to 0.0544 and the XEB +0.806 to +0.868, where one run's XEB error is about 0.013.
+The five-crystal share's range is 9 times one run's own standard error (0.0032): the device's noise moved from job to job by more than sampling can. Its largest step between consecutive jobs, -0.0190, falls between `db1pt31b694s73dsld80` (12:56:44Z) and `db1ptepb694s73dsldl0` (12:57:31Z); what changed on the device is not recorded here.
+
+### Each device pooled over its law runs
+
+| measure | law (exact) | qpu: ibm_kingston, 9 law runs pooled | qpu: ibm_marrakesh, 11 law runs pooled | qpu: ibm_fez, 11 law runs pooled | twin (exact) |
+|---|---|---|---|---|---|
+| shots | 24,576 | 221,184 | 270,336 | 270,336 | 24,576 |
+| N-crystal share | 1.0000 | 0.5957 | 0.5267 | 0.5439 | 1.0000 |
+| forbidden share of N-crystal shots | 0.0000 | 0.0428 | 0.0516 | 0.0514 | 0.3114 |
+| TVD to the law | 0.0000 | 0.0955 | 0.1064 | 0.0968 | 0.3114 |
+| perfect sampler's TVD floor: mean / p95 | 0.1319 / 0.1350 | 0.0577 / 0.0590 | 0.0554 / 0.0567 | 0.0546 / 0.0561 | - |
+| linear XEB | +1.0000 | +0.8567 +- 0.0040 | +0.8426 +- 0.0038 | +0.8411 +- 0.0038 | +0.0000 |
+| one-site max \|z\|: all / N-crystal | 0.00 / 0.00 | 46.09 / 15.27 | 56.47 / 19.91 | 44.86 / 9.28 | 0.00 / 0.00 |
+| pair max \|z\|: all / N-crystal | 0.00 / 0.00 | 80.65 / 15.57 | 98.76 / 20.31 | 86.32 / 14.10 | 13.49 / 13.49 |
+| NN pair correlation: all / N-crystal | 0.6400 / 0.6400 | 0.7649 / 0.6678 | 0.7712 / 0.6639 | 0.7771 / 0.6667 | 0.8533 / 0.8533 |
+| `<X0X1>` | +0.3750 | - | - | - | +0.0000 |
+| `<Y0Y1>` | +0.3750 | - | - | - | +0.0000 |
+
 ## What this does not show
 
-- **One set a device.** Each device ran once, on one calibration; run-to-run and day-to-day variation is not measured.
+- **One day.** Each device's jobs ran on one day; day-to-day variation is not measured. Within the day, the sheets' runs measure run-to-run variation (above).
 - **The calibration moved.** kingston recalibrated between its bundle's freeze (06:57:43Z) and its run; each bundle keeps the chain chosen at its freeze, and each prediction the calibration it read.
 - **The comparison measures; it does not gate.** It says how far each device is from the law and from the twin, not whether a device "passed".
 - **No mitigation.** Dynamical decoupling, twirling and read-out correction were all off, as stated; any mitigated analysis would be exploratory and shown beside these tables, never in their place.

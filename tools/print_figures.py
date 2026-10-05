@@ -27,6 +27,10 @@ LABELS = {
     "ibm-kingston-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_kingston",
     "ibm-marrakesh-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_marrakesh",
     "ibm-fez-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_fez",
+    "golden-pauli-4x4-sheet": "the exact law's own rolls, for reference",
+    "ibm-kingston-sheet": "ibm_kingston: a day's law shots",
+    "ibm-marrakesh-sheet": "ibm_marrakesh: a day's law shots",
+    "ibm-fez-sheet": "ibm_fez: a day's law shots",
 }
 
 
@@ -97,13 +101,52 @@ def structure():
     fig.savefig(PRINTS / "structure.png")
 
 
+SHEETS = (("golden-pauli-4x4-sheet", "ibm-kingston-sheet"), ("ibm-marrakesh-sheet", "ibm-fez-sheet"))
+
+
+def sheets(rows=SHEETS, name="sheets.png", scale=2):
+    """The devices' sheets, and the exact law's at 256 columns for reference, at one scale (each crystal column
+    `scale` pixels), so that they compare by eye at their true relative sizes: no panel is stretched to fit."""
+    from PIL import Image, ImageDraw
+    gap, foot = 24, 70
+    grid = []
+    for row in rows:
+        cells = []
+        for n in row:
+            rec = json.loads((PRINTS / f"{n}.json").read_text(encoding="ascii"))
+            h, w = rec["cells"]
+            img = Image.open(PRINTS / f"{n}-print.png").convert("L").resize((w * scale, h * scale), Image.NEAREST)
+            cells.append((n, rec, img))
+        grid.append(cells)
+    col_w = max(i.width for row in grid for _n, _r, i in row)
+    row_h = max(i.height for row in grid for _n, _r, i in row) + foot
+    W = max(len(row) for row in grid) * (col_w + gap) + gap
+    H = len(grid) * (row_h + gap) + gap
+    out = Image.new("L", (W, H), 255)
+    d = ImageDraw.Draw(out)
+    for ri, row in enumerate(grid):
+        for ci, (n, rec, img) in enumerate(row):
+            x, y = gap + ci * (col_w + gap), gap + ri * (row_h + gap)
+            out.paste(img, (x, y))
+            h, w = rec["cells"]
+            used = rec["rolls"].get("used", h * w // 16 * rec["layers"])
+            d.text((x, y + img.height + 8), LABELS[n], fill=0, font=font(20))
+            d.text((x, y + img.height + 38), f"{w} x {h} crystal columns, {h * rec['pitch_um_decimal']:.0f} um of "
+                   f"film, {used:,} layouts", fill=90, font=font(15))
+    out.save(PRINTS / name, optimize=True)
+
+
 def main():
     gallery()
     # round 3: the three IBM devices' prints under the exact law's and Atlas's, each at its own size in film
     gallery((("golden-pauli-4x4", "atlas-pauli-4x4"),
              ("ibm-kingston-pauli-4x4", "ibm-marrakesh-pauli-4x4", "ibm-fez-pauli-4x4")), "hardware.png")
+    written = ["gallery.png", "hardware.png", "structure.png"]
+    if all((PRINTS / f"{n}.json").exists() for row in SHEETS for n in row):
+        sheets()                                       # round 3's sheets, once all three are laid
+        written.insert(2, "sheets.png")
     structure()
-    for f in ("gallery.png", "hardware.png", "structure.png"):
+    for f in written:
         print(f"wrote docs/prints/{f} ({(PRINTS / f).stat().st_size} bytes)")
 
 

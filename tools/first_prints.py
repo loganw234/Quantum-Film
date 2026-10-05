@@ -21,6 +21,10 @@ The prints (quantum_film/develop.py says how a sheet is laid):
   ibm-<device>-pauli-4x4   round 3's hardware prints, one per IBM device (kingston, marrakesh, fez): the device's
                      qpu law run by compare's print rule (its N-crystal shots in canonical order, shuffled on the
                      print stream), in the geometry their count allows (compare.print_geometry: 29 layers deep)
+  golden-pauli-4x4-sheet  the exact law's own rolls at 64 x 64 tiles, 29 layers deep: 256 columns, the reference
+                     for the sheets below
+  ibm-<device>-sheet the same rule over every law run of the device on 2026-10-05, the morning's and the sheet
+                     bundles' (docs/PREREGISTRATION.md, the note of that day): about 256 columns from each device
 """
 if __name__ not in ("__main__", "__mp_main__"):     # a spawned worker re-imports this file as __mp_main__
     raise ImportError("this script writes files when it runs; run it, never import it (CLAUDE.md)")
@@ -57,15 +61,27 @@ PRINTS = {
     "ibm-kingston-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_kingston"},
     "ibm-marrakesh-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_marrakesh"},
     "ibm-fez-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_fez"},
+    # The sheets (docs/PREREGISTRATION.md, the note of 2026-10-05): each device's law runs of that day pooled, the
+    # morning's and the sheet bundles', for a print of about 256 columns from each device.
+    "golden-pauli-4x4-sheet": {"stock": "pauli-4x4", "tiles": (64, 64), "layers": 29, "rolls": "golden"},
+    "ibm-kingston-sheet": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_kingston", "runs": "day"},
+    "ibm-marrakesh-sheet": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_marrakesh", "runs": "day"},
+    "ibm-fez-sheet": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_fez", "runs": "day"},
 }
 QPU_RUNS = RECORDS / "2026-10-05" / "ibm"
 
 
-def qpu_layouts(device):
+def qpu_run_dirs(device, runs="morning"):
+    """The run directories a print reads: the morning's set alone, or every law run of the device that day."""
+    dirs = [QPU_RUNS / device / "run"]
+    return dirs if runs == "morning" else dirs + sorted((QPU_RUNS / device).glob("sheet-*/run"))
+
+
+def qpu_layouts(device, runs="morning"):
     """compare's print rule over one device's committed qpu law runs: every shot with exactly N crystals, in canonical
     order (job, then layout, each layout its shots), and the geometry their count allows."""
     from quantum_film import compare
-    recs = [r for r in compare.device_runs([QPU_RUNS / device / "run"]) if r["role"] == "law"]
+    recs = [r for r in compare.device_runs(qpu_run_dirs(device, runs)) if r["role"] == "law"]
     layouts = compare.print_layouts(recs)
     return recs, layouts, compare.print_geometry(len(layouts))
 
@@ -74,7 +90,7 @@ def spec_of(name):
     spec = PRINTS[name]
     if spec["rolls"] != "qpu":
         return spec
-    _recs, _layouts, geo = qpu_layouts(spec["device"])
+    _recs, _layouts, geo = qpu_layouts(spec["device"], spec.get("runs", "morning"))
     return dict(spec, tiles=tuple(geo["tiles"]), layers=geo["layers"])
 
 
@@ -134,7 +150,7 @@ def lay(name, spec, pool):
                       order="canonical (job, layout), each layout its occurrences, then shuffled on the print "
                             "stream; the first `used` are laid")
     elif spec["rolls"] == "qpu":
-        recs, qlayouts, geo = qpu_layouts(spec["device"])
+        recs, qlayouts, geo = qpu_layouts(spec["device"], spec.get("runs", "morning"))
         if (list(spec["tiles"]), spec["layers"]) != (geo["tiles"], geo["layers"]):
             raise SystemExit(f"{name}: the spec's geometry is not compare.print_geometry's")
         layouts = develop.shuffled(qlayouts, parts)[:n]

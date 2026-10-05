@@ -26,16 +26,25 @@ def test_every_committed_hardware_run_holds():
 
 DEVICES = ("ibm_fez", "ibm_kingston", "ibm_marrakesh")
 JOBS = ("coherence", "known-answer", "law")
+SHEETS = {"ibm_fez": 10, "ibm_kingston": 8, "ibm_marrakesh": 10}    # docs/PREREGISTRATION.md, the note of 2026-10-05
 
 
-def test_docs_records_holds_round_3s_nine_ibm_lines_and_the_test_above_holds_them_all():
-    """Stated, not hidden: the job lines under docs/records are round 3's nine (2026-10-05: three jobs on each of
-    three IBM devices), and the audit above holds all nine, in git's order. Until they were committed this test
-    said there were none, and the audit was vacuous. A new hardware run moves this list. Atlas's runs are
-    commitments.jsonl lines, not hardware job lines, and are not read here."""
+def round_3s_lines():
+    """The morning's nine lines (three jobs on each device), and each sheet bundle's known-answer and law lines."""
+    out = [f"2026-10-05/ibm/{d}/run/{j}-line.json" for d in DEVICES for j in JOBS]
+    out += [f"2026-10-05/ibm/{d}/sheet-{k:02d}/run/{j}-line.json" for d in DEVICES for k in range(1, SHEETS[d] + 1)
+            for j in ("known-answer", "law")]
+    return sorted(out)
+
+
+def test_docs_records_holds_round_3s_ibm_lines_and_the_test_above_holds_them_all():
+    """Stated, not hidden: the job lines under docs/records are round 3's (2026-10-05): the nine of the morning's
+    three sets and the 56 of the 28 sheet bundles, and the audit above holds all 65, in git's order. Until the first
+    was committed this test said there were none, and the audit was vacuous. A new hardware run moves this list.
+    Atlas's runs are commitments.jsonl lines, not hardware job lines, and are not read here."""
     found = sorted(p.relative_to(RECORDS).as_posix() for p, _ln in runner.lines_under(RECORDS))
-    assert found == [f"2026-10-05/ibm/{d}/run/{j}-line.json" for d in DEVICES for j in JOBS]
-    assert audit.audit(RECORDS, ROOT, git_order=True) == ([], 9)
+    assert found == round_3s_lines()
+    assert audit.audit(RECORDS, ROOT, git_order=True) == ([], 65)
 
 
 @pytest.fixture

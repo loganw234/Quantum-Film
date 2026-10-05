@@ -1682,3 +1682,40 @@ docs/HARDWARE-RESULTS.md has every table and the job ids.
   - Either Moth runs them with its own tools and sends back counts with their bit convention, or it uses this
     runner on a bundle Moth freezes and this project commits and pushes before it runs.
   - Nothing in this round waits on it.
+
+## 2026-10-05 - round 3's sheets: 28 more bundles, 56 jobs, and a sheet of 268 to 284 columns from each IBM device
+
+At the owner's word: a print of about 256 columns from each device, to compare by eye. docs/PREREGISTRATION.md's
+note of that day fixed it before any of its jobs. Bundles and note were committed and pushed at 82d5f67.
+- **Before the jobs:** verifier-P1 checked all 28 bundles, the note and the run script.
+  - Its independent 80 checks passed on each bundle.
+  - Its presubmit check passed on all 56 jobs.
+  - Each device's circuits and chain are its morning bundle's.
+  - It found one defect in the script's first text: a carriage return from Windows Python in each digest, which
+    failed closed before any job. It was fixed as tested, and verifier-P1 gave READY TO RUN for 82d5f67 and the
+    script as it ran (sha256 67c73008...62c2).
+- **The jobs:**
+  - from 12:21 to 12:58Z, from the run clone, origin/main 82d5f67;
+  - 56 jobs, each submitted once, each line committed and pushed before its result was read;
+  - all 28 known answers held, 86.4% to 92.5% of 1,024 shots on {0, 1, 3, 7, 12}, none on the mirror;
+  - IBM charged 308 QPU-seconds, the note's budget, leaving 247 of the 600.
+- **After them:** verifier-P1's post_run_check.py passed 172 checks with 0 failures, and the audit holds the 65
+  lines in git's order. tests/hardware/pure names the 65 lines and holds the audit to ([], 65).
+- **The sheets,** by compare's print rule over every law run of the device that day:
+
+  | device | law runs | five-crystal shots | sheet | laid |
+  |---|---|---|---|---|
+  | ibm_kingston | 9 | 131,765 | 67 x 67 tiles, 268 columns | 130,181 |
+  | ibm_marrakesh | 11 | 142,381 | 70 x 70, 280 columns | 142,100 |
+  | ibm_fez | 11 | 147,047 | 71 x 71, 284 columns | 146,189 |
+
+  - Each one's `--check` re-develops it to the same bits.
+  - The reference golden-pauli-4x4-sheet is the exact law's own rolls at 64 x 64 tiles, 256 columns.
+  - docs/prints/sheets.png draws all four at one scale. The README's caption says the eye cannot see the
+    hardware's forbidden layouts.
+- **What the extra runs measured:**
+  - **Pooled per device:** forbidden shares of 4.28%, 5.16% and 5.14%, and XEB +0.857, +0.843 and +0.841.
+  - **Run-to-run variation,** which the morning's single set could not show: each device's five-crystal share
+    ranges over 9, 13 and 9 times one run's own standard error. marrakesh's largest step, +0.031, falls between
+    its jobs created at 12:45:00Z and 12:45:48Z. The tables are in docs/HARDWARE-RESULTS.md, regenerated from the
+    records.

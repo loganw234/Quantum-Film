@@ -64,6 +64,27 @@ ibm_kingston, ibm_marrakesh and ibm_fez, running the same circuit as Atlas.
   [docs/HARDWARE-RESULTS.md](docs/HARDWARE-RESULTS.md) measure: 4.3% to 5.4%
   of those shots sit on layouts the law forbids.
 
+![A sheet from each of three IBM quantum computers, beside the exact law's own sheet](docs/prints/sheets.png)
+
+**Then a sheet from each device** (2026-10-05, the same day). Each device ran
+8 or 10 more of the same law jobs, and each sheet pools every five-crystal shot
+of that device's day.
+
+| device | five-crystal shots | sheet |
+|---|---|---|
+| kingston | 131,765 | 268 crystal columns |
+| marrakesh | 142,381 | 280 crystal columns |
+| fez | 147,047 | 284 crystal columns |
+
+- Top left, for reference, is the exact law's own rolls at 256 columns.
+- All four are drawn at one scale.
+- **The sheets look alike, and alike to the reference.** The eye cannot see
+  that 4.3% to 5.2% of the hardware's five-crystal shots are layouts the law
+  forbids.
+- [docs/HARDWARE-RESULTS.md](docs/HARDWARE-RESULTS.md) measures that, job by
+  job. It also measures the drift: each device's five-crystal share moved
+  between jobs by 9 to 13 times one job's sampling error.
+
 ![The structure factor of each print's crystal count](docs/prints/structure.png)
 
 **The grain differs where the eye cannot see it.**
