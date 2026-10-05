@@ -32,9 +32,10 @@ THE LIVE PATH reads IBM's key, so before anything it refuses every condition doc
 name): the variables that redirect the key or the tokens, or switch off TLS checks; an ibm-credentials.env in
 the working or home directory; a proxy (urllib.request.getproxies(), the registry's on Windows); a CA bundle;
 a netrc; SSLKEYLOGFILE; the variables the SDK reads for the services this stack configures (GLOBAL_SEARCH_*,
-GLOBAL_CATALOG_*: their URLs and TLS switches); a runtime log file. It also refuses RESOURCE_CONTROLLER_*, read only
-when an instance is named rather than given as a CRN. This list is a copy until the merge, when the lead points
-the live path at P1's refusal module (lead.md, 16:05Z). The key and the instance come from QF_IBM_KEY_FILE and
+GLOBAL_CATALOG_*: their URLs and TLS switches); any *_DISABLE_SSL; a runtime log file. It also refuses
+RESOURCE_CONTROLLER_*, read only when an instance is named rather than given as a CRN. The list and the fallback's
+lock are quantum_film.ibm.keyleak's, the module tools/hw_bundle.py and tools/hw_run.py use (since the lead's merge
+integration, fa4e6fe). The key and the instance come from QF_IBM_KEY_FILE and
 QF_IBM_INSTANCE_FILE, files outside this repository; the service is named explicitly (channel, token, instance);
 IAM's "API Key will be used instead" fallback stops the run at once, before the request that would carry the key
 (`refuse_the_fallback`); nothing is saved, nothing printed, no job submitted.
