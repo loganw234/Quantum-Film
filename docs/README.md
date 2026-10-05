@@ -19,6 +19,7 @@ answer is not in here: it is `make verify-quick`.
 | [ROUND1.md](ROUND1.md) | Round 1's plan: what P0 settled, each parcel's owned and forbidden files, its control, the ledger's path. |
 | [HARDWARE.md](HARDWARE.md) | IBM Quantum as measured before any job ran: the account, where the key can go wrong, compiling, the read-out order, and what the hardware is predicted to do. |
 | [ROUND3.md](ROUND3.md) | Round 3's plan: the frozen bundle, what P0 settled, each parcel's owned and forbidden files, and the order of the hardware runs. |
+| [PREREGISTRATION.md](PREREGISTRATION.md) | What the IBM runs would be measured by, and what was predicted for each device, committed before any law circuit ran. |
 
 ## The record
 
