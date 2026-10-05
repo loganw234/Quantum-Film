@@ -1475,3 +1475,136 @@ Each is closed here:
     16:58Z).
   - A test changes the caller's copies after fixing and finds the record intact. Planted, the aliasing fails it.
   - The fixer and decode stages pass 184 tests.
+
+## 2026-10-05 - round 3's P1 and P2, merged after their verifiers: the frozen bundle and its runner, the comparison and the predictions
+
+docs/ROUND3.md has the plan, and its two parcels are now on main, together with the lead's integration and the gaps
+the verifiers found.
+- **P1 (ab33013): the hardware runner and the bundle.**
+  - quantum_film/ibm/: the ISA check, the bundle and its check, the runner, the anchor, the records audit, the raw
+    reader, the key-leak refusals and the account.
+  - tools/hw_bundle.py and tools/hw_run.py.
+  - Tests: tests/hardware/pure in the quick budget, tests/hardware/qiskit in the full budget, and a fixture bundle
+    frozen on fake_kingston.
+- **P2 (b16c515): the comparison.**
+  - quantum_film/compare.py: the exact law, a perfect sampler's floor, every measure and the print rule.
+  - tools/hw_predict.py: the predictions.
+  - Tests: tests/compare in the quick budget, tests/compare/predict in the full budget.
+- **The lead's integration (fa4e6fe): one key-leak list.**
+  - hw_predict refuses through quantum_film.ibm.keyleak, the module the runner uses.
+  - Both verifiers measured that nothing P2's own list refused was lost:
+    - verifier-P2, over 126 environments;
+    - verifier-P1, over 20,000 random combinations.
+  - The one addition is any `*_DISABLE_SSL`.
+  - Both simulation stages run capped at two threads.
+- **The verifiers ran on Sonnet 5.5, at the owner's word.**
+  - **verifier-P2: READY TO MERGE** on b16c515 and fa4e6fe (round-3 ledger, 09:24Z).
+    - Every item of its 2026-10-03 NOT READY now fails a named test: M1-M3, M11, M21-M24, H5 and the lint hole.
+    - 318 random leaky runs equal an independent spelling of every measure.
+    - The floors are byte-identical in both Pythons.
+  - **verifier-P2: READY TO MERGE again at a0074d9** (10:22Z), after the lead's gates below.
+    - It planted each gate's fault, and each failed.
+    - It held the pre-registration's tables to compare's output, cell by cell.
+    - It re-made all twelve ideal prediction circuits and 7 of the 12 noisy ones bit for bit, the noisy ones from
+      the committed calibration snapshots.
+  - **verifier-P1: READY TO MERGE** at 83933cc (10:10Z). Nothing it tried did any of these:
+    - got the key out;
+    - submitted other than the committed circuits;
+    - submitted a job twice;
+    - read a result before its anchor;
+    - lost raw data;
+    - misstated where a record's data came from.
+
+    More from its pass:
+    - 136 single-line faults: 112 caught by the named tests.
+    - About twenty attacks through the real tools, with fake keys and throwaway repositories.
+    - A rehearsal of the three-device plan in the real layout with fake bundles: nine runs, every anchor commit
+      with its co-author line, and the records audit ([], 9).
+- **Closed after the verifiers, each by a test watched to fail on its fault:**
+  - **A marker before every submission** (verifier-P1).
+    - A submission that raises may have created the job at IBM with no line. `<job>-submitting.json` is now
+      created exclusively before submit(), and once-only refuses the job while it exists.
+    - Two runs started together send one job.
+  - **`--co-author`:** the commits that anchor job lines carry their Co-Authored-By line, as every commit here
+    does.
+  - **K6** (verifier-P2): where the IAM-fallback lock sits. Each recorded request now says whether both locks were
+    armed. Moved after the service's constructor, the lock fails 2 of 2 tests in hw_predict and 3 of 8 in the
+    runner's transport.
+  - **hw_predict's defaults:** its shots, seed, bases and known answer are held to bundle.PLAN. A run given no
+    --shots or --seed states them (e2ed0ca, verifier-P2's D5 and D6).
+  - **The thread caps by value,** in all four places they are written.
+  - **The registry and `--ignore=`:** a deleted predict stage is now named.
+- **Stated, not closed:**
+  - **F-XY** (verifier-P1). bundle.check holds distributions. On this law the XX and YY coherence circuits lay
+    identical Z-basis distributions, so no distribution check tells them apart, or tells a YY circuit that lost
+    its S-dagger gates.
+    - The three live bundles were held by amplitude instead: verifier-P1's independent 80 checks each, fidelity
+      1.000000000000 against their own logical circuits and 0.3906 against the other basis.
+  - **The order of the known answer.** The runner does not itself refuse a law job before its known answer held.
+    The lead's run script does, and the records audit holds it after the fact.
+  - **hw_predict's refusal** comes before the key and the HTTP stack, not before qiskit and qiskit-aer are loaded.
+  - **Five guards with no test and nothing behind them,** the shipped code right in each (verifier-P1's L4):
+    - **U02**, the audit's line-before-raw order: planted by hand in throwaway repositories, it was refused;
+    - **B04, B05**, the run-time re-checks of SWAP-freedom and one chain: hw_bundle makes both at freezing;
+    - **I07**, the ISA tolerance's boundary: 1e-4 passes every test, 1e-2 is caught;
+    - **I24**, isa.esp: recomputed independently by verifier-P1 on the fixture, and by verifier-P2 from the
+      committed calibration snapshots, to the last bit.
+
+    Of its other nineteen uncaught faults, fourteen have a second lock behind them, three are redundant views of
+    the distance-to-exact check, and two are cosmetic.
+  - **Not determined before a live job** (L6, L7): the live payload's layout, whether the server echoes circuit
+    metadata, whether it accepts program `sampler` and runs the circuit unchanged, and whether the SDK's POST retry
+    is idempotent. A failure there leaves the raw bytes on disk for `--refix`.
+  - **The marker is per output directory** (L8). **Nothing on hw_run's command line pins the verified manifest
+    digest** (L9): the lead's run script compares it first. **Moth's anchor is weaker** (L10), as ROUND3.md says.
+  - **Raw payloads are not hash-bound** by any anchor (L11), since the line precedes them. Their integrity is git's,
+    from the commit that adds them.
+- **The front door at 83933cc:** 17 stages passed and 0 failed. atlas skipped by name, because no Atlas key was
+  used. It took 8 min 36 s under the round's thread caps.
+  - After it come a test (e2ed0ca) and the pre-registration's text (a0074d9, 4e07fd0).
+  - At e2ed0ca, lint, docs and predict passed.
+  - At a0074d9, verifier-P2's quick budget was 14 of 14, and predict 34 of 34.
+  - An earlier full run failed pinned, through my spelling of QF_CFT_ROOT as /c/... under MSYS_NO_PATHCONV=1:
+    Python could not open it, while the runner's bash check could. Nothing in the tree changed between the two
+    runs.
+
+## 2026-10-05 - round 3's IBM bundles, their predictions and the pre-registration, committed before any job
+
+- **Three bundles,** one per device the owner's instance reaches, frozen together at 08:34Z, each against its
+  device's live target. The freeze was a read with the owner's key, and no job ran.
+  - ROUND3.md's rule, the best ESP of the law's chain, ranked them: kingston 0.682, marrakesh 0.656, fez 0.631.
+  - The owner then asked for a set on each device, for comparison, so the ESP order is the run order.
+  - Each bundle passes bundle.check. verifier-P1's independent 80 checks pass on each, amplitudes included.
+- **Predictions** (tools/hw_predict.py --live, seed 20261003, no job) for each bundle, with no noise as a control
+  and with the noise model of the device's calibration as read:
+
+  | device | calibration | five-crystal share | forbidden of those | XEB | known answer |
+  |---|---|---|---|---|---|
+  | ibm_kingston | 06:57:43Z | 0.7215 | 0.0224 | +0.9390 | 86.9% |
+  | ibm_marrakesh | 08:32:46Z | 0.6934 | 0.0247 | +0.9210 | 85.5% |
+  | ibm_fez | 08:38:44Z | 0.6770 | 0.0272 | +0.9210 | 84.1% |
+
+  - The three ideal controls lay the law within the perfect sampler's floor.
+  - verifier-P2 recomputed every measure of all six prediction files from their counts. It re-made all twelve
+    ideal circuits bit for bit from the frozen QPY, and 7 of the 12 noisy ones from the committed snapshots: the
+    three known answers, the three XX and kingston's YY. The three laws were not re-made.
+- **The calibrations behind every ESP and noise model** are committed beside the bundles as
+  `properties-<stamp>.json`.
+  - IBM's history returned the snapshot before T when asked for T + 1 s, so it is keyed by storage time.
+  - Asked as of the moment each was first read, every snapshot carries exactly its stamp.
+- **docs/PREREGISTRATION.md** fixes:
+  - the order, and when to stop;
+  - the measures and baselines;
+  - the predictions, and their limits:
+    - the ± is shot noise, not model uncertainty;
+    - verifier-P2 re-made 7 of the 12 noisy circuits bit for bit from the snapshots, but not the three laws;
+    - the devices share their simulator seeds, and the ideal runs correlate across devices only weakly;
+    - each device's freeze and prediction rest on the same error data: marrakesh's and fez's calibration stamps
+      moved between the two, and their values did not;
+  - what will be reported.
+
+  It was committed at 83933cc and corrected twice before it was pushed:
+  - a0074d9, because verifier-P2 had re-made noisy predictions it said no one had;
+  - 4e07fd0, two rewordings verifier-P2 measured.
+
+  It was pushed with this merge, before any job.
