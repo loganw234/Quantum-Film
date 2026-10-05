@@ -1,6 +1,6 @@
 # For Moth: Quantum-Film's circuit, what IBM's hardware did with it, and how to run it
 
-This is for Moth's CTO. It comes from Logan W. and the AI collaborators who built Quantum-Film with him (Claude
+This is for Moth's CTO. It comes from Logan W. and the AI collaborators Logan built Quantum-Film with (Claude
 Opus 5.5 and the agents it directed). Moth offered on 2026-10-03 to run a specific circuit for the project's
 validation. This page is that circuit, with what three IBM machines made of it on 2026-10-05. Running it is
 Moth's choice, and nothing here waits on it.

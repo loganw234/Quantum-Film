@@ -122,8 +122,8 @@ What round 2 left open, each stated where it lives:
 - **The demo, the poster and the paper.** No verifier read them, beyond the
   S(k) captions verifier-P0's D1 reached. tests/docs/test_site.py holds the
   demo's data to the records, and the paper's build holds the numbers it
-  lists (docs/VALIDATION.md, 2026-09-26). Nothing holds the rest of their
-  prose.
+  lists (docs/VALIDATION.md, 2026-09-26 and 2026-10-05). Nothing holds the
+  rest of their prose.
 
 ## After the week
 

@@ -164,8 +164,9 @@ the committed record, and saves every number above in
   the layouts the law forbids tinted (tools/poster.py).
 - **The paper**, *Chance, made permanent*, is
   [docs/chance-made-permanent.pdf](docs/chance-made-permanent.pdf): the law, the
-  circuit on Atlas, the fixer, the prints and what comes next (a whole frame,
-  colour, a quantum hand on the response). It was built with storydocs, which
+  circuit on Atlas and on IBM's processors, the fixer, the prints, the
+  forbidden shots and what comes next (a whole frame, colour, a quantum hand on
+  the response). It was built with storydocs, which
   recomputes every number it states from this repository.
 
 ## What has been measured

@@ -1798,3 +1798,25 @@ so the whole image changes. Instead, each crystal column's forbidden crystals ar
   Graph alt text and the README's description now name the IBM frame. The README's list of what the web demo
   holds gains its two new sections.
 - Not held: the poster's prose. As before, no verifier read it (docs/ROADMAP.md).
+
+## 2026-10-05 - the paper revised for the hardware round
+
+- **The paper**, docs/chance-made-permanent.pdf (19 pages), is StoryDocs' build of its projects/quantum-film at
+  8548802 there, byte for byte. At the owner's word it now describes this repository at f013861:
+  - a new section 10, "On IBM's quantum computers": the design fixed before the first job, the known answers, a
+    table of the pre-registered measures by quantum_film.compare, a sheet from each device, the drift between
+    jobs, and the forbidden shots in colour, marked exploratory;
+  - the opening, the standfirst, the limits, the checks, what comes next and how it was made, revised to include
+    the hardware round. Its history figure is read at f013861.
+- **Its build now recomputes the numbers of 44 of its sentences** from this repository (21 before), re-checks 9
+  conditions its sentences rest on (5 before), and finds 27 cited figures in the documents they are attributed
+  to (20 before).
+  - The hardware's numbers come from the committed IBM runs, through quantum_film.compare's own functions. The
+    forbidden shots' clumping comes from the exact law and docs/prints/forbidden.json.
+  - The check caught two of the revision's own numbers before its build passed. Section 1 still said 14 stages.
+    And a gap typed as 48 seconds, read off docs/HARDWARE-RESULTS.md's times cut to the second, is 47 by the
+    jobs' submission stamps.
+  - Two wrong numbers planted in the new section each failed the build, which named both values; restored, it
+    passes.
+- **docs/MOTH-HANDOFF.md** gave the owner a pronoun that nothing here states; the sentence now uses the name.
+- Not held, as before: the rest of the paper's prose. No verifier read the revision (docs/ROADMAP.md).
