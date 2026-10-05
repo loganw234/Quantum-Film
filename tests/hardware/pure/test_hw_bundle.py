@@ -58,6 +58,19 @@ def test_the_readme_is_the_one_written_from_the_manifest():
     assert (FIXTURE / "bundle" / bundle.README).read_bytes() == bundle.readme(m).encode("ascii")
 
 
+def test_a_qpu_bundles_readme_never_tells_its_runner_to_dry_run_it():
+    """The runner refuses a fake backend for a qpu bundle by kind, so its README sends a rehearsal to a second
+    bundle frozen against a fake backend (round 3: the README frozen into the first live bundles advised a dry run
+    of the bundle itself); an ibm-direct one, in a throwaway clone, since its dry run pushes its line."""
+    m = manifest(FIXTURE / "bundle")
+    assert "add `--dry-run`" in bundle.readme(m)                          # the fixture is kind simulator
+    for route in ("ibm-direct", "moth"):
+        text = bundle.readme(dict(m, kind="qpu", backend="ibm_fez", route=route))
+        assert "add `--dry-run`" not in text and "This bundle is never dry-run" in text
+        assert f"--fake fake_kingston --route {route}" in text
+        assert ("throwaway clone" in text) == (route == "ibm-direct")
+
+
 @pytest.mark.parametrize("name", ["law.qasm", "law.qpy", "law.gates.json", "law.isa.qasm3", "known-answer.qasm",
                                   "coherence-yy.qpy", "README.md"])
 def test_control_4_a_file_whose_hash_differs_from_the_manifest_is_refused(bdir, name):

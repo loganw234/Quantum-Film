@@ -165,6 +165,20 @@ def utc_time(s):
         microsecond=int((fraction + "000000")[:6]), tzinfo=datetime.timezone.utc)
 
 
+def rehearsal(m):
+    """How to rehearse this bundle offline. A qpu bundle cannot be dry-run: the runner refuses a fake backend for
+    it by kind (round 3: the README frozen into the first live bundles said otherwise). A dry run of an ibm-direct
+    bundle anchors its line with git like a live run, pushes included (verifier-P1, round 3)."""
+    if m["kind"] == "simulator":
+        return ("- To rehearse offline first, add `--dry-run`: a local simulator, no account, records of kind "
+                "`simulator`.")
+    where = (", in a throwaway clone: its line is committed and pushed as a live one is." if m["route"] == "ibm-direct"
+             else ".")
+    return ("- This bundle is never dry-run: it binds kind `qpu`, and the runner refuses a fake backend for it. To "
+            "rehearse offline, freeze a second bundle against a fake backend (`python tools/hw_bundle.py --fake "
+            f"fake_kingston --route {m['route']} --out <another directory>`) and dry-run that one" + where)
+
+
 def readme(m):
     """The bundle's README.md, for whoever runs it (Moth's CTO, or the lead): what to install, what to run,
     what to send back. Written from the manifest's fields; its SHA-256 is in the manifest."""
@@ -232,7 +246,7 @@ def readme(m):
         *anchor,
         "- Each job is submitted once. The runner refuses a job that already has a line, and never resubmits. "
         "A job that fails keeps its line and gets a status file; a re-run needs a newly frozen bundle.",
-        "- To rehearse offline first, add `--dry-run`: a local simulator, no account, records of kind `simulator`.",
+        rehearsal(m),
         "",
         "## What to send back",
         "",

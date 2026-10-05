@@ -21,6 +21,7 @@ answer is not in here: it is `make verify-quick`.
 | [ROUND3.md](ROUND3.md) | Round 3's plan: the frozen bundle, what P0 settled, each parcel's owned and forbidden files, and the order of the hardware runs. |
 | [PREREGISTRATION.md](PREREGISTRATION.md) | What the IBM runs would be measured by, and what was predicted for each device, committed before any law circuit ran. |
 | [HARDWARE-RESULTS.md](HARDWARE-RESULTS.md) | What three IBM Heron r2 devices did with the shelf's Pauli law, beside the exact law, the emulator, the classical twin and their own predictions. |
+| [MOTH-HANDOFF.md](MOTH-HANDOFF.md) | For Moth's CTO: the circuit as files, what IBM's hardware did with it, and two ways to run it on Moth's access. |
 
 ## The record
 

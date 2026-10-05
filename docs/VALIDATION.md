@@ -1660,3 +1660,25 @@ docs/HARDWARE-RESULTS.md has every table and the job ids.
     says so.
   - Like every figure here, its pixels illustrate; the claims are the records' digests and the tables in
     docs/HARDWARE-RESULTS.md.
+
+## 2026-10-05 - the frozen bundles' README advised a dry run the runner refuses; the template is corrected for bundles frozen from now on; the Moth handoff
+
+- **The READMEs frozen into the three IBM bundles say:** "To rehearse offline first, add `--dry-run`". For those
+  bundles that is wrong.
+  - Each binds kind `qpu`, and tools/hw_run.py refuses a fake backend for a qpu bundle by kind, before anything is
+    sent or pushed.
+  - The bundles stay as frozen, since their READMEs are in their manifests' hashes.
+  - The template (quantum_film/ibm/bundle.py, `rehearsal`) now tells a qpu bundle's runner to rehearse on a second
+    bundle frozen against a fake backend. For an ibm-direct bundle, that rehearsal belongs in a throwaway clone,
+    since its line is pushed as a live one is (verifier-P1).
+  - A simulator bundle's README is unchanged: the committed fixture's README still equals the template, byte for
+    byte.
+  - test_a_qpu_bundles_readme_never_tells_its_runner_to_dry_run_it holds both routes. tests/hardware/pure passes
+    223.
+- **docs/MOTH-HANDOFF.md** is for Moth's CTO, at the owner's word: the IBM results, the circuit itself, and two
+  ways to run it.
+  - The circuit is the four logical OpenQASM 2 files, the same bytes in all three bundles, with their SHA-256 and
+    what a perfect machine gives.
+  - Either Moth runs them with its own tools and sends back counts with their bit convention, or it uses this
+    runner on a bundle Moth freezes and this project commits and pushes before it runs.
+  - Nothing in this round waits on it.
