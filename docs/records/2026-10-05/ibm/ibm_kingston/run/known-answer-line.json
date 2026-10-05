@@ -1,0 +1,14 @@
+{
+ "backend": "ibm_kingston",
+ "bundle_sha256": "6894a01142e24b2f47c13f19a80ef6c9ed48e26bd94285ba3035cce31881b656",
+ "commitments": [
+  "e0b009ec2a9548e105589b74a545e3e610b1cf5321733a7e2156c7317a4569bd"
+ ],
+ "format": "quantum-film/hardware-job/v1",
+ "job_id": "db1nms2vog1s73fidhc0",
+ "kind": "qpu",
+ "program": "sampler",
+ "route": "ibm-direct",
+ "stock": "pauli-4x4",
+ "submitted_at": "2026-10-05T10:26:56.364971Z"
+}
