@@ -18,6 +18,9 @@ The prints (quantum_film/develop.py says how a sheet is laid):
   pauli              91 layers of 16 x 16 Pauli tiles, 256 x 256 cells, from golden rolls
   poisson            the same geometry and density, N sites uniformly without replacement per tile
   trix               atlas-film's own TRI-X coating at the same pitch (its pinned sheet): the classical film
+  ibm-<device>-pauli-4x4   round 3's hardware prints, one per IBM device (kingston, marrakesh, fez): the device's
+                     qpu law run by compare's print rule (its N-crystal shots in canonical order, shuffled on the
+                     print stream), in the geometry their count allows (compare.print_geometry: 29 layers deep)
 """
 if __name__ not in ("__main__", "__mp_main__"):     # a spawned worker re-imports this file as __mp_main__
     raise ImportError("this script writes files when it runs; run it, never import it (CLAUDE.md)")
@@ -48,7 +51,31 @@ PRINTS = {
     "pauli": {"stock": "pauli", "tiles": (16, 16), "layers": 91, "rolls": "golden"},
     "poisson": {"stock": "poisson", "tiles": (16, 16), "layers": 91, "rolls": "golden"},
     "trix": {"stock": "pauli", "tiles": (16, 16), "layers": 91, "rolls": "atlas-film"},
+    # Round 3's hardware prints: each device's qpu law run by compare's print rule (docs/PREREGISTRATION.md); the
+    # tiles and layers follow from the count of its N-crystal shots (compare.print_geometry), so they are filled in
+    # from the records when the print is made (spec_of).
+    "ibm-kingston-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_kingston"},
+    "ibm-marrakesh-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_marrakesh"},
+    "ibm-fez-pauli-4x4": {"stock": "pauli-4x4", "rolls": "qpu", "device": "ibm_fez"},
 }
+QPU_RUNS = RECORDS / "2026-10-05" / "ibm"
+
+
+def qpu_layouts(device):
+    """compare's print rule over one device's committed qpu law runs: every shot with exactly N crystals, in canonical
+    order (job, then layout, each layout its shots), and the geometry their count allows."""
+    from quantum_film import compare
+    recs = [r for r in compare.device_runs([QPU_RUNS / device / "run"]) if r["role"] == "law"]
+    layouts = compare.print_layouts(recs)
+    return recs, layouts, compare.print_geometry(len(layouts))
+
+
+def spec_of(name):
+    spec = PRINTS[name]
+    if spec["rolls"] != "qpu":
+        return spec
+    _recs, _layouts, geo = qpu_layouts(spec["device"])
+    return dict(spec, tiles=tuple(geo["tiles"]), layers=geo["layers"])
 
 
 def roll(job):
@@ -106,6 +133,17 @@ def lay(name, spec, pool):
         source.update(stock=stock, jobs=jobs, shots=len(shots), used=n, unused=len(shots) - n,
                       order="canonical (job, layout), each layout its occurrences, then shuffled on the print "
                             "stream; the first `used` are laid")
+    elif spec["rolls"] == "qpu":
+        recs, qlayouts, geo = qpu_layouts(spec["device"])
+        if (list(spec["tiles"]), spec["layers"]) != (geo["tiles"], geo["layers"]):
+            raise SystemExit(f"{name}: the spec's geometry is not compare.print_geometry's")
+        layouts = develop.shuffled(qlayouts, parts)[:n]
+        source.update(stock=stock, device=spec["device"], jobs=sorted({r["source"]["job_id"] for r in recs}),
+                      shots=sum(sum(c for _y, c in r["counts"]) for r in recs), n_crystal_shots=len(qlayouts),
+                      used=n, unused=len(qlayouts) - n,
+                      order="compare.print_layouts: the N-crystal shots of the qpu law run in canonical order (job, "
+                            "layout), each layout its shots; then shuffled on the print stream; the first `used` "
+                            "are laid (compare.print_geometry)")
     else:
         return None, source
     return layouts, source
@@ -177,7 +215,7 @@ def main():
     with Pool(args.workers) as pool:
         for name in names:
             old = json.loads((OUT / f"{name}.json").read_text(encoding="ascii")) if args.check else None
-            rec, D, P, secs = make(name, PRINTS[name], pool, float.fromhex(old["E"]) if old else None)
+            rec, D, P, secs = make(name, spec_of(name), pool, float.fromhex(old["E"]) if old else None)
             if args.check:
                 same = old["digests"] == rec["digests"] and old["scene"] == rec["scene"]
                 bad += not same

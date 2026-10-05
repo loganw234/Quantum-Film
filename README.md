@@ -46,6 +46,24 @@ columns each:
 Each pixel is one column of crystals through the emulsion, 1.24-1.25 um across,
 so each print is a fraction of a millimetre of film seen crystal by crystal.
 
+![Prints laid by three IBM quantum computers, under the exact law's print and Atlas's](docs/prints/hardware.png)
+
+**The bottom row was laid by three IBM quantum computers** (2026-10-05):
+ibm_kingston, ibm_marrakesh and ibm_fez, running the same circuit as Atlas.
+- Each print takes only its device's shots that kept exactly five crystals:
+  14,979, 12,743 and 13,051 of 24,576. Of those, as many as fill whole
+  tiles are laid (14,036, 11,600 and 12,789), and the rest are counted as
+  left over in the print's record.
+- The pre-registration fixed the print rule before any job ran: canonical
+  order, shuffled on the print's own stream, 29 layers deep.
+- Fewer shots make smaller pieces of film, 22, 20 and 21 tiles across against
+  Atlas's 29.
+- **The figure scales every panel to one width, so the IBM prints' grain
+  looks coarser here than it is.** Each panel's label gives its true size.
+- What the grain cannot show, the tables in
+  [docs/HARDWARE-RESULTS.md](docs/HARDWARE-RESULTS.md) measure: 4.3% to 5.4%
+  of those shots sit on layouts the law forbids.
+
 ![The structure factor of each print's crystal count](docs/prints/structure.png)
 
 **The grain differs where the eye cannot see it.**

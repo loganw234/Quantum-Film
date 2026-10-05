@@ -1639,3 +1639,24 @@ docs/HARDWARE-RESULTS.md has every table and the job ids.
   - The XEB was 4 to 7 combined standard errors below the predicted.
 - **The records audit holds all nine runs** with git's order: audit ([], 9). tests/hardware/pure's test that said no
   job line existed yet is replaced by one naming the nine lines and holding the audit to ([], 9).
+
+## 2026-10-05 - round 3's hardware prints: each IBM device's law run laid as film, by the pre-registered rule
+
+- **tools/first_prints.py makes three more prints,** ibm-kingston-, ibm-marrakesh- and ibm-fez-pauli-4x4.
+  - Each takes its device's qpu law run by compare's print rule: the shots with exactly five crystals, in
+    canonical order, shuffled on the print's own stream.
+  - The geometry is compare.print_geometry's: 29 layers deep, the tiles as many as the count fills.
+
+  | device | five-crystal shots | laid | tiles | cells | film |
+  |---|---|---|---|---|---|
+  | ibm_kingston | 14,979 | 14,036 | 22 x 22 | 88 x 88 | 110 um |
+  | ibm_marrakesh | 12,743 | 11,600 | 20 x 20 | 80 x 80 | 100 um |
+  | ibm_fez | 13,051 | 12,789 | 21 x 21 | 84 x 84 | 105 um |
+
+- **Each print's record names its job, its counts, its geometry and its digests.**
+  `python tools/first_prints.py --check` re-develops each of them, and the Atlas print, to the same bits.
+- **docs/prints/hardware.png** shows them under the exact law's print and Atlas's.
+  - It scales every panel to one width, so the IBM prints' grain looks coarser than it is. The README's caption
+    says so.
+  - Like every figure here, its pixels illustrate; the claims are the records' digests and the tables in
+    docs/HARDWARE-RESULTS.md.

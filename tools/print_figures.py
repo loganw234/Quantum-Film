@@ -3,7 +3,8 @@
 
     python tools/print_figures.py
 
-Writes docs/prints/gallery.png (the prints side by side, labelled) and docs/prints/structure.png (each sheet's
+Writes docs/prints/gallery.png (the prints side by side, labelled), docs/prints/hardware.png (round 3's three IBM
+prints under the exact law's and Atlas's) and docs/prints/structure.png (each sheet's
 structure factor, from its record). They illustrate; the claims are the records' digests and
 docs/VALIDATION.md's figures, not these pixels, which move with the plotting library.
 """
@@ -23,6 +24,9 @@ LABELS = {
     "pauli": "Pauli 16x16: crystals repel",
     "poisson": "Poisson twin: placed at random",
     "trix": "TRI-X as atlas-film coats it",
+    "ibm-kingston-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_kingston",
+    "ibm-marrakesh-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_marrakesh",
+    "ibm-fez-pauli-4x4": "Pauli 4x4, laid by IBM's ibm_fez",
 }
 
 
@@ -50,9 +54,8 @@ def panel(name, side):
     return out
 
 
-def gallery():
+def gallery(rows=(("atlas-pauli-4x4", "golden-pauli-4x4"), ("pauli", "poisson", "trix")), name="gallery.png"):
     from PIL import Image
-    rows = [["atlas-pauli-4x4", "golden-pauli-4x4"], ["pauli", "poisson", "trix"]]
     side, gap = 360, 16
     panels = [[panel(n, side) for n in row] for row in rows]
     W = max(len(r) for r in panels) * (side + gap) + gap
@@ -65,7 +68,7 @@ def gallery():
             out.paste(p, (x, y))
             x += side + gap
         y += row[0].height + gap
-    out.save(PRINTS / "gallery.png", optimize=True)
+    out.save(PRINTS / name, optimize=True)
 
 
 def structure():
@@ -96,8 +99,11 @@ def structure():
 
 def main():
     gallery()
+    # round 3: the three IBM devices' prints under the exact law's and Atlas's, each at its own size in film
+    gallery((("golden-pauli-4x4", "atlas-pauli-4x4"),
+             ("ibm-kingston-pauli-4x4", "ibm-marrakesh-pauli-4x4", "ibm-fez-pauli-4x4")), "hardware.png")
     structure()
-    for f in ("gallery.png", "structure.png"):
+    for f in ("gallery.png", "hardware.png", "structure.png"):
         print(f"wrote docs/prints/{f} ({(PRINTS / f).stat().st_size} bytes)")
 
 

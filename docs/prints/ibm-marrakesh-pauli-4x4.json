@@ -1,0 +1,94 @@
+{
+ "format": "quantum-film/print/v1",
+ "name": "ibm-marrakesh-pauli-4x4",
+ "stock": "pauli-4x4",
+ "borrows": "trix",
+ "rolls": {
+  "kind": "qpu",
+  "stock": "pauli-4x4",
+  "device": "ibm_marrakesh",
+  "jobs": [
+   "db1npojid5ic73erdnfg"
+  ],
+  "shots": 24576,
+  "n_crystal_shots": 12743,
+  "used": 11600,
+  "unused": 1143,
+  "order": "compare.print_layouts: the N-crystal shots of the qpu law run in canonical order (job, layout), each layout its shots; then shuffled on the print stream; the first `used` are laid (compare.print_geometry)"
+ },
+ "tiles": [
+  20,
+  20
+ ],
+ "layers": 29,
+ "print_stream": [
+  "print",
+  "ibm-marrakesh-pauli-4x4"
+ ],
+ "cells": [
+  80,
+  80
+ ],
+ "pitch_um": "0x1.40acf37ad0a1fp+0",
+ "pitch_um_decimal": 1.252639,
+ "mean_K": 9.0625,
+ "scene": {
+  "name": "log ramp with a bright disc (tools/first_prints.py: scene)",
+  "sha256": "bb2ba8fe7bf7d45a44a03c108f54bd76f284c5de94a328e01a1e5268d54ae4c0"
+ },
+ "E": "0x1.3a7550d6f4737p-3",
+ "E_print": "0x1.0000000000000p+0",
+ "paper": "silver, ungrained",
+ "atlas_film": "d4007b27b63cbe407ccb8e308f1c593e3e7df989",
+ "digests": {
+  "K": "d7a4ce1af41cf94f29a0ae320445db958d5a56918437ac9c1fd1406b17294dff",
+  "thresholds": "f960ee5475ceea65979a3935a09dd3ef2e2ece14bbf0107a911a87ad6ca56a84",
+  "negative": "5c43349ad135d0d7770783dba8d3f77c8128ac4dc7b5f019d78648e030145bda",
+  "print": "7549a411bcb50e28cd17c114836c10b52ddc8538d7660672ee73bebc42a66d4d"
+ },
+ "structure_factor": {
+  "of": "the sheet's count field K, per crystal, radially averaged",
+  "k_units": "2 pi / side",
+  "S": [
+   0.0031,
+   0.0419,
+   0.0254,
+   0.0722,
+   0.1383,
+   0.1269,
+   0.2126,
+   0.2492,
+   0.2266,
+   0.3306,
+   0.4163,
+   0.5183,
+   0.4733,
+   0.4729,
+   0.612,
+   0.5527,
+   0.6118,
+   0.7772,
+   0.4988,
+   0.5856,
+   0.5792,
+   0.5944,
+   0.4867,
+   0.5843,
+   0.6987,
+   0.6342,
+   0.5126,
+   0.6145,
+   0.6203,
+   0.5408,
+   0.6883,
+   0.6376,
+   0.7574,
+   0.7573,
+   0.5976,
+   0.7288,
+   0.7692,
+   0.7733,
+   0.8272
+  ]
+ }
+}
