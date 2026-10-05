@@ -1,0 +1,242 @@
+{
+ "basis": "ZZZZZZZZZZZZZZZZ",
+ "code": {
+  "quantum_film": "0.1.0"
+ },
+ "counts": [
+  [
+   [
+    0,
+    1,
+    2,
+    3,
+    7,
+    12
+   ],
+   2
+  ],
+  [
+   [
+    0,
+    1,
+    2,
+    3,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    4,
+    7,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    5,
+    7,
+    8,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    5,
+    7,
+    12
+   ],
+   10
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    6,
+    7,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7
+   ],
+   9
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7,
+    8,
+    12
+   ],
+   9
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7,
+    10,
+    12
+   ],
+   3
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7,
+    11,
+    12
+   ],
+   3
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7,
+    12
+   ],
+   940
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    7,
+    12,
+    14
+   ],
+   9
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    10,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    12
+   ],
+   5
+  ],
+  [
+   [
+    0,
+    1,
+    3,
+    12,
+    14
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    1,
+    7,
+    12
+   ],
+   6
+  ],
+  [
+   [
+    0,
+    3,
+    7,
+    9,
+    12
+   ],
+   1
+  ],
+  [
+   [
+    0,
+    3,
+    7,
+    12
+   ],
+   5
+  ],
+  [
+   [
+    1,
+    3,
+    7,
+    12
+   ],
+   16
+  ]
+ ],
+ "digest": "592b58a01bd8a4f1675f853163c9eb77389a13a65b2192cfd53701910c28451f",
+ "format": "quantum-film/device-run/v1",
+ "law": {
+  "L": 4,
+  "M": 16,
+  "N": 5,
+  "borrows": "trix",
+  "family": "determinantal",
+  "fermi_r2": 1,
+  "id": "pauli-4x4"
+ },
+ "role": "known-answer",
+ "source": {
+  "backend": "ibm_marrakesh",
+  "circuit_sha256": "60c78957bf47b2b2bb8053b2e2103fa2bf1373752b85acfdc4bd37037f22ff49",
+  "commitment": "0ecc92352f200b2f9daa241b7a1d47eacac5bf1ed304b102f281483b86ccd8f0",
+  "decode": "quantum_film.ibm.decode/v1",
+  "fixed_at": "2026-10-05T12:45:33.449718Z",
+  "isa_sha256": "4fe0c49480a84b7f935a276c72090f1f87ff4d4ddf972e0d29cf0c1b765c91b1",
+  "job_id": "db1pnq1b694s73dsl4h0",
+  "kind": "qpu",
+  "options": {
+   "dynamical_decoupling": {
+    "enable": false
+   },
+   "twirling": {
+    "enable_gates": false,
+    "enable_measure": false
+   }
+  },
+  "options_sha256": "35fb34a85694fd897d4fb87a74acda7479b2145b2c15915fa8273d4c2ccbd6ad",
+  "program": "sampler",
+  "pub": 0,
+  "route": "ibm-direct",
+  "salt": "9d596f5b3ae4bba586299b91ad7c8bbd8efb4050bb71c9e08809f064c66a39f9",
+  "shots": 1024,
+  "submitted_at": "2026-10-05T12:45:28.639092Z"
+ },
+ "stock": "pauli-4x4"
+}
