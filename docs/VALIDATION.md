@@ -1719,3 +1719,36 @@ note of that day fixed it before any of its jobs. Bundles and note were committe
     ranges over 9, 13 and 9 times one run's own standard error. marrakesh's largest step, +0.031, falls between
     its jobs created at 12:45:00Z and 12:45:48Z. The tables are in docs/HARDWARE-RESULTS.md, regenerated from the
     records.
+
+## 2026-10-05 - the forbidden layouts in colour: exploratory, at the owner's suggestion
+
+The owner asked for an image that shows the shots the law forbids, by shifting their pixels' colour. Diffing two
+renders (with and without them) would not do: removing them shifts every later shot in the print's shuffled order,
+so the whole image changes. Instead, each crystal column's forbidden crystals are counted exactly.
+- **tools/first_prints.py --forbidden.** For a committed print, it:
+  - re-lays the print's own layouts by the same code path;
+  - counts, for every crystal column, how many of its crystals came from a layout the exact law forbids (weight
+    0), mapped as develop.sheet maps them;
+  - holds those crystal counts to develop.sheet's own, and the re-developed print to the committed print's digest,
+    before anything is drawn;
+  - tints each column by twice the share of its crystals that are forbidden;
+  - draws one layer of the sheet shot by shot, the forbidden shots in the same colour.
+
+  Every number is in docs/prints/forbidden.json.
+- **twin-pauli-4x4-sheet** is new: the classical twin at 64 x 64 tiles, 29 layers deep, five distinct sites of
+  sixteen by golden.binomial on the stream ("twin", "pauli-4x4", i).
+
+| sheet | forbidden layouts laid | share | crystal columns tinted | their mean neighbour pairs | the allowed ones' |
+|---|---|---|---|---|---|
+| the exact law's own rolls | 0 of 118,784 | 0.00% | 0.0% | - | 1.9967 |
+| the classical twin | 37,345 of 118,784 | 31.44% | 95.1% | 3.1063 | 2.4749 |
+| ibm_kingston | 5,566 of 130,181 | 4.28% | 32.2% | 3.0063 | 2.0476 |
+| ibm_marrakesh | 7,331 of 142,100 | 5.16% | 37.7% | 2.9053 | 2.0320 |
+| ibm_fez | 7,508 of 146,189 | 5.14% | 37.6% | 2.9658 | 2.0366 |
+
+- **The law's own clumping, exactly** (compare.exact_law): a mean of 2 nearest-neighbour pairs per layout. The
+  forbidden layouts average 264/85 (3.106), and no layout the law allows has more than 4. The hardware's forbidden
+  shots are the clumps the law excludes.
+- **docs/prints/forbidden.png** shows the five tinted prints at one pixel per column, and one layer of three of
+  them at four pixels per cell. It is an illustration: the measures are docs/HARDWARE-RESULTS.md's. As the
+  pre-registration requires of anything later, it is labelled exploratory, beside the pre-registered tables.

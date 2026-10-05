@@ -85,6 +85,36 @@ of that device's day.
   job. It also measures the drift: each device's five-crystal share moved
   between jobs by 9 to 13 times one job's sampling error.
 
+![The layouts the law forbids, in colour: the exact law, the classical twin and the three IBM sheets](docs/prints/forbidden.png)
+
+**What the quantum hardware got right, in colour.** This is exploratory: it was
+added after the pre-registration, at the owner's suggestion.
+- **The law forbids clumps.** Of the 4,368 ways to place five crystals on a
+  tile, the exact law forbids 1,360.
+  - Every layout with five neighbouring pairs is among them; the most the law
+    allows is four.
+  - Its layouts average exactly 2 neighbouring pairs, and the forbidden ones
+    3.11.
+- **Top: each print with its forbidden crystals in colour.** Each crystal
+  column is tinted by twice the share of its crystals that came from a
+  forbidden layout.
+  - The exact law's own rolls never land on one: 0 of 118,784.
+  - The classical twin, five sites at random, lands on one 31.4% of the time,
+    and its print turns red.
+  - The IBM devices landed on one 4.3% to 5.2% of the time. Those shots are the
+    devices' errors; the scarcity of colour is the quantum effect.
+- **Bottom: one layer of three of the sheets, shot by shot.** Each 4 x 4 tile is
+  one shot, and the forbidden ones are in colour.
+  - kingston's forbidden shots average 3.01 neighbouring pairs, against 2.05 for
+    its allowed ones: its errors bring back some of the clumps the law forbids.
+  - In the summed print they are close to invisible, which is why the top row
+    tints them.
+
+`python tools/first_prints.py --forbidden` makes each overlay. It re-lays the
+committed print's own layouts, holds its crystal counts and its print digest to
+the committed record, and saves every number above in
+[docs/prints/forbidden.json](docs/prints/forbidden.json).
+
 ![The structure factor of each print's crystal count](docs/prints/structure.png)
 
 **The grain differs where the eye cannot see it.**

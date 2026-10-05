@@ -1,0 +1,122 @@
+{
+ "golden-pauli-4x4-sheet": {
+  "cells": 65536,
+  "cells_by_forbidden_crystals_0_1_2_3plus": [
+   65536,
+   0,
+   0,
+   0
+  ],
+  "cells_with_a_forbidden_crystal": 0,
+  "forbidden_layouts": 0,
+  "forbidden_layouts_mean_nn_pairs": "264/85",
+  "forbidden_share": 0.0,
+  "law_mean_nn_pairs": "2",
+  "layouts": 118784,
+  "mean_forbidden_crystals_per_cell": 0.0,
+  "mean_nn_pairs_allowed_laid": 1.9967,
+  "mean_nn_pairs_forbidden_laid": null,
+  "most_nn_pairs_the_law_allows": 4,
+  "name": "golden-pauli-4x4-sheet",
+  "print_digest": "25da630178a567e9787f00298ba0d9455d22116025951b1424159f0ecbeae93f",
+  "share_of_cells": 0.0,
+  "share_of_crystals_forbidden": 0.0,
+  "tint": "rgb(230, 69, 31), alpha min(1, 2.0 x F / K) per column"
+ },
+ "ibm-fez-sheet": {
+  "cells": 80656,
+  "cells_by_forbidden_crystals_0_1_2_3plus": [
+   50332,
+   24102,
+   5333,
+   889
+  ],
+  "cells_with_a_forbidden_crystal": 30324,
+  "forbidden_layouts": 7508,
+  "forbidden_layouts_mean_nn_pairs": "264/85",
+  "forbidden_share": 0.051358,
+  "law_mean_nn_pairs": "2",
+  "layouts": 146189,
+  "mean_forbidden_crystals_per_cell": 0.465433,
+  "mean_nn_pairs_allowed_laid": 2.0366,
+  "mean_nn_pairs_forbidden_laid": 2.9658,
+  "most_nn_pairs_the_law_allows": 4,
+  "name": "ibm-fez-sheet",
+  "print_digest": "58f9694d96f1e88d82eaeeca195a232701068c1f61648e26ef5abfd4b596ffd2",
+  "share_of_cells": 0.375967,
+  "share_of_crystals_forbidden": 0.051358,
+  "tint": "rgb(230, 69, 31), alpha min(1, 2.0 x F / K) per column"
+ },
+ "ibm-kingston-sheet": {
+  "cells": 71824,
+  "cells_by_forbidden_crystals_0_1_2_3plus": [
+   48682,
+   18984,
+   3680,
+   478
+  ],
+  "cells_with_a_forbidden_crystal": 23142,
+  "forbidden_layouts": 5566,
+  "forbidden_layouts_mean_nn_pairs": "264/85",
+  "forbidden_share": 0.042756,
+  "law_mean_nn_pairs": "2",
+  "layouts": 130181,
+  "mean_forbidden_crystals_per_cell": 0.387475,
+  "mean_nn_pairs_allowed_laid": 2.0476,
+  "mean_nn_pairs_forbidden_laid": 3.0063,
+  "most_nn_pairs_the_law_allows": 4,
+  "name": "ibm-kingston-sheet",
+  "print_digest": "6fed0219384fb13c77bd7a1ebd214461c130f142bed9d77bfde49ab80a144a9b",
+  "share_of_cells": 0.322204,
+  "share_of_crystals_forbidden": 0.042756,
+  "tint": "rgb(230, 69, 31), alpha min(1, 2.0 x F / K) per column"
+ },
+ "ibm-marrakesh-sheet": {
+  "cells": 78400,
+  "cells_by_forbidden_crystals_0_1_2_3plus": [
+   48828,
+   23454,
+   5244,
+   874
+  ],
+  "cells_with_a_forbidden_crystal": 29572,
+  "forbidden_layouts": 7331,
+  "forbidden_layouts_mean_nn_pairs": "264/85",
+  "forbidden_share": 0.05159,
+  "law_mean_nn_pairs": "2",
+  "layouts": 142100,
+  "mean_forbidden_crystals_per_cell": 0.467538,
+  "mean_nn_pairs_allowed_laid": 2.032,
+  "mean_nn_pairs_forbidden_laid": 2.9053,
+  "most_nn_pairs_the_law_allows": 4,
+  "name": "ibm-marrakesh-sheet",
+  "print_digest": "b3249985e1c6fc0e2dc716bc94f81427484fd228c7eab6f8c223f4e1e0c17e8e",
+  "share_of_cells": 0.377194,
+  "share_of_crystals_forbidden": 0.05159,
+  "tint": "rgb(230, 69, 31), alpha min(1, 2.0 x F / K) per column"
+ },
+ "twin-pauli-4x4-sheet": {
+  "cells": 65536,
+  "cells_by_forbidden_crystals_0_1_2_3plus": [
+   3205,
+   10369,
+   15780,
+   36182
+  ],
+  "cells_with_a_forbidden_crystal": 62331,
+  "forbidden_layouts": 37345,
+  "forbidden_layouts_mean_nn_pairs": "264/85",
+  "forbidden_share": 0.314394,
+  "law_mean_nn_pairs": "2",
+  "layouts": 118784,
+  "mean_forbidden_crystals_per_cell": 2.849197,
+  "mean_nn_pairs_allowed_laid": 2.4749,
+  "mean_nn_pairs_forbidden_laid": 3.1063,
+  "most_nn_pairs_the_law_allows": 4,
+  "name": "twin-pauli-4x4-sheet",
+  "print_digest": "54bed060685af2bc85b536e2159543def74d67191c68e122261d794d9e9984af",
+  "share_of_cells": 0.951096,
+  "share_of_crystals_forbidden": 0.314394,
+  "tint": "rgb(230, 69, 31), alpha min(1, 2.0 x F / K) per column"
+ }
+}
