@@ -1,0 +1,14 @@
+{
+ "backend": "ibm_marrakesh",
+ "bundle_sha256": "754ed68829e30ff8c83c6841f648879cfbe0a2bca430bd662fccadccd7c63a48",
+ "commitments": [
+  "02bb798c869bf57438a9e75845f634ba303cff89a78c1e58f3990a36f45b5d5f"
+ ],
+ "format": "quantum-film/hardware-job/v1",
+ "job_id": "db1pobbid5ic73ergdt0",
+ "kind": "qpu",
+ "program": "sampler",
+ "route": "ibm-direct",
+ "stock": "pauli-4x4",
+ "submitted_at": "2026-10-05T12:46:37.571009Z"
+}
