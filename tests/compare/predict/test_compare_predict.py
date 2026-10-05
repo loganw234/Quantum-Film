@@ -160,7 +160,7 @@ def test_what_it_cannot_honestly_run_is_refused_by_name(kingston, tmp, args, why
     ("QISKIT_IBM_RUNTIME_LOG_FILE", "log.txt")])
 def test_each_key_leak_variable_is_refused_by_name(tmp, name, value):
     p = run([PREDICT, "--check-environment"], tmp, **{name: value})
-    assert p.returncode == 1 and f"REFUSED: the variable {name} is set" in p.stdout, p.stdout + p.stderr
+    assert p.returncode == 1 and f"REFUSED: {name} is set" in p.stdout, p.stdout + p.stderr
 
 
 def test_a_proxy_is_refused(tmp):
@@ -200,7 +200,7 @@ def test_the_live_path_needs_its_files_and_refuses_a_key_inside_the_tree(kingsto
     assert p.returncode == 2 and "inside this repository" in p.stderr
     p = run([PREDICT, "--live", "--backend", "ibm_fez", "--known-answer", kingston / "known-answer.qpy"], tmp,
             IAM_URL="https://iam.example.invalid", **key_files(tmp))
-    assert p.returncode == 2 and "the variable IAM_URL is set" in p.stderr
+    assert p.returncode == 2 and "IAM_URL is set" in p.stderr
 
 
 @pytest.fixture(scope="module")

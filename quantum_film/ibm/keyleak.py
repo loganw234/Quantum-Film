@@ -83,7 +83,7 @@ def refusals(environ, cwd, home, proxies):
     for upper in sorted(names):
         if upper.startswith(SERVICE_PREFIXES):
             out.append(f"{names[upper]} is set: ibm_cloud_sdk_core reads it as the settings of a service this stack "
-                       "configures (its URL, its TLS check, its credentials)")
+                       "configures (its URL and its TLS check)")
         elif upper.endswith("_DISABLE_SSL"):
             out.append(f"{names[upper]} is set: a <SERVICE>_DISABLE_SSL switches a TLS check off")
     for where, d in (("working", cwd), ("home", home)):

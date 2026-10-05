@@ -6,7 +6,7 @@ README says what this project is; this file says what will bite you.
 ## Start here: one command answers "does it still hold?"
 
 ```
-make verify-quick          # ~65 s: lint, docs, vectors, golden, circuits, decode, client, fixer, pinned, develop, the control and its twin
+make verify-quick          # ~2 min: lint, docs, vectors, golden, circuits, decode, client, fixer, hardware, pinned, develop, compare, the control and its twin
 make verify                # adds cft and the live Atlas smoke; any stage that cannot run skips BY NAME
 bash verify/run.sh --list  # every stage, with * on what a budget selects
 ```

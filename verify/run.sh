@@ -313,7 +313,7 @@ stage compare "the comparison: the exact law held to the authority, a perfect sa
 
 need_env QF_IBM_PYTHON "no qiskit virtualenv configured (QF_IBM_PYTHON names its python)"
 stage predict "hw_predict.py in the qiskit virtualenv: fake backends' noise, ideal runs lay the law, the live path's refusals, the key only to IAM" -- \
-  bash verify/pytest-stage.sh tests/compare/predict
+  env OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 QISKIT_IN_PARALLEL=FALSE bash verify/pytest-stage.sh tests/compare/predict
 
 # §3: the control and its twin. The twin runs the fixer's own command line,
 # the one a user runs, on the generated records, and must pass: a command line

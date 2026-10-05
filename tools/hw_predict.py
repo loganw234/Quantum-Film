@@ -50,7 +50,6 @@ import pathlib  # noqa: E402
 import platform  # noqa: E402
 import sys  # noqa: E402
 import urllib.request  # noqa: E402
-import warnings  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -61,14 +60,13 @@ SHOTS = {"law": 24576, "xx": 4096, "yy": 4096, "known-answer": 1024}          # 
 EXPECTED = (0, 1, 3, 7, 12)                                                    # the known-answer circuit's X gates
 FAKES = {"fake_kingston": "FakeKingston", "fake_fez": "FakeFez", "fake_marrakesh": "FakeMarrakesh"}
 SEED = 20261003
-# docs/HARDWARE.md's refusals, by name. The prefixes: ibm_cloud_sdk_core's configure_service(name) reads every
-# variable starting with the service's upper-cased name and takes its URL and its TLS switch from them
-# (base_service.py:160-193); qiskit-ibm-runtime configures global_search and global_catalog, and resource_controller
-# when an instance is given by name rather than as a CRN (accounts/account.py:353-360, accounts/utils.py:72-76).
-REFUSED_VARIABLES = ("IAM_URL", "IBM_CREDENTIALS_FILE", "VCAP_SERVICES", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
-                     "SSL_CERT_FILE", "SSL_CERT_DIR", "NETRC", "SSLKEYLOGFILE", "QISKIT_IBM_RUNTIME_LOG_FILE")
-REFUSED_PREFIXES = ("GLOBAL_SEARCH", "GLOBAL_CATALOG", "RESOURCE_CONTROLLER")
-IAM_FALLBACK = "Unable to retrieve IBM Cloud access token"
+from quantum_film.ibm import keyleak  # noqa: E402  (pure: the one list of docs/HARDWARE.md's refusals)
+
+# The live path's refusals are quantum_film.ibm.keyleak's, the same the runner uses: one list, so the two tools
+# cannot drift apart (they had, by one condition, before the merge). IAM_FALLBACK and FallbackRefused are its.
+IAM_FALLBACK = keyleak.FALLBACK
+FallbackRefused = keyleak.FallbackRefused
+refuse_the_fallback = keyleak.refuse_the_fallback
 
 
 class Refused(SystemExit):
@@ -77,42 +75,10 @@ class Refused(SystemExit):
         self.why = why
 
 
-class FallbackRefused(BaseException):
-    """IAM could not issue a token, and qiskit-ibm-runtime would now send the raw key with only a warning. A
-    BaseException, so the runtime's own `except Exception` handlers cannot absorb it: they absorbed an ordinary
-    exception, retried the token for two minutes and reported "No backend matches the criteria" (measured on the
-    recorded transport, tests/compare/predict/recorded_live.py)."""
-
-
-def refuse_the_fallback():
-    """Two locks on IAM's apikey fallback (qiskit_ibm_runtime/api/auth.py, CloudAuth.get_headers), each raised before
-    the request that would carry the key is prepared: warnings.warn itself raises FallbackRefused on that message,
-    and the message is an error by filter, should anything reach the warning another way."""
-    warnings.filterwarnings("error", message=IAM_FALLBACK, category=UserWarning)
-    original = warnings.warn
-
-    def warn(message, category=None, stacklevel=1, source=None, **kwargs):
-        if str(message).startswith(IAM_FALLBACK):
-            raise FallbackRefused(IAM_FALLBACK)
-        return original(message, category, stacklevel + 1, source, **kwargs)
-
-    warnings.warn = warn
-
-
 def refusals(environ=None, cwd=None, home=None):
-    """Every key-leak condition present, by name; [] when none is."""
-    environ = os.environ if environ is None else environ
-    cwd = pathlib.Path(os.getcwd() if cwd is None else cwd)
-    home = pathlib.Path(os.path.expanduser("~") if home is None else home)
-    out = [f"the variable {name} is set" for name in sorted(environ)
-           if name.upper() in REFUSED_VARIABLES or name.upper().startswith(REFUSED_PREFIXES)]
-    out += [f"a credentials file is present: {where}/ibm-credentials.env" for where, d in (("the working directory",
-            cwd), ("the home directory", home)) if (d / "ibm-credentials.env").exists()]
-    out += [f"a netrc file is present in the home directory: {n}" for n in (".netrc", "_netrc") if (home / n).exists()]
-    proxies = urllib.request.getproxies()
-    if proxies:
-        out.append(f"a proxy is configured (urllib.request.getproxies() names {sorted(proxies)})")
-    return out
+    """Every key-leak condition present, by name; [] when none is (keyleak.refusals, on this process)."""
+    return keyleak.refusals(os.environ if environ is None else environ, os.getcwd() if cwd is None else cwd,
+                            os.path.expanduser("~") if home is None else home, urllib.request.getproxies())
 
 
 def inside_repository(path):
