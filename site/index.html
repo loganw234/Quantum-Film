@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quantum Film</title>
-<meta name="description" content="Film grain laid by a quantum computer on Moth's Atlas, developed through a film model on pinned arithmetic, and fixed bit for bit.">
+<meta name="description" content="Film grain laid by quantum circuits, on Moth's Atlas emulator and on three IBM quantum computers, developed through a film model on pinned arithmetic, and fixed bit for bit.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://loganw234.github.io/Quantum-Film/">
 <meta property="og:title" content="Quantum Film">
-<meta property="og:description" content="Film grain laid by a quantum computer on Moth's Atlas, developed through a film model on pinned arithmetic, and fixed bit for bit.">
+<meta property="og:description" content="Film grain laid by quantum circuits, on Moth's Atlas emulator and on three IBM quantum computers, developed through a film model on pinned arithmetic, and fixed bit for bit.">
 <meta property="og:image" content="https://loganw234.github.io/Quantum-Film/img/poster.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="2400">
@@ -28,10 +28,11 @@
 <header class="top">
   <div class="wrap">
     <h1>Quantum Film</h1>
-    <p class="lede">Film grain laid by a quantum computer on Moth's Atlas, developed through a film model on pinned
-      arithmetic, and fixed so every print is the same bits on every machine.</p>
+    <p class="lede">Film grain laid by quantum circuits, on Moth's Atlas emulator and on three IBM quantum computers,
+      developed through a film model on pinned arithmetic, and fixed so every print is the same bits on every
+      machine.</p>
     <nav>
-      <a href="#watch">Watch</a><a href="#compare">Compare</a><a href="#roll">Roll a tile</a><a href="#how">How it works</a>
+      <a href="#watch">Watch</a><a href="#compare">Compare</a><a href="#hardware">On IBM hardware</a><a href="#forbidden">Forbidden shots</a><a href="#roll">Roll a tile</a><a href="#how">How it works</a>
       <a href="img/poster.png">Poster</a><a href="https://github.com/loganw234/Quantum-Film/blob/main/docs/chance-made-permanent.pdf">Paper</a><a href="https://github.com/loganw234/Quantum-Film">Source</a>
     </nav>
   </div>
@@ -63,6 +64,11 @@
     <button role="tab" data-pair="crystals" aria-selected="true">Crystals</button>
     <button role="tab" data-pair="prints">Prints</button>
     <button role="tab" data-pair="atlas">Atlas vs the exact law</button>
+    <button role="tab" data-pair="ibm">IBM vs the exact law</button>
+    <button role="tab" data-pair="ibmtwin">IBM vs random placement</button>
+    <label class="device">IBM device
+      <select id="ab-device"><option>ibm_kingston</option><option>ibm_marrakesh</option><option>ibm_fez</option></select>
+    </label>
   </div>
   <div class="ab" id="ab">
     <canvas id="ab-left" width="768" height="768"></canvas>
@@ -72,6 +78,57 @@
     <div class="ab-label right" id="ab-label-right"></div>
   </div>
   <p class="caption" id="ab-caption"></p>
+</section>
+
+<section id="hardware" class="wrap">
+  <h2>On IBM hardware: three quantum computers, one law</h2>
+  <p>On 5 October 2026 the same circuit ran on three IBM Quantum computers, <span class="mono">ibm_kingston</span>,
+    <span class="mono">ibm_marrakesh</span> and <span class="mono">ibm_fez</span> (Heron r2, 156 qubits), on the free
+    Open plan. Every measure was <a href="https://github.com/loganw234/Quantum-Film/blob/main/docs/PREREGISTRATION.md">pre-registered</a>
+    before the first job, and each job's commitment was pushed to GitHub before its result was read. A circuit with
+    a known answer ran first on each device, to check the order its bits are read in: it held every time.</p>
+  <div class="table-wrap"><table class="results" id="hw-table" aria-label="The IBM results beside the exact law, Atlas's emulator and random placement"></table></div>
+  <p class="caption" id="hw-caption"></p>
+  <h3>A sheet from each device</h3>
+  <p>Each device then ran more of the same jobs, and each sheet below pools every five-crystal shot of its day,
+    stacked 29 deep. Click one to compare it with the exact law in the slider above.</p>
+  <div class="sheets" id="hw-sheets"></div>
+</section>
+
+<section id="forbidden" class="wrap">
+  <h2>The forbidden shots: where the quantum shows</h2>
+  <div class="cols">
+    <div>
+      <h3>Why some shots are forbidden</h3>
+      <p id="why-forbidden"></p>
+    </div>
+    <div>
+      <h3>How they happen anyway</h3>
+      <p id="how-forbidden"></p>
+    </div>
+    <div>
+      <h3>Why they are tinted</h3>
+      <p id="tint-forbidden"></p>
+    </div>
+  </div>
+  <div class="tabs" id="fb-tabs">
+    <button data-sheet="golden-pauli-4x4-sheet" aria-selected="true">The exact law</button>
+    <button data-sheet="twin-pauli-4x4-sheet">Random placement</button>
+    <button data-sheet="ibm-kingston-sheet">ibm_kingston</button>
+    <button data-sheet="ibm-marrakesh-sheet">ibm_marrakesh</button>
+    <button data-sheet="ibm-fez-sheet">ibm_fez</button>
+  </div>
+  <div class="tabs" id="fb-view">
+    <button data-view="forbidden" aria-selected="true">The print, forbidden crystals tinted</button>
+    <button data-view="layer">One layer, shot by shot</button>
+  </div>
+  <div class="fb">
+    <canvas id="fb-canvas" width="768" height="768" aria-label="A print with the crystals of forbidden layouts tinted"></canvas>
+  </div>
+  <p class="caption" id="fb-caption"></p>
+  <h3>The commonest forbidden shots on ibm_kingston</h3>
+  <div class="tiles" id="fb-tiles"></div>
+  <p class="caption" id="fb-tiles-caption"></p>
 </section>
 
 <section id="roll" class="wrap">
@@ -111,7 +168,8 @@
       <h3>Film, quantum</h3>
       <p>Here a 16-qubit circuit (51 Givens rotations, 102 CNOTs) prepares five free fermions on a 4 &times; 4 tile.
         Measuring every qubit lays five crystals. Fermions obey Pauli exclusion, so the crystals repel. The circuit ran
-        on Moth Atlas's <span class="mono">tomography-api-v2</span> engine: six jobs, 24,576 shots.</p>
+        on Moth Atlas's <span class="mono">tomography-api-v2</span> emulator (six jobs, 24,576 shots), then on three
+        IBM quantum computers (65 jobs, 761,856 law shots).</p>
     </div>
     <div>
       <h3>Fixed, bit for bit</h3>

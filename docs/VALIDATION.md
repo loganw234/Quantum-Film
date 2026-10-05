@@ -1752,3 +1752,30 @@ so the whole image changes. Instead, each crystal column's forbidden crystals ar
 - **docs/prints/forbidden.png** shows the five tinted prints at one pixel per column, and one layer of three of
   them at four pixels per cell. It is an illustration: the measures are docs/HARDWARE-RESULTS.md's. As the
   pre-registration requires of anything later, it is labelled exploratory, beside the pre-registered tables.
+
+## 2026-10-05 - the web demo shows the IBM results and the forbidden shots; a correction to the runs' entry
+
+- **site/, at the owner's word.**
+  - The lede and description now say what ran where: Moth's Atlas emulator, then three IBM quantum computers.
+  - Compare gains two pairs, an IBM sheet beside the exact law's and beside random placement's, with a device
+    chooser.
+  - **"On IBM hardware"** shows the pre-registered results table and the three sheets.
+  - **"The forbidden shots"** says why the law forbids 1,360 of the 4,368 layouts, how they happen on hardware
+    anyway, and why the prints tint them. It has a viewer (the tinted print, or one layer shot by shot) and
+    kingston's eight commonest forbidden shots as tiles.
+- **Every number on the page is rendered from site/data/hardware.json,** which tools/site_data.py computes with
+  quantum_film.compare from docs/records/2026-10-05/ibm and docs/prints/forbidden.json. It keeps six places, so
+  the page's rounding is not a second rounding.
+- **tests/docs/test_site.py, three new tests:**
+  - it recomputes every value the page shows from the committed runs;
+  - it holds the 15 new images byte for byte to docs/prints;
+  - it holds the page's two typed counts, 65 jobs and 761,856 law shots, to the records.
+
+  A planted change to marrakesh's pooled forbidden share fails the first.
+- **Checked in a browser**, served locally: no console errors, and no horizontal page scroll at 375 px. Two fixes
+  came from it:
+  - a canvas resized after its smoothing was switched off had drawn the one-layer zoom blurred;
+  - "100%" read differently from "100.0%" in the table.
+- **A correction to the entry "round 3's IBM runs".** It gives marrakesh's <X0X1> as +0.314. Its value is
+  1,284/4,096 = 0.31348, which rounds to +0.313: the +0.314 was a second rounding of the table's 0.3135. The tables
+  in docs/HARDWARE-RESULTS.md (0.3135) are right.

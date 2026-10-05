@@ -86,3 +86,73 @@ def test_the_link_preview_shows_the_poster_the_page_serves():
     assert (int(one["og:image:width"]), int(one["og:image:height"])) == struct.unpack(">II", png[16:24])
     assert one["og:title"] == head.title and one["og:description"] == one["description"]
     assert one["twitter:card"] == "summary_large_image"
+
+
+SHEETS = ("golden-pauli-4x4-sheet", "twin-pauli-4x4-sheet", "ibm-kingston-sheet", "ibm-marrakesh-sheet",
+          "ibm-fez-sheet")
+IBM = ROOT / "docs" / "records" / "2026-10-05" / "ibm"
+
+
+def test_the_sites_hardware_numbers_are_the_records_own():
+    """The IBM results the page shows (site/data/hardware.json, tools/site_data.py), recomputed here from the
+    committed runs by quantum_film.compare: each device's pre-registered set, its day of law runs pooled, kingston's
+    commonest forbidden layouts, and the forbidden prints' numbers (docs/prints/forbidden.json)."""
+    from quantum_film import compare
+    d = data("hardware")
+    six = lambda x: round(x, 6)  # noqa: E731
+    assert [x["name"] for x in d["devices"]] == ["ibm_kingston", "ibm_marrakesh", "ibm_fez"]
+    for dev in d["devices"]:
+        recs = compare.device_runs([IBM / dev["name"] / "run"])
+        law = next(r for r in recs if r["role"] == "law")
+        m = compare.law_measures(compare.run_counts(law), floor=False)
+        first = dev["first_set"]
+        assert first["five_crystal_share"] == six(m["n_crystal"]["share"])
+        assert first["forbidden_share"] == six(m["forbidden"]["share_of_n_crystal"])
+        assert (first["xeb"], first["xeb_se"]) == (six(m["xeb"]["value"]), six(m["xeb"]["se"]))
+        for r in (r for r in recs if r["role"] == "coherence"):
+            c = compare.coherence(compare.run_counts(r), r["basis"])
+            assert first[c["observable"]] == six(c["value"])
+        day = [r for r in compare.device_runs([IBM / dev["name"] / "run", *sorted((IBM / dev["name"]).glob(
+            "sheet-*/run"))]) if r["role"] == "law"]
+        pooled = {}
+        for r in day:
+            for y, n in compare.run_counts(r).items():
+                pooled[y] = pooled.get(y, 0) + n
+        pm = compare.law_measures(pooled, floor=False)
+        assert dev["day"]["law_runs"] == len(day) and dev["day"]["shots"] == sum(pooled.values())
+        assert dev["day"]["forbidden_share"] == six(pm["forbidden"]["share_of_n_crystal"])
+        assert dev["day"]["xeb"] == six(pm["xeb"]["value"])
+    ys, ws, _den = compare.exact_law()
+    banned = {Y for Y, w in zip(ys, ws, strict=True) if w == 0}
+    tally = {}
+    for r in compare.device_runs([IBM / "ibm_kingston" / "run", *sorted((IBM / "ibm_kingston").glob("sheet-*/run"))]):
+        if r["role"] == "law":
+            for y, n in compare.run_counts(r).items():
+                if tuple(y) in banned:
+                    tally[tuple(y)] = tally.get(tuple(y), 0) + n
+    top = sorted(tally.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
+    assert [(t["sites"], t["shots"]) for t in d["kingston_commonest_forbidden"]] == [(list(y), n) for y, n in top]
+    assert d["kingston_commonest_forbidden"][0]["sites"] == [0, 1, 2, 3, 4]      # the page's caption names it
+    assert d["kingston_forbidden_shots"] == sum(tally.values())
+    assert (d["forbidden_layouts"], d["layouts"]) == (len(banned), len(ys))
+    printed = json.loads((ROOT / "docs" / "prints" / "forbidden.json").read_text(encoding="ascii"))
+    for name, v in d["forbidden"].items():
+        assert {k: x for k, x in v.items() if k != "side"} == {k: printed[name][k] for k in v if k != "side"}
+
+
+def test_the_sites_sheets_are_the_records_own_images():
+    for name in SHEETS:
+        for suffix in ("print", "forbidden", "layer"):
+            assert (SITE / "img" / f"{name}-{suffix}.png").read_bytes() == \
+                (ROOT / "docs" / "prints" / f"{name}-{suffix}.png").read_bytes(), (name, suffix)
+
+
+def test_the_pages_typed_counts_of_ibm_jobs_and_law_shots_are_the_records():
+    """index.html types two counts into its prose; both are held here to the committed runs."""
+    from quantum_film import compare
+    from quantum_film.ibm import runner
+    lines = runner.lines_under(ROOT / "docs" / "records")
+    law = [r for r in compare.device_runs([IBM]) if r["role"] == "law"]
+    shots = sum(sum(n for _y, n in r["counts"]) for r in law)
+    page = (SITE / "index.html").read_text(encoding="utf-8")
+    assert f"({len(lines)} jobs, {shots:,} law shots)" in page, (len(lines), shots)
