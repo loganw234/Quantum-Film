@@ -1,0 +1,78 @@
+{
+ "backend": "ibm_marrakesh",
+ "job": {
+  "backend": "ibm_marrakesh",
+  "cost": 120,
+  "created": "2026-10-05T12:44:11.837368Z",
+  "estimated_running_time_seconds": 9.225995949,
+  "program": {
+   "id": "sampler"
+  },
+  "state": {
+   "status": "Completed"
+  },
+  "status": "Completed"
+ },
+ "job_id": "db1pn6qvog1s73fig76g",
+ "metrics": {
+  "circuits_execution_time_ns": 6567030016,
+  "qiskit_version": "qiskit",
+  "timestamps": {
+   "created": "2026-10-05T12:44:11.837368Z",
+   "finished": "2026-10-05T12:44:25.167675Z",
+   "running": "2026-10-05T12:44:13.478564Z"
+  },
+  "usage": {
+   "details": [
+    {
+     "metric": {
+      "id": "caffe3ca-729c-5750-8777-df63bbf8bfd9",
+      "value": 9
+     },
+     "unit": "resource_units",
+     "value": 0.1378
+    }
+   ],
+   "qpu_charge_time_seconds": 9,
+   "status": "complete",
+   "unit": "resource_units",
+   "value": 0.1378
+  }
+ },
+ "result_metadata": {
+  "execution": {
+   "execution_spans": {
+    "__type__": "ExecutionSpans",
+    "__value__": {
+     "spans": [
+      {
+       "__type__": "DoubleSliceSpan",
+       "__value__": {
+        "data_slices": {
+         "0": [
+          [
+           24576
+          ],
+          0,
+          1,
+          0,
+          24576
+         ]
+        },
+        "start": {
+         "__type__": "datetime",
+         "__value__": "2026-10-05T12:44:15.437613"
+        },
+        "stop": {
+         "__type__": "datetime",
+         "__value__": "2026-10-05T12:44:23.051752"
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "version": 2
+ }
+}
