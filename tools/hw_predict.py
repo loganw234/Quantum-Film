@@ -28,7 +28,8 @@ versions of Python, qiskit, qiskit-aer, qiskit-ibm-runtime, numpy and this packa
 the same inputs give the same bytes, on the same versions. Aer's sampling is Aer's own (C++) random stream, so a
 prediction is reproducible on the same Aer version, not across versions.
 
-THE LIVE PATH reads IBM's key, so before anything it refuses every condition docs/HARDWARE.md lists (each by
+THE LIVE PATH reads IBM's key, so before it reads the key or imports the HTTP stack (qiskit and qiskit-aer are
+already loaded by then; verifier-P2, round 3), it refuses every condition docs/HARDWARE.md lists (each by
 name): the variables that redirect the key or the tokens, or switch off TLS checks; an ibm-credentials.env in
 the working or home directory; a proxy (urllib.request.getproxies(), the registry's on Windows); a CA bundle;
 a netrc; SSLKEYLOGFILE; the variables the SDK reads for the services this stack configures (GLOBAL_SEARCH_*,
@@ -64,8 +65,7 @@ SEED = 20261003
 from quantum_film.ibm import keyleak  # noqa: E402  (pure: the one list of docs/HARDWARE.md's refusals)
 
 # The live path's refusals are quantum_film.ibm.keyleak's, the same the runner uses: one list, so the two tools
-# cannot drift apart (they had, by one condition, before the merge). IAM_FALLBACK and FallbackRefused are its.
-IAM_FALLBACK = keyleak.FALLBACK
+# cannot drift apart (they had, by one condition, before the merge). FallbackRefused and the lock are its.
 FallbackRefused = keyleak.FallbackRefused
 refuse_the_fallback = keyleak.refuse_the_fallback
 

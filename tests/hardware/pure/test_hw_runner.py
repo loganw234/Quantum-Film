@@ -264,6 +264,20 @@ def test_the_marker_is_written_before_the_submission_and_refuses_any_second_one(
     assert w.submits == 0
 
 
+def test_two_runs_started_together_send_one_job(setup, monkeypatch):
+    """The double start (verifier-P1, round 3): both runs pass once-only before either writes its marker. The marker
+    is created exclusively, so the second is refused by name and sends nothing; a marker that could be overwritten
+    would let both submit."""
+    world, out, m = setup
+    w = world("known-answer", [[KNOWN] * shots(m, "known-answer")[0]])
+    marker = runner.files(out, "known-answer")["submitting"]
+    marker.write_text('{"job": "known-answer", "the other run": true}\n')     # the other run's, written just now
+    monkeypatch.setattr(runner, "once_only", lambda *a: [])                    # both checked before it existed
+    with pytest.raises(runner.Refused, match="appeared after the check: another run of known-answer began"):
+        run(w, out)
+    assert w.submits == 0 and "the other run" in marker.read_text()
+
+
 def test_a_completed_job_keeps_its_marker_and_is_refused_by_both(setup):
     world, out, m = setup
     w = world("known-answer", [[KNOWN] * shots(m, "known-answer")[0]])

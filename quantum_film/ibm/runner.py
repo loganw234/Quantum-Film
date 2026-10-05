@@ -243,8 +243,12 @@ def run(manifest, bundle_sha256, job_name, out_dir, roots, *, backend_name, kind
         raise Refused("; ".join(once))
     f = files(out_dir, job_name)
     # 3: the marker first, written exclusively, so that whatever happens next once_only refuses this job here.
-    write_new(f["submitting"], bundle.text({"begun_at": now_utc(), "bundle_sha256": bundle_sha256,
-                                            "job": job_name}).encode("ascii"))
+    try:
+        write_new(f["submitting"], bundle.text({"begun_at": now_utc(), "bundle_sha256": bundle_sha256,
+                                                "job": job_name}).encode("ascii"))
+    except FileExistsError:
+        raise Refused(f"once only: {f['submitting'].name} appeared after the check: another run of {job_name} began "
+                      "here at the same time, and this one sends nothing") from None
     try:
         handle = submit()                                                # the job exists from here on
     except Exception as e:

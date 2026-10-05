@@ -1,7 +1,9 @@
 """tools/hw_predict.py, run as the lead runs it: with the virtualenv's Python ($QF_IBM_PYTHON), in a subprocess,
 on QPY circuits that make_circuits.py compiles for a fake Heron r2 backend. The project's Python has no qiskit, so
 every step that needs it is a child process (lead.md, 15:34Z). verify/run.sh runs this directory only when
-QF_IBM_PYTHON is set, and skips it by name otherwise; a test here never skips, it fails.
+QF_IBM_PYTHON is set, and skips it by name otherwise. Without it these tests skip, as tests/hardware/qiskit's do, so
+that a plain `make test` on a machine without the virtualenv is not red (verifier-P2, round 3); inside the stage,
+where QF_IBM_PYTHON is set, a skip would fail the stage (verify/pytest-stage.sh).
 
 Nothing here reaches IBM: the fakes' own noise models, and for the live path a recorded transport with the
 network refused (recorded_live.py)."""
@@ -20,6 +22,8 @@ KEEP = ("SYSTEMROOT", "WINDIR", "PATH", "PATHEXT", "COMSPEC", "NUMBER_OF_PROCESS
 # The round's rule for every simulation (lead.md, 17:23Z: the owner's machine was maxed out): set in every child,
 # never inherited, so a gate run uncapped still runs its children capped (verifier-P2, 18:04Z: 766 s under load).
 CAPS = {"OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "QISKIT_IN_PARALLEL": "FALSE"}
+pytestmark = pytest.mark.skipif(not os.environ.get("QF_IBM_PYTHON"),
+                                reason="QF_IBM_PYTHON is unset; verify/run.sh skips the predict stage by name")
 FAKE_KEY = "FAKEKEY-not-a-credential-0123456789abcdefgh"
 FAKE_CRN = ("crn:v1:bluemix:public:quantum-computing:us-east:a/00000000000000000000000000000000:"
             "11111111-2222-3333-4444-555555555555::")
@@ -230,6 +234,7 @@ def test_the_live_path_reads_the_device_and_sends_the_key_only_to_iam(tmp, fez):
     assert not any(e["auth"] == "apikey" for e in log)
     assert not any(e["method"] == "POST" and e["path"].endswith("/jobs") for e in log)
     assert any(e["host"] == "quantum.cloud.ibm.com" and e["path"].endswith("/ibm_fez/properties") for e in log)
+    assert log and all(e["locked"] for e in log), [e for e in log if not e["locked"]]     # K6: armed first
 
 
 def test_the_iam_fallback_stops_the_run_before_the_key_goes_anywhere_else(tmp, fez):
@@ -242,3 +247,4 @@ def test_the_iam_fallback_stops_the_run_before_the_key_goes_anywhere_else(tmp, f
     assert {e["host"] for e in log if e["key_in_request"]} == {"iam.cloud.ibm.com"}
     assert not any(e["auth"] == "apikey" for e in log)
     assert not any(e["host"] == "quantum.cloud.ibm.com" for e in log)
+    assert log and all(e["locked"] for e in log), [e for e in log if not e["locked"]]     # K6: armed first

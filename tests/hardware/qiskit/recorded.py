@@ -101,6 +101,18 @@ def restore(job_id):
         JOBS[job_id] = {"params": json.loads(path.read_bytes(), cls=RuntimeDecoder)["params"], "polls": 0}
 
 
+def locked():
+    """Both of keyleak's locks on the IAM fallback, as a request is sent: warnings.warn is its wrapper, and the
+    fallback's message is an error by filter. verifier-P2 (round 3, K6) moved hw_predict's lock after the service's
+    constructor and its outcome tests still passed; here each request says whether it was sent locked."""
+    import warnings
+
+    from quantum_film.ibm import keyleak
+    wrapper = getattr(warnings.warn, "refuses_the_fallback", False) is True
+    return wrapper and any(f[0] == "error" and f[1] is not None and f[1].match(keyleak.FALLBACK)
+                           for f in warnings.filters)
+
+
 def send(self, req, **kw):
     url = req.url.split("?")[0]
     host, path = url.split("/")[2], "/" + "/".join(url.split("/")[3:])
@@ -109,7 +121,7 @@ def send(self, req, **kw):
     body = body.encode() if isinstance(body, str) else body
     entry = {"method": req.method, "host": host, "path": path, "auth": auth.split(" ")[0] if auth else "-",
              "key": KEY.encode() in body or KEY in auth or any(KEY in str(v) for v in req.headers.values()),
-             "crn_header": "Service-CRN" in req.headers}
+             "crn_header": "Service-CRN" in req.headers, "locked": locked()}
     ENTRIES.append(entry)
     answer = route(req, host, path, body)
     entry["status"] = answer.status_code

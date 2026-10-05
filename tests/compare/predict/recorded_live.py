@@ -17,6 +17,7 @@ import pathlib
 import runpy
 import sys
 import time
+import warnings
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 PREDICT = ROOT / "tools" / "hw_predict.py"
@@ -27,6 +28,16 @@ NETWORK = ("socket.connect", "socket.getaddrinfo", "socket.gethostbyname", "sock
 def refuse_the_network(event, args):
     if event in NETWORK:
         raise PermissionError(f"recorded_live: network refused: {event}")
+
+
+def locked():
+    """Both of keyleak's locks on the IAM fallback, as a request is sent: warnings.warn is its wrapper, and the
+    fallback's message is an error by filter. verifier-P2 (round 3, K6) moved the lock after the service's
+    constructor and the outcome tests still passed; each request now says whether it was sent locked."""
+    from quantum_film.ibm import keyleak
+    wrapper = getattr(warnings.warn, "refuses_the_fallback", False) is True
+    return wrapper and any(f[0] == "error" and f[1] is not None and f[1].match(keyleak.FALLBACK)
+                           for f in warnings.filters)
 
 
 def main(argv):
@@ -67,7 +78,7 @@ def main(argv):
         body = req.body or b""
         body = body.encode() if isinstance(body, str) else body
         log.append({"method": req.method, "host": host, "path": path, "auth": auth.split(" ")[0] if auth else "-",
-                    "key_in_request": key.encode() in body or key in auth or key in req.url})
+                    "key_in_request": key.encode() in body or key in auth or key in req.url, "locked": locked()})
         if host == "iam.cloud.ibm.com":
             if scenario == "iam_fails_later" and sum(e["host"] == host for e in log) > 1:
                 return respond(req, 503, {"errorMessage": "recorded: IAM is down"})

@@ -11,7 +11,14 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def staged_dirs(runner_text):
-    return {pathlib.PurePosixPath(m) for m in re.findall(r"pytest-stage\.sh (tests/[A-Za-z0-9_/-]+)", runner_text)}
+    """(directory, the directories its line takes back out with --ignore=) for each pytest stage line. A stage
+    `tests/compare --ignore=tests/compare/predict` does not run tests/compare/predict: read as a bare prefix it
+    covered them, so deleting the predict stage would have passed unseen (verifier-P2, round 3)."""
+    out, path = set(), r"tests/[A-Za-z0-9_/-]+"
+    for m in re.finditer(rf"pytest-stage\.sh ({path})((?: --ignore={path})*)", runner_text):
+        ignored = frozenset(map(pathlib.PurePosixPath, re.findall(rf"--ignore=({path})", m.group(2))))
+        out.add((pathlib.PurePosixPath(m.group(1)), ignored))
+    return out
 
 
 def orphans(root, dirs):
@@ -21,7 +28,7 @@ def orphans(root, dirs):
     files = set((root / "tests").rglob("test_*.py")) | set((root / "tests").rglob("*_test.py"))
     for f in sorted(files):
         rel = pathlib.PurePosixPath(f.relative_to(root).as_posix())
-        if not any(d in rel.parents for d in dirs):
+        if not any(d in rel.parents and not any(i in rel.parents for i in ignored) for d, ignored in dirs):
             out.append(str(rel))
     return out
 
@@ -41,6 +48,18 @@ def test_a_test_file_outside_every_stage_is_caught(tmp_path):
     (tmp_path / "tests" / "stray" / "law_test.py").write_text("", encoding="utf-8")
     dirs = staged_dirs("  bash verify/pytest-stage.sh tests/golden\n")
     assert orphans(tmp_path, dirs) == ["tests/stray/law_test.py", "tests/stray/test_lost.py"]
+
+
+def test_a_directory_its_stage_ignores_is_an_orphan_unless_another_stage_runs_it(tmp_path):
+    """Negative control: the predict stage's line deleted, as verifier-P2 planted it (round 3)."""
+    for d in ("compare", "compare/predict"):
+        (tmp_path / "tests" / d).mkdir(parents=True)
+    (tmp_path / "tests" / "compare" / "test_measures.py").write_text("", encoding="utf-8")
+    (tmp_path / "tests" / "compare" / "predict" / "test_predict.py").write_text("", encoding="utf-8")
+    compare = "  bash verify/pytest-stage.sh tests/compare --ignore=tests/compare/predict\n"
+    assert orphans(tmp_path, staged_dirs(compare)) == ["tests/compare/predict/test_predict.py"]
+    both = compare + "  env X=1 bash verify/pytest-stage.sh tests/compare/predict\n"
+    assert orphans(tmp_path, staged_dirs(both)) == []
 
 
 def clashes(root):

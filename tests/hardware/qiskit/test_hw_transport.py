@@ -85,6 +85,7 @@ def test_the_key_goes_only_to_iam_and_every_api_call_names_the_instance(live, na
     assert not any(e["auth"] == "apikey" for e in entries)
     assert all(e["crn_header"] for e in entries if e["host"] == "quantum.cloud.ibm.com")
     assert not any(e.get("result_before_anchor") for e in entries)
+    assert all(e["locked"] for e in entries), [e for e in entries if not e["locked"]]     # K6: armed first
 
 
 def test_the_job_sent_is_the_frozen_one(live):
@@ -134,6 +135,7 @@ def test_when_iam_fails_after_its_first_token_the_run_stops_at_once_and_the_key_
     assert {e["host"] for e in entries if e["key"]} == {"iam.cloud.ibm.com"}
     assert not any(e["auth"] == "apikey" for e in entries)
     assert not any(e["host"] == "quantum.cloud.ibm.com" for e in entries)
+    assert entries and all(e["locked"] for e in entries), [e for e in entries if not e["locked"]]     # K6
     assert not runner.files(out_dir, "law")["line"].exists()
 
 
