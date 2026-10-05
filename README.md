@@ -21,7 +21,7 @@ of the crystals is new.
 
 | stock | what lays the crystals | how its grain differs from real film | status |
 |---|---|---|---|
-| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler; a binary64 sampler on libcft that lays golden's roll; a hardware-shaped circuit whose law ran on Atlas and holds; printed, with one print laid entirely by Atlas |
+| **Pauli** | free fermions filling a Fermi disc: a determinantal point process | crystals repel; the grain is hyperuniform, with its structure factor falling to zero at low frequency | on the shelf: golden sampler; a binary64 sampler on libcft that lays golden's roll; a hardware-shaped circuit whose law ran on Atlas and holds; printed, with one print laid entirely by Atlas; run on three IBM QPUs, which carry its exclusion and its coherence |
 | **Poisson** | uniform placement at the same density | none: the classical reference every other stock is measured against | on the shelf |
 | **Speckle** | Born-rule shots of a random pupil through a 2D quantum Fourier transform | crystals bunch; the grain's contrast equals the fidelity of the machine that exposed it | planned |
 
@@ -96,6 +96,24 @@ so each print is a fraction of a millimetre of film seen crystal by crystal.
 
 Every figure below has a dated entry in [docs/VALIDATION.md](docs/VALIDATION.md).
 
+- **The shelf's Pauli law ran on three IBM Quantum QPUs** (2026-10-05):
+  ibm_kingston, ibm_marrakesh and ibm_fez, Heron r2, on the owner's free
+  Open plan. It was pre-registered in
+  [docs/PREREGISTRATION.md](docs/PREREGISTRATION.md) and is reported in full
+  in [docs/HARDWARE-RESULTS.md](docs/HARDWARE-RESULTS.md).
+  - **Exclusion:** of the shots that kept five crystals, 4.3% to 5.4% landed
+    on layouts the law forbids, against 31.1% for the classical twin.
+  - **Coherence:** ⟨X0X1⟩ and ⟨Y0Y1⟩ came out at +0.27 to +0.34, 18 to 23
+    standard errors from the 0 a classical mixture gives. The law's is +0.375.
+  - **Fidelity:** linear XEB +0.81 to +0.85, where the twin scores 0 and the
+    law 1.
+  - **Against the predictions:** every device fell short of its own noise
+    model, which predicted XEB +0.92 to +0.94 and 2.2% to 2.7% forbidden.
+  - **The runs:**
+    - nine jobs, each submitted once;
+    - each job's line committed and pushed before any result was read;
+    - the known answer held on every device;
+    - 45 QPU-seconds of the 600 the plan allows.
 - **The shelf's Pauli law ran on Moth's Atlas emulator, and holds**
   (2026-09-25, job 8586f1cc).
   - **The circuit:** `givens_line.py`, 51 Givens rotations in 15 layers on

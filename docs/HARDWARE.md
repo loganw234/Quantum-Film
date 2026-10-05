@@ -2,7 +2,8 @@
 
 Read and measured on 2026-10-01, before any job ran, by round 3's research
 (two agents, one on IBM's own pages and a local simulation, one on Moth's
-route; sources at the end). Each point says how it is known:
+route; sources at the end). What three devices then did, on 2026-10-05, is
+docs/HARDWARE-RESULTS.md. Each point here says how it is known:
 - **verified** means read on IBM's or Moth's own pages that day;
 - **measured** means run locally on qiskit 2.5.2, qiskit-ibm-runtime 0.50.0
   and qiskit-aer 0.17.2, against the fake backends of the owner's three QPUs;

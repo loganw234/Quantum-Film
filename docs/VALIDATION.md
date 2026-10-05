@@ -1608,3 +1608,34 @@ the verifiers found.
   - 4e07fd0, two rewordings verifier-P2 measured.
 
   It was pushed with this merge, before any job.
+
+## 2026-10-05 - round 3's IBM runs: the shelf's Pauli law on three Heron r2 devices, as pre-registered
+
+The design docs/PREREGISTRATION.md fixed ran at the owner's word, from a fresh clone of main (82989c5), between
+10:26 and 10:34Z: a full set on each of ibm_kingston, ibm_marrakesh and ibm_fez, in ESP order.
+docs/HARDWARE-RESULTS.md has every table and the job ids.
+- **The runs:**
+  - nine jobs, each submitted once, each with its `<job>-submitting.json` marker first;
+  - each line committed and pushed before any result was read, and each anchor commit carries its Co-Authored-By
+    line;
+  - each job's raw result written before anything decoded it, and its results committed and pushed before the
+    next job;
+  - before each device, its manifest held equal to the digest verifier-P1 checked;
+  - IBM charged 45 QPU-seconds in all, of 600.
+- **Before the first job, on that clone:**
+  - verifier-P1's verify_bundle.py passed 80 of 80 on each bundle;
+  - its presubmit_check.py found 0 problems in the nine jobs as they would go on the wire.
+- **The known answers held on all three devices:** 90.8%, 87.1% and 88.6% of 1,024 shots on {0, 1, 3, 7, 12}, none
+  on the mirror. The devices read in decode's order.
+- **The law and coherence**, measured by quantum_film/compare.py over the committed records:
+  - five-crystal share 60.9%, 51.9% and 53.1%;
+  - of those, 4.3%, 5.1% and 5.4% on forbidden layouts. The twin puts 31.1% there and the law 0;
+  - linear XEB +0.844, +0.849 and +0.806 (twin 0, law 1);
+  - <X0X1> +0.332, +0.314 and +0.269; <Y0Y1> +0.330, +0.344 and +0.305. A classical mixture gives 0, the law
+    +0.375.
+- **Against the predictions:** every device fell short of its noise model.
+  - The forbidden share came out 1.92 to 2.08 times the predicted.
+  - The five-crystal share was 11 to 17 points below the predicted.
+  - The XEB was 4 to 7 combined standard errors below the predicted.
+- **The records audit holds all nine runs** with git's order: audit ([], 9). tests/hardware/pure's test that said no
+  job line existed yet is replaced by one naming the nine lines and holding the audit to ([], 9).

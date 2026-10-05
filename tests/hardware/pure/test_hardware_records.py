@@ -24,10 +24,18 @@ def test_every_committed_hardware_run_holds():
     assert found == []
 
 
-def test_docs_records_holds_no_job_line_yet_so_the_test_above_is_vacuous_today():
-    """Stated, not hidden: when the first hardware run is committed this count moves, and the test above holds
-    it. Atlas's runs are commitments.jsonl lines, not hardware job lines, and are not read here."""
-    assert [p.name for p, _ln in runner.lines_under(RECORDS)] == []
+DEVICES = ("ibm_fez", "ibm_kingston", "ibm_marrakesh")
+JOBS = ("coherence", "known-answer", "law")
+
+
+def test_docs_records_holds_round_3s_nine_ibm_lines_and_the_test_above_holds_them_all():
+    """Stated, not hidden: the job lines under docs/records are round 3's nine (2026-10-05: three jobs on each of
+    three IBM devices), and the audit above holds all nine, in git's order. Until they were committed this test
+    said there were none, and the audit was vacuous. A new hardware run moves this list. Atlas's runs are
+    commitments.jsonl lines, not hardware job lines, and are not read here."""
+    found = sorted(p.relative_to(RECORDS).as_posix() for p, _ln in runner.lines_under(RECORDS))
+    assert found == [f"2026-10-05/ibm/{d}/run/{j}-line.json" for d in DEVICES for j in JOBS]
+    assert audit.audit(RECORDS, ROOT, git_order=True) == ([], 9)
 
 
 @pytest.fixture
