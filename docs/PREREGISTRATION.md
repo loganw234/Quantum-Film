@@ -208,13 +208,23 @@ With no noise, the controls:
 - **Who has re-run these predictions.** The lead ran each of them once.
   - Each noise model was built from the device's calibration as read at the
     time. A plain read returns a later calibration now.
-  - The calibrations themselves are committed, but no tool in this repository
-    rebuilds a noise model from a snapshot. So no one has re-made the noisy
-    predictions, and given the same calibration they would repeat only on the
-    same Aer version.
+  - **Round 3's verifier-P2 re-made 7 of the 12 noisy circuits' counts bit for
+    bit** from the committed calibrations: the three known answers, the three
+    XX circuits and kingston's YY.
+    - Its backend took its properties from the snapshot, and its
+      configuration from the same-named fake backend, whose coupling map
+      equals the manifest's.
+    - It built the simulator as hw_predict does, then ran the frozen QPY at the
+      stated seed.
+    - The script is in the round-3 ledger (verifier-P2.md, 10:13Z).
+  - **Not re-made:** the three law predictions (24,576 shots each), and
+    marrakesh's and fez's YY.
+  - No tool in this repository rebuilds a noise model from a snapshot. Given
+    the same calibration, a prediction repeats only on the same Aer version
+    (qiskit-aer 0.17.2).
   - Each file holds its counts (`--with-counts`), so every measure can be
-    recomputed from it. Round 3's verifier-P2 did that for kingston's two
-    files, and re-made the ideal one's counts bit for bit from the frozen QPY.
+    recomputed from it. verifier-P2 did that for all six files, and re-made all
+    three ideal ones bit for bit from the frozen QPY.
 
 ## What the measures bear on
 
