@@ -295,3 +295,35 @@ before it is handed over. That leg's job lines are written on Moth's machine,
 so this project cannot commit them before its results exist (docs/ROUND3.md
 states the weaker anchor). Any results Moth returns are measured by the same
 table, under a note appended here.
+
+## A note, 2026-10-05 (about 11:30Z): a sheet of about 256 columns from each device
+
+At the owner's word, after the nine jobs above had run and their results were committed, each device runs more law
+shots, so that each gives a print of about 256 columns to compare by eye. Nothing above changes.
+
+- **What will run.** 28 more standard bundles were frozen at 11:24-11:28Z, each against its device's live target,
+  a read with no job. They are in `docs/records/2026-10-05/ibm/<device>/sheet-NN/bundle`:
+  - 8 on ibm_kingston: calibration 11:05:15Z, the same chain as above, law ESP now 0.649;
+  - 10 on ibm_marrakesh: 09:51:18Z, the same chain, 0.656;
+  - 10 on ibm_fez: 10:08:31Z, the same chain, 0.631.
+
+  Of each bundle, only the known-answer job and then the law job run; no coherence job.
+- **The order, and when to stop.** Device by device, in the ESP order above. In each bundle the known answer runs
+  first, and the law runs only if it holds. A known answer that does not hold stops everything, as above. Each
+  job is submitted once.
+- **The sheets.** Each device's sheet is laid by compare's print rule:
+  - from the five-crystal shots of every qpu law run of that device on 2026-10-05, the run above and these;
+  - in canonical order (job, then layout), shuffled on the print's own stream;
+  - 29 layers deep, in the largest square of tiles their count fills (compare.print_geometry).
+
+  64 tiles across, 256 columns, needs 118,784 five-crystal shots. At the morning's yields the sheets would be 68,
+  69 and 70 tiles across.
+- **What will be reported:**
+  - every job, as above;
+  - each new law run's measures, job by job. They show the run-to-run variation that each device's single run
+    above could not;
+  - each device's measures pooled over all its law runs;
+  - the three sheets.
+- **No new predictions.** The chains are the ones predicted above. kingston's calibration has moved (its law ESP
+  from 0.682 to 0.649), and its prediction is not re-made.
+- **QPU:** about 11 s a bundle by the nine jobs' charges, about 308 s in all, of the 555 s left.
