@@ -244,6 +244,38 @@ def test_control_9_a_second_submission_is_refused_before_it_submits(setup, tmp_p
     assert w.submits == 1
 
 
+def test_the_marker_is_written_before_the_submission_and_refuses_any_second_one(setup):
+    """verifier-P1 (2026-10-05): a submission that raises may have created the job at IBM with no line. The
+    marker is on disk before submit() is called, the raise stops the run saying so, and once-only then refuses
+    the job here, without a second submission."""
+    world, out, m = setup
+    w = world("known-answer", [[KNOWN] * shots(m, "known-answer")[0]])
+    f = runner.files(out, "known-answer")
+    seen = []
+
+    def lost(*_a):
+        seen.append(f["submitting"].exists())
+        raise ConnectionError("the POST's response was lost")
+    with pytest.raises(runner.Stopped, match="IBM may or may not hold the job"):
+        run(w, out, submit=lost)
+    assert seen == [True] and not f["line"].exists()
+    with pytest.raises(runner.Refused, match="known-answer-submitting.json exists"):
+        run(w, out)
+    assert w.submits == 0
+
+
+def test_a_completed_job_keeps_its_marker_and_is_refused_by_both(setup):
+    world, out, m = setup
+    w = world("known-answer", [[KNOWN] * shots(m, "known-answer")[0]])
+    assert run(w, out) == 0
+    marker = json.loads(runner.files(out, "known-answer")["submitting"].read_text())
+    assert marker["job"] == "known-answer" and marker["begun_at"] == w.now_utc()
+    assert marker["bundle_sha256"] == bundle.sha256((w.bundle_dir / bundle.MANIFEST).read_bytes())
+    with pytest.raises(runner.Refused, match="already has a line.*known-answer-submitting.json exists"):
+        run(w, out)
+    assert w.submits == 1
+
+
 def test_once_only_refuses_an_unreadable_line(setup, tmp_path):
     world, out, m = setup
     (out / "law-line.json").write_text('{"job_id": 1, "job_id": 2}')

@@ -151,7 +151,11 @@ def parse(argv):
     mode.add_argument("--resume", metavar="JOB_ID", help="a submitted job whose line is anchored: wait, fetch, fix")
     mode.add_argument("--refix", action="store_true", help="fix the job's raw payload on disk; no service")
     ap.add_argument("--wait", type=float, default=3600.0, help="seconds to wait for the job's final state")
+    ap.add_argument("--co-author", metavar="'NAME <EMAIL>'",
+                    help="ibm-direct: a Co-Authored-By trailer for the commit that anchors the line")
     a = ap.parse_args(argv)
+    if a.co_author is not None and (not a.co_author.strip() or any(c in a.co_author for c in "\r\n")):
+        fail("--co-author is one line, NAME <EMAIL>: the line's commit message is not to be written into")
     if a.fake and not a.dry_run:
         fail("--fake is for a dry run")
     if a.dry_run and a.resume:
@@ -260,7 +264,8 @@ def main(argv):
     if manifest["route"] == "ibm-direct":
         def anchor_line(path):
             return anchor.commit_and_push(path, f"hardware job line: {a.job} of bundle {digest[:16]} on "
-                                                f"{manifest['backend']}, before any result")
+                                                f"{manifest['backend']}, before any result"
+                                          + (f"\n\nCo-Authored-By: {a.co_author}" if a.co_author else ""))
     else:
         def anchor_line(path):
             print(f"route moth: the job line is {path}. Send it to the owner now, before the results:\n"
@@ -364,10 +369,16 @@ def refused_fallback(argv):
     """What a FallbackRefused stopped, said plainly: before or after the job was submitted."""
     a = parse(argv)
     load()
-    line = runner.files(pathlib.Path(a.out), a.job)["line"]
-    after = (f" The job was submitted and its line {line.name} is written: once IAM answers, run again with "
-             "--resume JOB_ID (the line names it); never resubmit." if line.exists() else
-             " Nothing was submitted.")
+    f = runner.files(pathlib.Path(a.out), a.job)
+    line, marker = f["line"], f["submitting"]
+    if line.exists():
+        after = (f" The job was submitted and its line {line.name} is written: once IAM answers, run again with "
+                 "--resume JOB_ID (the line names it); never resubmit.")
+    elif marker.exists():
+        after = (f" {marker.name} exists, so a submission was begun and IBM may hold the job with no line: read the "
+                 "instance's job list before anything else; this job is refused here from now on.")
+    else:
+        after = " Nothing was submitted."
     print("REFUSED: IAM could not issue a token, and qiskit-ibm-runtime would now send the API key itself to the API "
           "host (docs/HARDWARE.md); stopped before that request: the key went only to IAM." + after)
     return 2

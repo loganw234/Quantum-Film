@@ -30,10 +30,14 @@ def frozen(tmp_path_factory):
     return root, work, work / "main" / "bundle", p
 
 
+CO_AUTHOR = "Ada Tester <ada@example.com>"     # given for the law job only (test_a_co_author_...)
+
+
 @pytest.fixture(scope="module")
 def ran(frozen):
     root, work, bdir, _p = frozen
-    return {job: hwq.dry(root, bdir, job, work / "main" / "run") for job in JOBS}
+    return {job: hwq.dry(root, bdir, job, work / "main" / "run", *(("--co-author", CO_AUTHOR) if job == "law" else ()))
+            for job in JOBS}
 
 
 def test_a_fresh_freeze_holds_and_is_the_fixture_gate_for_gate(frozen):
@@ -67,6 +71,20 @@ def test_each_line_was_pushed_before_its_result_was_read(frozen, ran):
     log = hwq.git(["log", "--format=%s", "--name-only", "--reverse"], work)
     for job in JOBS:
         assert f"hardware job line: {job} of bundle" in log and f"main/run/{job}-line.json" in log
+
+
+def test_a_co_author_rides_in_the_line_commit_when_given_and_only_then(frozen, ran):
+    """--co-author puts one Co-Authored-By trailer at the end of the line's commit message (the project's commits
+    each carry one); a job run without it gets none; a value that would add lines to the message is refused."""
+    root, work, bdir, _p = frozen
+    bodies = [b.strip() for b in hwq.git(["log", "--format=%B%x00"], work).split("\x00") if b.strip()]
+    lines = {job: [b for b in bodies if b.startswith(f"hardware job line: {job} of bundle")] for job in JOBS}
+    assert all(len(found) == 1 for found in lines.values()), lines
+    assert lines["law"][0].endswith(f"before any result\n\nCo-Authored-By: {CO_AUTHOR}")
+    assert all("Co-Authored-By" not in lines[job][0] for job in JOBS if job != "law")
+    for bad in ("Ada <ada@example.com>\nSigned-off-by: someone", " ", "Ada\r"):
+        p = hwq.dry(root, bdir, "law", root / "refused-co-author", "--co-author", bad)
+        assert p.returncode == 2 and "REFUSED: --co-author is one line" in p.stdout, hwq.out(p)
 
 
 def test_the_known_answer_reads_back_and_every_reader_agrees(frozen, ran):

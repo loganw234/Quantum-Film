@@ -6,7 +6,8 @@ the rest in this order (docs/ROUND3.md and the P1 brief):
       bundle names this backend, and this kind, which the tool took from the backend object;
    2. once only: the job has no line, and none of its commitments is in any line already, here or under
       docs/records (fixer.check_job_lines stays clean);
-   3. submit ONE job;
+   3. write <job>-submitting.json, exclusively, then submit ONE job: from the marker on, once-only refuses this
+      job here, so a submission that raised (the job may exist at IBM with no line) is never repeated;
    4. read IBM's created time, in UTC (a status call);
    5. write the job line (fixer.JOB_FORMAT) and anchor it: for ibm-direct, git commit and push, before
       anything can fetch a result; for moth, the line is written to the output directory, for Moth to send
@@ -22,7 +23,8 @@ the rest in this order (docs/ROUND3.md and the P1 brief):
   11. judge a known-answer job (decode.known_answer) against the manifest's expected set.
 It never resubmits. Before step 3 a failure is `Refused` (nothing was sent); after it, `Stopped`, whose
 message says what exists and what to do. The files of a job, in the output directory:
-    <job>-line.json  <job>-raw.json  <job>-status.json  <job>-metrics.json  <job>-verdict.json
+    <job>-submitting.json  <job>-line.json  <job>-raw.json  <job>-status.json  <job>-metrics.json
+    <job>-verdict.json
     <job>-pub<k>-<name>.json   one device run per circuit, PUB k
 (main's .gitattributes, since 9c44f37, stores every *-raw.json exactly, with no line ending converted.) `refix`
 redoes steps 8 to 11 from the files alone, for a raw payload whose fixing failed.
@@ -59,7 +61,7 @@ LINE_SUFFIX = "-line.json"
 
 def files(out_dir, job):
     out = pathlib.Path(out_dir)
-    return {part: out / f"{job}-{part}.json" for part in ("line", "raw", "status", "metrics", "verdict")}
+    return {part: out / f"{job}-{part}.json" for part in ("line", "raw", "status", "metrics", "verdict", "submitting")}
 
 
 def record_path(out_dir, job, entry):
@@ -102,6 +104,10 @@ def once_only(manifest, job_name, out_dir, roots):
     if files(out_dir, job_name)["line"].exists():
         out.append(f"once only: {job_name} already has a line in the output directory; a job is submitted once, "
                    "and a re-run needs a newly frozen bundle")
+    if files(out_dir, job_name)["submitting"].exists():
+        out.append(f"once only: {files(out_dir, job_name)['submitting'].name} exists: a submission of {job_name} was "
+                   "begun here, and IBM may hold the job; read the instance's job list before anything else, and a "
+                   "re-run needs a newly frozen bundle")
     for path, line in lines_under(out_dir, *roots):
         if line is None:
             out.append(f"once only: {path.name} is not a readable job line")
@@ -236,7 +242,15 @@ def run(manifest, bundle_sha256, job_name, out_dir, roots, *, backend_name, kind
     if once:
         raise Refused("; ".join(once))
     f = files(out_dir, job_name)
-    handle = submit()                                                    # 3: the job exists from here on
+    # 3: the marker first, written exclusively, so that whatever happens next once_only refuses this job here.
+    write_new(f["submitting"], bundle.text({"begun_at": now_utc(), "bundle_sha256": bundle_sha256,
+                                            "job": job_name}).encode("ascii"))
+    try:
+        handle = submit()                                                # the job exists from here on
+    except Exception as e:
+        raise Stopped(f"the submission of {job_name} raised ({type(e).__name__}: {e}), and IBM may or may not hold "
+                      f"the job: {f['submitting'].name} stays, so this job is refused here from now on. Read the "
+                      "instance's job list before anything else; a re-run needs a newly frozen bundle.") from e
     jid = job_id(handle)
     log(f"submitted {job_name}: job {jid}")
     try:
