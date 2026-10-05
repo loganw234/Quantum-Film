@@ -1779,3 +1779,22 @@ so the whole image changes. Instead, each crystal column's forbidden crystals ar
 - **A correction to the entry "round 3's IBM runs".** It gives marrakesh's <X0X1> as +0.314. Its value is
   1,284/4,096 = 0.31348, which rounds to +0.313: the +0.314 was a second rounding of the table's 0.3135. The tables
   in docs/HARDWARE-RESULTS.md (0.3135) are right.
+
+## 2026-10-05 - the poster shows an IBM print and the forbidden shots
+
+- **tools/poster.py, at the owner's word.**
+  - The strip's middle frame was the golden Pauli print. It is now ibm_kingston's sheet, laid from 130,181
+    five-crystal shots, so the strip runs Atlas (emulated), IBM (a QPU), then TRI-X (classical).
+  - The subtitle says "quantum computers", and the foot names IBM Quantum in place of tomography-api-v2.
+  - Beside the IBM frame is an inset: the top-left 64 x 64 cells of one layer of its sheet, shot by shot, with the
+    layouts the law forbids tinted (docs/prints/ibm-kingston-sheet-layer.png, at 6 pixels a cell). Under it is
+    the share: 4.3% of ibm_kingston's five-crystal shots, against 31.1% for random placement.
+- **Every count and share on the poster is read when it is drawn:**
+  - the shots from the prints' records (atlas-pauli-4x4.json and site/data/hardware.json's sheet_layouts);
+  - the shares from site/data/hardware.json, which tests/docs/test_site.py recomputes from the runs.
+
+  The script refuses a layer image that is not one pixel a cell of the sheet it names.
+- **Still 2400 x 3200, and site/img/poster.png is byte for byte docs/prints/poster.png** (test_site). The Open
+  Graph alt text and the README's description now name the IBM frame. The README's list of what the web demo
+  holds gains its two new sections.
+- Not held: the poster's prose. As before, no verifier read it (docs/ROADMAP.md).

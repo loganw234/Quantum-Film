@@ -144,7 +144,12 @@ the committed record, and saves every number above in
   [loganw234.github.io/Quantum-Film](https://loganw234.github.io/Quantum-Film/),
   is the static page in site/. It holds:
   - an animated story of how film grain forms, classically and on Atlas;
-  - A|B sliders over classical and quantum crystals and prints;
+  - A|B sliders over classical and quantum crystals and prints, and each IBM
+    sheet beside the exact law's and random placement's;
+  - the IBM results beside the exact law, the emulator and random placement,
+    with a sheet from each device;
+  - the forbidden shots: why the law forbids them, how hardware lays them
+    anyway, each sheet with them tinted, and the commonest ones as tiles;
   - a tile you roll crystal by crystal, to watch the Pauli exclusion hole
     open.
 
@@ -154,7 +159,9 @@ the committed record, and saves every number above in
   captions included. For a screen recorder, open it as `?solo&play`: the stage
   alone, filling the window, playing on its own.
 - **The poster** is [docs/prints/poster.png](docs/prints/poster.png): three real
-  prints on a strip of film (tools/poster.py).
+  prints on a strip of film, laid by Atlas, by ibm_kingston and by TRI-X's
+  random grain. Beside ibm_kingston's is a corner of one layer of its sheet,
+  the layouts the law forbids tinted (tools/poster.py).
 - **The paper**, *Chance, made permanent*, is
   [docs/chance-made-permanent.pdf](docs/chance-made-permanent.pdf): the law, the
   circuit on Atlas, the fixer, the prints and what comes next (a whole frame,

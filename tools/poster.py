@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""The poster: three real prints on a strip of 35 mm film, over a field of real Pauli crystals.
+"""The poster: three real prints on a strip of 35 mm film, over a field of real Pauli crystals: the shelf's law laid
+by Moth's Atlas emulator, then by one of IBM's quantum computers, then classical TRI-X grain.
 
     python tools/poster.py
 
 Writes docs/prints/poster.png (2400 x 3200) and a copy in site/img/. Every grain on it comes from a committed
 record: the frames are docs/prints/'s prints, and the faint dots behind them are site/data/fields.json's golden
-Pauli layer. Fonts are Windows' Segoe UI and Consolas; elsewhere a similar font stands in.
+Pauli layer. The two shares it states are read from site/data/hardware.json (tools/site_data.py). Fonts are Windows'
+Segoe UI and Consolas; elsewhere a similar font stands in.
 """
 if __name__ != "__main__":
     raise ImportError("this script writes files when it runs; run it, never import it (CLAUDE.md)")
@@ -20,9 +22,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PRINTS = ROOT / "docs" / "prints"
 W, H = 2400, 3200
 BG, INK, DIM, AMBER, CYAN = (7, 8, 11), (242, 239, 232), (154, 151, 143), (240, 180, 84), (111, 211, 255)
-FRAMES = [("atlas-pauli-4x4", "QUANTUM, MEASURED", "every crystal laid by", "Moth's Atlas: 24,389 shots"),
-          ("pauli", "QUANTUM", "laid by the Pauli law", "crystals that repel"),
+FRAMES = [("atlas-pauli-4x4", "QUANTUM, EMULATED", "every crystal laid by", "Moth's Atlas: {atlas} shots"),
+          ("ibm-kingston-sheet", "QUANTUM, ON A QPU", "every crystal laid by IBM's", "ibm_kingston: {kingston} shots"),
           ("trix", "CLASSICAL", "TRI-X as atlas-film", "coats it: random grain")]
+INSET = 64, 6       # the IBM frame's inset: a corner of one layer of its sheet, cells across and pixels a cell
 
 
 def font(names, size):
@@ -66,7 +69,7 @@ def main():
 
     # the title
     spaced(d, (W / 2, 150), "QUANTUM FILM", LIGHT(168), INK, 46)
-    sub = "Film grain laid by a quantum computer, and fixed bit for bit"
+    sub = "Film grain laid by quantum computers, and fixed bit for bit"
     d.text((W / 2, 400), sub, font=REG(56), fill=AMBER, anchor="mm")
 
     # the strip
@@ -82,7 +85,12 @@ def main():
             d.rounded_rectangle((x, y, x + hole_w, y + hole_h), radius=10, fill=BG)
         y += pitch
     edge = MONO(30)
+    hw = json.loads((ROOT / "site" / "data" / "hardware.json").read_text(encoding="ascii"))
+    kingston = next(x for x in hw["devices"] if x["name"] == "ibm_kingston")
+    atlas = json.loads((PRINTS / "atlas-pauli-4x4.json").read_text(encoding="ascii"))
+    counts = {"atlas": f"{atlas['rolls']['used']:,}", "kingston": f"{kingston['day']['sheet_layouts']:,}"}
     for i, (name, kind, l1, l2) in enumerate(FRAMES):
+        l2 = l2.format(**counts)
         fy = top + gap + i * (fr + gap)
         frame = Image.open(PRINTS / f"{name}-print.png").convert("RGB").resize((fr, fr), Image.NEAREST)
         img.paste(frame, (int(W / 2 - fr / 2), int(fy)))
@@ -107,10 +115,25 @@ def main():
              "every machine."]
     for j, line in enumerate(notes):
         d.text((rx, top + gap + fr / 2 - 110 + j * 52), line, font=REG(38), fill=DIM)
+    # beside the IBM frame: a corner of one layer of its sheet, shot by shot, the layouts the law forbids tinted
+    # (tools/first_prints.py --forbidden), and their share beside random placement's
+    n, z = INSET
+    fy = top + 2 * gap + fr
+    layer = Image.open(PRINTS / "ibm-kingston-sheet-layer.png").convert("RGB")
+    if layer.size != (kingston["day"]["sheet_columns"],) * 2:
+        raise SystemExit("the IBM layer view is not one pixel a cell of the sheet; the inset would misstate its scale")
+    img.paste(layer.crop((0, 0, n, n)).resize((n * z, n * z), Image.NEAREST), (int(rx), int(fy)))
+    d.rectangle((rx - 3, fy - 3, rx + n * z + 2, fy + n * z + 2), outline=(60, 52, 40), width=3)
+    pct = lambda x: f"{100 * x:.1f}%"  # noqa: E731
+    forb = ["A corner of one layer, shot", "by shot. Tinted: layouts the",
+            f"law forbids. They are {pct(kingston['day']['forbidden_share'])}", "of ibm_kingston's five-crystal",
+            f"shots; placed at random, {pct(hw['twin']['forbidden_share'])}."]
+    for j, line in enumerate(forb):
+        d.text((rx, fy + n * z + 34 + j * 50), line, font=REG(36), fill=DIM)
 
     # the foot
     d.text((W / 2, bottom + 110), "Moth Hack 2026", font=SEMI(50), fill=INK, anchor="mm")
-    d.text((W / 2, bottom + 180), "Moth Atlas · tomography-api-v2 · atlas-film · cft-fp256",
+    d.text((W / 2, bottom + 180), "Moth Atlas · IBM Quantum · atlas-film · cft-fp256",
            font=REG(40), fill=DIM, anchor="mm")
     d.text((W / 2, bottom + 240), "github.com/loganw234/Quantum-Film", font=REG(40), fill=AMBER, anchor="mm")
 
