@@ -90,6 +90,22 @@ def test_an_ideal_run_reads_the_known_answer_in_every_shot(kingston, tmp):
     assert row["measures"]["holds"] and row["measures"]["share"] == 1.0 and row["measures"]["modal"] == [0, 1, 3, 7, 12]
 
 
+def test_a_run_given_no_shots_or_seed_states_the_plans_shots_and_the_pinned_seed(kingston, tmp):
+    """The command line's defaults, as a run states them (verifier-P2, round 3, D5/D6: tests/compare/
+    test_compare_predict_defaults.py pins the constants SHOTS and SEED, and a changed default= in the argparse
+    lines that read them passed every test). The shots are bundle.PLAN's; the seed is the one the committed
+    predictions state; each circuit's simulator seed is the seed plus its place."""
+    from quantum_film.ibm import bundle
+    plan = {name: shots for _job, circuits in bundle.PLAN for name, _role, _basis, shots in circuits}
+    out = json.loads(predict(["--noise", "none", "--law", kingston / "law.qpy", "--known-answer",
+                              kingston / "known-answer.qpy"], tmp))
+    rows = {r["role"]: r for r in out["circuits"]}
+    assert out["seed"] == 20261003
+    assert rows["law"]["shots"] == plan["law"] and rows["law"]["seed_simulator"] == 20261003 + 0
+    assert rows["known-answer"]["shots"] == plan["known-answer"]
+    assert rows["known-answer"]["seed_simulator"] == 20261003 + 3
+
+
 def test_an_ideal_run_of_the_compiled_law_lays_the_law(kingston, tmp):
     """The positive control of the whole chain: the compiled circuit, simulated with no noise, is a perfect sampler,
     so it lands in the floor: no shot outside five crystals, none forbidden, the fidelity 1 within its error."""
