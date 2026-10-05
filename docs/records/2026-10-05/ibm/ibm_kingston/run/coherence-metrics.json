@@ -1,0 +1,86 @@
+{
+ "backend": "ibm_kingston",
+ "job": {
+  "backend": "ibm_kingston",
+  "cost": 60,
+  "created": "2026-10-05T10:30:29.769214Z",
+  "program": {
+   "id": "sampler"
+  },
+  "state": {
+   "status": "Completed"
+  },
+  "status": "Completed"
+ },
+ "job_id": "db1noheegvvc73bhtif0",
+ "metrics": {
+  "circuits_execution_time_ns": 2167469824,
+  "qiskit_version": "qiskit",
+  "timestamps": {
+   "created": "2026-10-05T10:30:29.769214Z",
+   "finished": "2026-10-05T10:32:28.411385Z",
+   "running": "2026-10-05T10:30:31.192814Z"
+  },
+  "usage": {
+   "details": [
+    {
+     "metric": {
+      "id": "caffe3ca-729c-5750-8777-df63bbf8bfd9",
+      "value": 4
+     },
+     "unit": "resource_units",
+     "value": 0.0645
+    }
+   ],
+   "qpu_charge_time_seconds": 4,
+   "status": "complete",
+   "unit": "resource_units",
+   "value": 0.0645
+  }
+ },
+ "result_metadata": {
+  "execution": {
+   "execution_spans": {
+    "__type__": "ExecutionSpans",
+    "__value__": {
+     "spans": [
+      {
+       "__type__": "DoubleSliceSpan",
+       "__value__": {
+        "data_slices": {
+         "0": [
+          [
+           4096
+          ],
+          0,
+          1,
+          0,
+          4096
+         ],
+         "1": [
+          [
+           4096
+          ],
+          0,
+          1,
+          0,
+          4096
+         ]
+        },
+        "start": {
+         "__type__": "datetime",
+         "__value__": "2026-10-05T10:32:23.668496"
+        },
+        "stop": {
+         "__type__": "datetime",
+         "__value__": "2026-10-05T10:32:26.715991"
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "version": 2
+ }
+}
